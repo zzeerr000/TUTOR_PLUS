@@ -17,10 +17,12 @@ const common_1 = require("@nestjs/common");
 const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const transaction_entity_1 = require("./entities/transaction.entity");
+const event_entity_1 = require("../calendar/entities/event.entity");
 const connections_service_1 = require("../connections/connections.service");
 let FinanceService = class FinanceService {
-    constructor(transactionsRepository, connectionsService) {
+    constructor(transactionsRepository, eventsRepository, connectionsService) {
         this.transactionsRepository = transactionsRepository;
+        this.eventsRepository = eventsRepository;
         this.connectionsService = connectionsService;
     }
     async create(createTransactionDto) {
@@ -34,6 +36,7 @@ let FinanceService = class FinanceService {
         return Array.isArray(saved) ? saved[0] : saved;
     }
     async findAll(userId, userRole) {
+        await this.checkAndCreateTransactionsForPastEvents();
         if (userRole === 'tutor') {
             const connections = await this.connectionsService.getConnections(userId, 'tutor');
             const connectedStudentIds = connections.map(c => c.studentId);
@@ -63,6 +66,64 @@ let FinanceService = class FinanceService {
                 .getMany();
         }
     }
+    async checkAndCreateTransactionsForPastEvents() {
+        const now = new Date();
+        const events = await this.eventsRepository.find({
+            where: {
+                transactionId: (0, typeorm_2.IsNull)(),
+            },
+            relations: ['student', 'tutor'],
+        });
+        for (const event of events) {
+            const eventDate = new Date(event.date);
+            const timeStr = event.time;
+            let hour24 = 0;
+            let minute = 0;
+            if (timeStr.includes('AM') || timeStr.includes('PM')) {
+                const [timePart, period] = timeStr.split(' ');
+                const [hours, minutes] = timePart.split(':');
+                hour24 = parseInt(hours);
+                if (period === 'PM' && hour24 !== 12) {
+                    hour24 += 12;
+                }
+                else if (period === 'AM' && hour24 === 12) {
+                    hour24 = 0;
+                }
+                minute = parseInt(minutes);
+            }
+            else {
+                const [hours, minutes] = timeStr.split(':');
+                hour24 = parseInt(hours);
+                minute = parseInt(minutes);
+            }
+            eventDate.setHours(hour24, minute, 0, 0);
+            const eventEndTime = new Date(eventDate);
+            eventEndTime.setHours(eventEndTime.getHours() + 1);
+            if (eventEndTime < now && !event.transactionId) {
+                const connections = await this.connectionsService.getConnections(event.tutorId, 'tutor');
+                const isConnected = connections.some(c => c.studentId === event.studentId);
+                if (!isConnected) {
+                    continue;
+                }
+                try {
+                    const transaction = await this.create({
+                        amount: 0,
+                        status: 'pending',
+                        subject: event.subject || event.title,
+                        tutorId: event.tutorId,
+                        studentId: event.studentId,
+                        dueDate: eventDate,
+                    });
+                    event.transactionId = transaction.id;
+                    event.paymentPending = true;
+                    await this.eventsRepository.save(event);
+                }
+                catch (error) {
+                    console.error('Failed to create transaction for past event:', error);
+                }
+            }
+        }
+    }
     async confirmPayment(transactionId, tutorId) {
         const transaction = await this.transactionsRepository.findOne({
             where: { id: transactionId },
@@ -76,6 +137,7 @@ let FinanceService = class FinanceService {
         }
         transaction.status = 'completed';
         const updated = await this.transactionsRepository.save(transaction);
+        await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false });
         return updated;
     }
     async getStats(userId, userRole) {
@@ -102,8 +164,10 @@ exports.FinanceService = FinanceService;
 exports.FinanceService = FinanceService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
-    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
+    __param(1, (0, typeorm_1.InjectRepository)(event_entity_1.Event)),
+    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         connections_service_1.ConnectionsService])
 ], FinanceService);
 //# sourceMappingURL=finance.service.js.map

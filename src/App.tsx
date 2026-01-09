@@ -127,7 +127,7 @@ export default function App() {
       case 'messenger':
         return <Messenger userType={userType} />;
       case 'finance':
-        return <Finance />;
+        return <Finance userType={user?.role} />;
       case 'materials':
         return <FileManager userType={userType} />;
       case 'progress':

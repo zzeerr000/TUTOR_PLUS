@@ -94,9 +94,9 @@ export function Messenger({ userType }: MessengerProps) {
       const formattedMessages = data.map((m: any) => {
         const createdAt = m.createdAt ? new Date(m.createdAt) : new Date();
         return {
-          id: m.id,
-          text: m.text,
-          sent: m.senderId === userId,
+        id: m.id,
+        text: m.text,
+        sent: m.senderId === userId,
           time: createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
           createdAt: createdAt.toISOString(),
         };
@@ -106,7 +106,7 @@ export function Messenger({ userType }: MessengerProps) {
       setMessages(formattedMessages);
       
       try {
-        await api.request(`/messages/${otherUserId}/read`, { method: 'POST' });
+      await api.request(`/messages/${otherUserId}/read`, { method: 'POST' });
       } catch (readError) {
         console.warn('Failed to mark messages as read:', readError);
       }
@@ -275,21 +275,21 @@ export function Messenger({ userType }: MessengerProps) {
                       </div>
                     )}
                     <div
-                      className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}
-                    >
-                      <div
-                        className={`max-w-[70%] rounded-lg p-3 ${
-                          msg.sent
-                            ? 'bg-[#1db954] text-white'
-                            : 'bg-[#282828] text-white'
-                        }`}
-                      >
-                        <div className="text-sm">{msg.text}</div>
-                        <div className={`text-xs mt-1 ${msg.sent ? 'text-white/70' : 'text-gray-400'}`}>
-                          {msg.time}
-                        </div>
-                      </div>
-                    </div>
+                className={`flex ${msg.sent ? 'justify-end' : 'justify-start'}`}
+              >
+                <div
+                  className={`max-w-[70%] rounded-lg p-3 ${
+                    msg.sent
+                      ? 'bg-[#1db954] text-white'
+                      : 'bg-[#282828] text-white'
+                  }`}
+                >
+                  <div className="text-sm">{msg.text}</div>
+                  <div className={`text-xs mt-1 ${msg.sent ? 'text-white/70' : 'text-gray-400'}`}>
+                    {msg.time}
+                  </div>
+                </div>
+              </div>
                   </React.Fragment>
                 );
               })

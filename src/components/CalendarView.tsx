@@ -6,7 +6,10 @@ interface CalendarViewProps {
   userType?: 'tutor' | 'student';
 }
 
+type CalendarViewType = 'month' | 'week' | 'day';
+
 export function CalendarView({ userType }: CalendarViewProps) {
+  const [viewType, setViewType] = useState<CalendarViewType>('month');
   const [currentDate, setCurrentDate] = useState(new Date()); // Current date
   const [events, setEvents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -19,6 +22,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
     subject: '',
     studentId: '',
     color: '#1db954',
+    repeatType: 'once' as 'once' | 'week' | 'month',
   });
   const [error, setError] = useState('');
   const [submitting, setSubmitting] = useState(false);
@@ -73,6 +77,32 @@ export function CalendarView({ userType }: CalendarViewProps) {
     return `${hour12}:${minutes} ${ampm}`;
   };
 
+  const generateRepeatDates = (startDate: string, repeatType: 'once' | 'week' | 'month'): string[] => {
+    if (repeatType === 'once') {
+      return [startDate];
+    }
+
+    const dates: string[] = [];
+    const start = new Date(startDate);
+    const end = new Date(start);
+
+    if (repeatType === 'week') {
+      // Generate dates for 1 year (52 weeks)
+      end.setFullYear(end.getFullYear() + 1);
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate() + 7)) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+    } else if (repeatType === 'month') {
+      // Generate dates for 1 year (12 months)
+      end.setFullYear(end.getFullYear() + 1);
+      for (let d = new Date(start); d <= end; d.setMonth(d.getMonth() + 1)) {
+        dates.push(d.toISOString().split('T')[0]);
+      }
+    }
+
+    return dates;
+  };
+
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -91,14 +121,22 @@ export function CalendarView({ userType }: CalendarViewProps) {
         });
         setEditingEvent(null);
       } else {
-        await api.createEvent({
-          title: newEvent.title || newEvent.subject,
-          date: newEvent.date,
-          time: time12Hour,
-          subject: newEvent.subject,
-          studentId: parseInt(newEvent.studentId),
-          color: newEvent.color,
-        });
+        // Generate dates based on repeat type
+        const dates = generateRepeatDates(newEvent.date, newEvent.repeatType);
+        
+        // Create events for all dates
+        const eventPromises = dates.map(date => 
+          api.createEvent({
+            title: newEvent.title || newEvent.subject,
+            date: date,
+            time: time12Hour,
+            subject: newEvent.subject,
+            studentId: parseInt(newEvent.studentId),
+            color: newEvent.color,
+          })
+        );
+
+        await Promise.all(eventPromises);
       }
       setShowAddDialog(false);
       setNewEvent({
@@ -108,6 +146,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         subject: '',
         studentId: '',
         color: '#1db954',
+        repeatType: 'once',
       });
       loadEvents();
       if (showDateDetails) {
@@ -156,6 +195,38 @@ export function CalendarView({ userType }: CalendarViewProps) {
     setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1));
   };
 
+  const prevWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 7);
+    setCurrentDate(newDate);
+  };
+
+  const nextWeek = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 7);
+    setCurrentDate(newDate);
+  };
+
+  const getWeekDates = (date: Date): Date[] => {
+    const week: Date[] = [];
+    const startOfWeek = new Date(date);
+    const day = startOfWeek.getDay();
+    const diff = startOfWeek.getDate() - day;
+    startOfWeek.setDate(diff);
+
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(startOfWeek);
+      d.setDate(startOfWeek.getDate() + i);
+      week.push(d);
+    }
+    return week;
+  };
+
+  const getEventsForWeekDate = (date: Date) => {
+    const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+    return events.filter(e => e.date === dateStr);
+  };
+
   const getEventsForDate = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     return events.filter(e => e.date === dateStr);
@@ -164,6 +235,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const handleDateClick = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayEvents = getEventsForDate(day);
+    setSelectedDate(dateStr);
+    setSelectedDateEvents(dayEvents);
+    setShowDateDetails(true);
+  };
+
+  const handleDateClickFromStr = (dateStr: string) => {
+    const dayEvents = events.filter(e => e.date === dateStr);
     setSelectedDate(dateStr);
     setSelectedDateEvents(dayEvents);
     setShowDateDetails(true);
@@ -228,28 +306,118 @@ export function CalendarView({ userType }: CalendarViewProps) {
     }
   };
 
+  const weekDates = getWeekDates(currentDate);
+  const weekStartDate = weekDates[0];
+  const weekEndDate = weekDates[6];
+  const weekRange = `${weekStartDate.toLocaleDateString('default', { month: 'short', day: 'numeric' })} - ${weekEndDate.toLocaleDateString('default', { month: 'short', day: 'numeric', year: 'numeric' })}`;
+
+  const getCurrentWeekEvents = () => {
+    const today = new Date();
+    const currentWeekStart = new Date(today);
+    const day = currentWeekStart.getDay();
+    const diff = currentWeekStart.getDate() - day + (day === 0 ? -6 : 1); // Get Monday
+    currentWeekStart.setDate(diff);
+    currentWeekStart.setHours(0, 0, 0, 0);
+
+    const currentWeekEnd = new Date(currentWeekStart);
+    currentWeekEnd.setDate(currentWeekEnd.getDate() + 6);
+    currentWeekEnd.setHours(23, 59, 59, 999);
+
+    const weekEvents = events.filter(event => {
+      const eventDate = new Date(event.date + 'T00:00:00');
+      return eventDate >= currentWeekStart && eventDate <= currentWeekEnd;
+    });
+
+    // Sort by date and time
+    return weekEvents.sort((a, b) => {
+      // Compare dates first
+      const dateCompare = a.date.localeCompare(b.date);
+      if (dateCompare !== 0) {
+        return dateCompare;
+      }
+      
+      // If dates are the same, compare times
+      // Convert 12-hour format to 24-hour for comparison
+      const parseTime = (timeStr: string): number => {
+        if (timeStr.includes('AM') || timeStr.includes('PM')) {
+          const [timePart, period] = timeStr.split(' ');
+          const [hours, minutes] = timePart.split(':');
+          let hour24 = parseInt(hours);
+          if (period === 'PM' && hour24 !== 12) {
+            hour24 += 12;
+          } else if (period === 'AM' && hour24 === 12) {
+            hour24 = 0;
+          }
+          return hour24 * 60 + parseInt(minutes);
+        } else {
+          const [hours, minutes] = timeStr.split(':');
+          return parseInt(hours) * 60 + parseInt(minutes);
+        }
+      };
+      
+      return parseTime(a.time) - parseTime(b.time);
+    });
+  };
+
   return (
     <div className="space-y-4 pb-6">
-      {/* Month Navigation */}
+      {/* View Type Selector */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl">{monthName}</h2>
-        <div className="flex gap-2">
+        <div className="flex gap-2 bg-[#181818] rounded-lg p-1">
           <button
-            onClick={prevMonth}
-            className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+            onClick={() => setViewType('month')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewType === 'month' 
+                ? 'bg-[#1db954] text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <ChevronLeft size={20} />
+            Month
           </button>
           <button
-            onClick={nextMonth}
-            className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+            onClick={() => setViewType('week')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewType === 'week' 
+                ? 'bg-[#1db954] text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
           >
-            <ChevronRight size={20} />
+            Week
           </button>
+          <button
+            onClick={() => setViewType('day')}
+            className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+              viewType === 'day' 
+                ? 'bg-[#1db954] text-white' 
+                : 'text-gray-400 hover:text-white'
+            }`}
+          >
+            Day
+          </button>
+        </div>
+        <div className="flex items-center gap-2">
+          <h2 className="text-xl">
+            {viewType === 'month' ? monthName : viewType === 'week' ? weekRange : currentDate.toLocaleDateString('default', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+          </h2>
+          <div className="flex gap-2">
+            <button
+              onClick={viewType === 'month' ? prevMonth : prevWeek}
+              className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+            >
+              <ChevronLeft size={20} />
+            </button>
+            <button
+              onClick={viewType === 'month' ? nextMonth : nextWeek}
+              className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+            >
+              <ChevronRight size={20} />
+            </button>
+          </div>
         </div>
       </div>
 
       {/* Calendar Grid */}
+      {viewType === 'month' && (
       <div className="bg-[#181818] rounded-lg p-4">
         {/* Day Headers */}
         <div className="grid grid-cols-7 gap-2 mb-2">
@@ -277,16 +445,16 @@ export function CalendarView({ userType }: CalendarViewProps) {
             return (
               <div
                 key={day}
-                onClick={() => {
-                  if (userType === 'tutor') {
-                    handleDateClick(day);
-                  } else {
-                    const dayEvents = getEventsForDate(day);
-                    if (dayEvents.length > 0) {
+                  onClick={() => {
+                    if (userType === 'tutor') {
                       handleDateClick(day);
+                    } else {
+                      const dayEvents = getEventsForDate(day);
+                      if (dayEvents.length > 0) {
+                        handleDateClick(day);
+                      }
                     }
-                  }
-                }}
+                  }}
                 className={`aspect-square rounded-lg p-1 text-center relative ${
                   isToday ? 'bg-[#1db954]' : 'bg-[#282828] hover:bg-[#333333]'
                 } transition-colors cursor-pointer`}
@@ -310,19 +478,155 @@ export function CalendarView({ userType }: CalendarViewProps) {
           })}
         </div>
       </div>
+      )}
+
+      {/* Week View */}
+      {viewType === 'week' && (
+        <div className="bg-[#181818] rounded-lg p-4">
+          <div className="grid grid-cols-7 gap-2">
+            {weekDates.map((date, idx) => {
+              const dayEvents = getEventsForWeekDate(date);
+              const today = new Date();
+              const isToday = 
+                date.getDate() === today.getDate() && 
+                date.getMonth() === today.getMonth() && 
+                date.getFullYear() === today.getFullYear();
+              const dateStr = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+
+              return (
+                <div key={idx} className="border-r border-gray-800 last:border-r-0">
+                  <div className={`text-center py-2 mb-2 ${isToday ? 'bg-[#1db954] rounded-lg' : ''}`}>
+                    <div className={`text-xs text-gray-400 ${isToday ? 'text-white' : ''}`}>
+                      {date.toLocaleDateString('default', { weekday: 'short' })}
+                    </div>
+                    <div className={`text-lg font-semibold ${isToday ? 'text-white' : 'text-gray-300'}`}>
+                      {date.getDate()}
+                    </div>
+                  </div>
+                  <div 
+                    className="space-y-1 min-h-[200px] cursor-pointer"
+                    onClick={() => {
+                      if (userType === 'tutor' || dayEvents.length > 0) {
+                        handleDateClickFromStr(dateStr);
+                      }
+                    }}
+                  >
+                    {dayEvents.length === 0 && userType === 'tutor' && (
+                      <div className="text-xs text-gray-500 text-center py-2">Click to add</div>
+                    )}
+                    {dayEvents.map((event, eventIdx) => (
+                      <div
+                        key={eventIdx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDate(dateStr);
+                          setSelectedDateEvents([event]);
+                          setShowDateDetails(true);
+                        }}
+                        className="text-xs p-2 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: event.color || '#1db954', color: 'white' }}
+                      >
+                        <div className="font-medium truncate">{event.subject || event.title}</div>
+                        <div className="text-xs opacity-90">{event.time}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Day View */}
+      {viewType === 'day' && (
+        <div className="bg-[#181818] rounded-lg p-4">
+          <div className="space-y-2">
+            {Array.from({ length: 24 }).map((_, hour) => {
+              const dateStr = `${currentDate.getFullYear()}-${String(currentDate.getMonth() + 1).padStart(2, '0')}-${String(currentDate.getDate()).padStart(2, '0')}`;
+              const dayEvents = events.filter(e => e.date === dateStr);
+              
+              // Filter events for this hour (check if time starts with hour)
+              const hourEvents = dayEvents.filter(e => {
+                const timeStr = e.time;
+                // Handle both 12-hour and 24-hour formats
+                if (timeStr.includes('AM') || timeStr.includes('PM')) {
+                  const [timePart, period] = timeStr.split(' ');
+                  const [hours] = timePart.split(':');
+                  let hour24 = parseInt(hours);
+                  if (period === 'PM' && hour24 !== 12) {
+                    hour24 += 12;
+                  } else if (period === 'AM' && hour24 === 12) {
+                    hour24 = 0;
+                  }
+                  return hour24 === hour;
+                } else {
+                  return parseInt(timeStr.split(':')[0]) === hour;
+                }
+              });
+
+              return (
+                <div 
+                  key={hour} 
+                  className="flex border-b border-gray-800 pb-2 min-h-[60px]"
+                  onClick={() => {
+                    if (userType === 'tutor') {
+                      const timeStr = `${hour.toString().padStart(2, '0')}:00`;
+                      setNewEvent({ 
+                        ...newEvent, 
+                        date: dateStr,
+                        time: timeStr,
+                      });
+                      setEditingEvent(null);
+                      setShowAddDialog(true);
+                    }
+                  }}
+                >
+                  <div className="w-20 text-sm text-gray-400">
+                    {hour.toString().padStart(2, '0')}:00
+                  </div>
+                  <div className="flex-1 space-y-1">
+                    {hourEvents.length === 0 && userType === 'tutor' && (
+                      <div className="text-xs text-gray-500 py-2">Click to add event</div>
+                    )}
+                    {hourEvents.map((event, eventIdx) => (
+                      <div
+                        key={eventIdx}
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setSelectedDate(dateStr);
+                          setSelectedDateEvents([event]);
+                          setShowDateDetails(true);
+                        }}
+                        className="text-sm p-2 rounded cursor-pointer hover:opacity-80 transition-opacity"
+                        style={{ backgroundColor: event.color || '#1db954', color: 'white' }}
+                      >
+                        <div className="font-medium">{event.subject || event.title}</div>
+                        <div className="text-xs opacity-90">{event.time}</div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* Upcoming Events */}
       <div>
-        <h3 className="text-lg mb-3">Upcoming Events</h3>
+        <h3 className="text-lg mb-3">Upcoming Events (This Week)</h3>
         <div className="space-y-2">
           {loading ? (
             <div className="text-center text-gray-400 py-8">Loading events...</div>
-          ) : events.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">No events scheduled</div>
+          ) : (() => {
+            const weekEvents = getCurrentWeekEvents();
+            return weekEvents.length === 0 ? (
+              <div className="text-center text-gray-400 py-8">No events scheduled for this week</div>
           ) : (
-            events.slice(0, 4).map((event, idx) => (
+              weekEvents.map((event) => (
             <div
-              key={idx}
+                  key={event.id}
               className="bg-[#181818] rounded-lg p-4 flex items-center gap-3 hover:bg-[#282828] transition-colors"
             >
               <div
@@ -334,18 +638,19 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   {new Date(event.date).toLocaleDateString('default', { month: 'short', day: 'numeric' })} • {event.time}
                 </div>
                 <div>{event.title}</div>
-              </div>
-              {userType === 'tutor' && (
-                <button
-                  onClick={() => handleDeleteEvent(event.id)}
-                  className="text-gray-400 hover:text-red-500 transition-colors"
-                >
-                  <X size={18} />
-                </button>
-              )}
-            </div>
-            ))
-          )}
+                  </div>
+                  {userType === 'tutor' && (
+                    <button
+                      onClick={() => handleDeleteEvent(event.id)}
+                      className="text-gray-400 hover:text-red-500 transition-colors"
+                    >
+                      <X size={18} />
+                    </button>
+                  )}
+                </div>
+              ))
+            );
+          })()}
         </div>
       </div>
 
@@ -469,12 +774,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           </button>
                         </div>
                       )}
-                    </div>
-                  </div>
-                ))
-              )}
+              </div>
             </div>
-          </div>
+            ))
+          )}
+        </div>
+      </div>
         </div>
       )}
 
@@ -579,6 +884,23 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 </div>
               </div>
 
+              {!editingEvent && (
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">Repeat</label>
+                  <div className="relative">
+                    <select
+                      value={newEvent.repeatType}
+                      onChange={(e) => setNewEvent({ ...newEvent, repeatType: e.target.value as 'once' | 'week' | 'month' })}
+                      className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
+                    >
+                      <option value="once">Once</option>
+                      <option value="week">Weekly</option>
+                      <option value="month">Monthly</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+
               <div>
                 <label className="block text-sm text-gray-400 mb-2">Color</label>
                 <div className="flex gap-2">
@@ -616,6 +938,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       subject: '',
                       studentId: '',
                       color: '#1db954',
+                      repeatType: 'once',
                     });
                   }}
                   className="flex-1 bg-[#282828] rounded-lg py-3 text-white hover:bg-[#333333] transition-colors"

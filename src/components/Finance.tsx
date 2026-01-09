@@ -1,8 +1,12 @@
 import React, { useEffect, useState } from 'react';
-import { TrendingUp, TrendingDown, DollarSign, Calendar } from 'lucide-react';
+import { TrendingUp, TrendingDown, DollarSign, Calendar, Check } from 'lucide-react';
 import { api } from '../services/api';
 
-export function Finance() {
+interface FinanceProps {
+  userType?: 'tutor' | 'student';
+}
+
+export function Finance({ userType }: FinanceProps) {
   const [stats, setStats] = useState([
     { label: 'This Month', value: '$0', change: '0%', up: true },
     { label: 'Last Month', value: '$0', change: '0%', up: true },
@@ -15,6 +19,16 @@ export function Finance() {
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleConfirmPayment = async (transactionId: number) => {
+    if (!confirm('Confirm payment for this transaction?')) return;
+    try {
+      await api.confirmPayment(transactionId);
+      await loadData();
+    } catch (error: any) {
+      alert(error.message || 'Failed to confirm payment');
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -56,6 +70,7 @@ export function Finance() {
         date: new Date(t.createdAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
         status: t.status,
         subject: t.subject || '',
+        tutorId: t.tutorId,
       })));
 
       setUpcomingPayments(transactions
@@ -156,6 +171,7 @@ export function Finance() {
                     <span>{transaction.subject}</span>
                   </div>
                 </div>
+                <div className="flex items-center gap-3">
                 <div className="text-right">
                   <div className="text-[#1db954] mb-1">${transaction.amount}</div>
                   <span
@@ -167,6 +183,16 @@ export function Finance() {
                   >
                     {transaction.status}
                   </span>
+                  </div>
+                  {userType === 'tutor' && transaction.status === 'pending' && (
+                    <button
+                      onClick={() => handleConfirmPayment(transaction.id)}
+                      className="p-2 bg-[#1db954] rounded-lg hover:bg-[#1ed760] transition-colors"
+                      title="Confirm payment"
+                    >
+                      <Check size={18} />
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

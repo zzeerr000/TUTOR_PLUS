@@ -12,6 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const finance_service_1 = require("./finance.service");
 const finance_controller_1 = require("./finance.controller");
 const transaction_entity_1 = require("./entities/transaction.entity");
+const event_entity_1 = require("../calendar/entities/event.entity");
 const connections_module_1 = require("../connections/connections.module");
 let FinanceModule = class FinanceModule {
 };
@@ -19,7 +20,7 @@ exports.FinanceModule = FinanceModule;
 exports.FinanceModule = FinanceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([transaction_entity_1.Transaction]),
+            typeorm_1.TypeOrmModule.forFeature([transaction_entity_1.Transaction, event_entity_1.Event]),
             (0, common_1.forwardRef)(() => connections_module_1.ConnectionsModule),
         ],
         controllers: [finance_controller_1.FinanceController],

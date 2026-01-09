@@ -36,22 +36,6 @@ let CalendarService = class CalendarService {
         const event = this.eventsRepository.create(createEventDto);
         const saved = await this.eventsRepository.save(event);
         const savedEvent = Array.isArray(saved) ? saved[0] : saved;
-        try {
-            const transaction = await this.financeService.create({
-                amount: 0,
-                status: 'pending',
-                subject: createEventDto.subject || createEventDto.title,
-                tutorId: createEventDto.tutorId,
-                studentId: createEventDto.studentId,
-                dueDate: new Date(createEventDto.date),
-            });
-            savedEvent.transactionId = transaction.id;
-            savedEvent.paymentPending = true;
-            await this.eventsRepository.save(savedEvent);
-        }
-        catch (error) {
-            console.error('Failed to create transaction for event:', error);
-        }
         return savedEvent;
     }
     async findAll(userId, userRole) {

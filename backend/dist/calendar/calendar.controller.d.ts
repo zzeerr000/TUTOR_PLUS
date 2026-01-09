@@ -7,5 +7,7 @@ export declare class CalendarController {
     findAll(req: any): Promise<import("./entities/event.entity").Event[]>;
     create(createEventDto: any, req: any): Promise<import("./entities/event.entity").Event>;
     update(id: number, updateEventDto: any, req: any): Promise<import("./entities/event.entity").Event>;
-    remove(id: string, req: any): Promise<void>;
+    remove(id: string, req: any): Promise<{
+        message: string;
+    }>;
 }

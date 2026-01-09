@@ -57,7 +57,8 @@ let CalendarController = class CalendarController {
         if (event && event.tutorId !== req.user.sub) {
             throw new common_1.ForbiddenException('You can only delete your own lessons');
         }
-        return this.calendarService.remove(+id);
+        await this.calendarService.remove(+id);
+        return { message: 'Event deleted successfully' };
     }
 };
 exports.CalendarController = CalendarController;

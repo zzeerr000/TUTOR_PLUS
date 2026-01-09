@@ -28,28 +28,12 @@ export class CalendarService {
     const saved = await this.eventsRepository.save(event);
     const savedEvent = Array.isArray(saved) ? saved[0] : saved;
     
-    // Create pending transaction for this lesson
-    try {
-      const transaction = await this.financeService.create({
-        amount: 0, // Default amount, can be updated later
-        status: 'pending',
-        subject: createEventDto.subject || createEventDto.title,
-        tutorId: createEventDto.tutorId,
-        studentId: createEventDto.studentId,
-        dueDate: new Date(createEventDto.date),
-      });
-      
-      // Link transaction to event
-      savedEvent.transactionId = transaction.id;
-      savedEvent.paymentPending = true;
-      await this.eventsRepository.save(savedEvent);
-    } catch (error) {
-      // If transaction creation fails, still return the event
-      console.error('Failed to create transaction for event:', error);
-    }
+    // Don't create transaction immediately - only after lesson ends
+    // Transaction will be created when checking for past events
     
     return savedEvent;
   }
+
 
   async findAll(userId: number, userRole: string) {
     // Get connected users

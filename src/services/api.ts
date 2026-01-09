@@ -192,4 +192,23 @@ export const api = {
     return this.request('/connections');
   },
 
-  async approv
+  async approveConnection(id: number) {
+    return this.request(`/connections/${id}/approve`, {
+      method: 'POST',
+    });
+  },
+
+  async rejectConnection(id: number) {
+    return this.request(`/connections/${id}/reject`, {
+      method: 'POST',
+    });
+  },
+
+  // Calendar - delete event
+  async deleteEvent(id: number) {
+    return this.request(`/calendar/${id}`, {
+      method: 'DELETE',
+    });
+  },
+};
+
