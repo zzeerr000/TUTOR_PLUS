@@ -17,4 +17,7 @@ export declare class FinanceService {
         pending: number;
         pendingCount: number;
     }>;
+    deleteAllForTutor(tutorId: number): Promise<{
+        deletedCount: number;
+    }>;
 }

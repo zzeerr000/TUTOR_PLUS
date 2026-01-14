@@ -168,7 +168,7 @@ export class FinanceService {
     const transactions = await this.findAll(userId, userRole);
     const thisMonth = new Date();
     thisMonth.setDate(1);
-    
+
     const thisMonthTransactions = transactions.filter(
       t => new Date(t.createdAt) >= thisMonth && t.status === 'completed'
     );
@@ -189,6 +189,30 @@ export class FinanceService {
       pending: pendingTotal,
       pendingCount: pending.length,
     };
+  }
+
+  // Add: delete all finance history for a tutor and unlink related events
+  async deleteAllForTutor(tutorId: number): Promise<{ deletedCount: number }> {
+    // Find all transactions for the tutor
+    const transactions = await this.transactionsRepository.find({ where: { tutorId } });
+    const ids = transactions.map(t => t.id);
+
+    if (ids.length === 0) {
+      return { deletedCount: 0 };
+    }
+
+    // Unlink events from these transactions and clear paymentPending
+    await this.eventsRepository
+      .createQueryBuilder()
+      .update(Event)
+      .set({ transactionId: null, paymentPending: false })
+      .where('transactionId IN (:...ids)', { ids })
+      .execute();
+
+    // Delete all transactions for the tutor
+    await this.transactionsRepository.delete({ tutorId });
+
+    return { deletedCount: ids.length };
   }
 }
 

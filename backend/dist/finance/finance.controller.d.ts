@@ -1,4 +1,4 @@
-import { FinanceService } from './finance.service';
+import { FinanceService } from "./finance.service";
 export declare class FinanceController {
     private readonly financeService;
     constructor(financeService: FinanceService);
@@ -11,4 +11,7 @@ export declare class FinanceController {
     }>;
     create(createTransactionDto: any, req: any): Promise<import("./entities/transaction.entity").Transaction>;
     confirmPayment(id: number, req: any): Promise<import("./entities/transaction.entity").Transaction>;
+    clearHistory(req: any): Promise<{
+        deletedCount: number;
+    }>;
 }

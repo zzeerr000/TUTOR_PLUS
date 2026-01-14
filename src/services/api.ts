@@ -176,6 +176,14 @@ export const api = {
     });
   },
 
+  // Add: delete finance history for current tutor
+  async deleteFinanceHistory() {
+    // Fixed: match backend route and method (PUT /finance/history)
+    return this.request('/finance/history', {
+      method: 'PUT',
+    });
+  },
+
   // Connections
   async requestConnection(code: string) {
     return this.request('/connections/request', {

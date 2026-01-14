@@ -159,6 +159,21 @@ let FinanceService = class FinanceService {
             pendingCount: pending.length,
         };
     }
+    async deleteAllForTutor(tutorId) {
+        const transactions = await this.transactionsRepository.find({ where: { tutorId } });
+        const ids = transactions.map(t => t.id);
+        if (ids.length === 0) {
+            return { deletedCount: 0 };
+        }
+        await this.eventsRepository
+            .createQueryBuilder()
+            .update(event_entity_1.Event)
+            .set({ transactionId: null, paymentPending: false })
+            .where('transactionId IN (:...ids)', { ids })
+            .execute();
+        await this.transactionsRepository.delete({ tutorId });
+        return { deletedCount: ids.length };
+    }
 };
 exports.FinanceService = FinanceService;
 exports.FinanceService = FinanceService = __decorate([

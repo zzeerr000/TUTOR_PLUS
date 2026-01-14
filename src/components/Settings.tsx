@@ -20,6 +20,8 @@ export function Settings({ user, onNameUpdate, onAccountDelete }: SettingsProps)
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  // Add: local loading state for finance history deletion
+  const [financeDeleteLoading, setFinanceDeleteLoading] = useState(false);
 
   const handleUpdateName = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +62,23 @@ export function Settings({ user, onNameUpdate, onAccountDelete }: SettingsProps)
     } catch (err: any) {
       setError(err.message || 'Failed to delete account');
       setDeleteLoading(false);
+    }
+  };
+
+  // Add: handler to delete finance history for tutors
+  const handleDeleteFinanceHistory = async () => {
+    if (user.role !== 'tutor') return;
+    if (!confirm('This will delete ALL your finance history. Continue?')) return;
+
+    setError('');
+    setFinanceDeleteLoading(true);
+    try {
+      await api.deleteFinanceHistory();
+      alert('Finance history deleted successfully.');
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete finance history');
+    } finally {
+      setFinanceDeleteLoading(false);
     }
   };
 
@@ -125,6 +144,39 @@ export function Settings({ user, onNameUpdate, onAccountDelete }: SettingsProps)
           </button>
         </form>
       </div>
+
+      {/* Add: Delete Finance History (visible only for tutors) */}
+      {user.role === 'tutor' && (
+        <div className="bg-[#181818] rounded-lg p-6 border border-yellow-500/30">
+          <div className="flex items-center gap-3 mb-4">
+            <AlertTriangle className="text-yellow-500" size={24} />
+            <h2 className="text-xl font-semibold text-yellow-500">Delete Finance History</h2>
+          </div>
+
+          <div className="space-y-4">
+            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-sm text-gray-300">
+              <p className="font-medium mb-2">Warning: This action will remove all your transactions.</p>
+              <p className="text-gray-400">
+                All finance records (completed and pending) for your tutor account will be deleted.
+              </p>
+            </div>
+
+            {error && (
+              <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 text-red-500 text-sm">
+                {error}
+              </div>
+            )}
+
+            <button
+              onClick={handleDeleteFinanceHistory}
+              disabled={financeDeleteLoading}
+              className="w-full bg-yellow-500 rounded-lg py-3 text-white font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              {financeDeleteLoading ? 'Deleting...' : 'Delete Finance History'}
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Delete Account Section */}
       <div className="bg-[#181818] rounded-lg p-6 border border-red-500/30">

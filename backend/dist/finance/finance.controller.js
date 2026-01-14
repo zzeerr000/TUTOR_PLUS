@@ -29,15 +29,23 @@ let FinanceController = class FinanceController {
     create(createTransactionDto, req) {
         return this.financeService.create({
             ...createTransactionDto,
-            tutorId: req.user.role === 'tutor' ? req.user.sub : createTransactionDto.tutorId,
-            studentId: req.user.role === 'student' ? req.user.sub : createTransactionDto.studentId,
+            tutorId: req.user.role === "tutor" ? req.user.sub : createTransactionDto.tutorId,
+            studentId: req.user.role === "student"
+                ? req.user.sub
+                : createTransactionDto.studentId,
         });
     }
     async confirmPayment(id, req) {
-        if (req.user.role !== 'tutor') {
-            throw new common_1.ForbiddenException('Only tutors can confirm payments');
+        if (req.user.role !== "tutor") {
+            throw new common_1.ForbiddenException("Only tutors can confirm payments");
         }
         return this.financeService.confirmPayment(id, req.user.sub);
+    }
+    async clearHistory(req) {
+        if (req.user.role !== "tutor") {
+            throw new common_1.ForbiddenException("Only tutors can clear finance history");
+        }
+        return this.financeService.deleteAllForTutor(req.user.sub);
     }
 };
 exports.FinanceController = FinanceController;
@@ -49,7 +57,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], FinanceController.prototype, "findAll", null);
 __decorate([
-    (0, common_1.Get)('stats'),
+    (0, common_1.Get)("stats"),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -64,15 +72,22 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], FinanceController.prototype, "create", null);
 __decorate([
-    (0, common_1.Put)(':id/confirm'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    (0, common_1.Put)(":id/confirm"),
+    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], FinanceController.prototype, "confirmPayment", null);
+__decorate([
+    (0, common_1.Put)("history"),
+    __param(0, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object]),
+    __metadata("design:returntype", Promise)
+], FinanceController.prototype, "clearHistory", null);
 exports.FinanceController = FinanceController = __decorate([
-    (0, common_1.Controller)('finance'),
+    (0, common_1.Controller)("finance"),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [finance_service_1.FinanceService])
 ], FinanceController);

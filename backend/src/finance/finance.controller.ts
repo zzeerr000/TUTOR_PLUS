@@ -1,8 +1,19 @@
-import { Controller, Get, Post, Put, Body, Param, ParseIntPipe, UseGuards, Request, ForbiddenException } from '@nestjs/common';
-import { FinanceService } from './finance.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Param,
+  ParseIntPipe,
+  UseGuards,
+  Request,
+  ForbiddenException,
+} from "@nestjs/common";
+import { FinanceService } from "./finance.service";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
-@Controller('finance')
+@Controller("finance")
 @UseGuards(JwtAuthGuard)
 export class FinanceController {
   constructor(private readonly financeService: FinanceService) {}
@@ -12,7 +23,7 @@ export class FinanceController {
     return this.financeService.findAll(req.user.sub, req.user.role);
   }
 
-  @Get('stats')
+  @Get("stats")
   getStats(@Request() req) {
     return this.financeService.getStats(req.user.sub, req.user.role);
   }
@@ -21,17 +32,29 @@ export class FinanceController {
   create(@Body() createTransactionDto: any, @Request() req) {
     return this.financeService.create({
       ...createTransactionDto,
-      tutorId: req.user.role === 'tutor' ? req.user.sub : createTransactionDto.tutorId,
-      studentId: req.user.role === 'student' ? req.user.sub : createTransactionDto.studentId,
+      tutorId:
+        req.user.role === "tutor" ? req.user.sub : createTransactionDto.tutorId,
+      studentId:
+        req.user.role === "student"
+          ? req.user.sub
+          : createTransactionDto.studentId,
     });
   }
 
-  @Put(':id/confirm')
-  async confirmPayment(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    if (req.user.role !== 'tutor') {
-      throw new ForbiddenException('Only tutors can confirm payments');
+  @Put(":id/confirm")
+  async confirmPayment(@Param("id", ParseIntPipe) id: number, @Request() req) {
+    if (req.user.role !== "tutor") {
+      throw new ForbiddenException("Only tutors can confirm payments");
     }
     return this.financeService.confirmPayment(id, req.user.sub);
   }
-}
 
+  // Add: delete finance history for the current tutor
+  @Put("history")
+  async clearHistory(@Request() req) {
+    if (req.user.role !== "tutor") {
+      throw new ForbiddenException("Only tutors can clear finance history");
+    }
+    return this.financeService.deleteAllForTutor(req.user.sub);
+  }
+}
