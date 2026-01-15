@@ -107,7 +107,7 @@ let FinanceService = class FinanceService {
                 }
                 try {
                     const transaction = await this.create({
-                        amount: 0,
+                        amount: event.amount || 0,
                         status: 'pending',
                         subject: event.subject || event.title,
                         tutorId: event.tutorId,

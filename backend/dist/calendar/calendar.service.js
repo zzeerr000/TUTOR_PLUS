@@ -88,6 +88,28 @@ let CalendarService = class CalendarService {
     async remove(id) {
         await this.eventsRepository.delete(id);
     }
+    async removeRecurring(id) {
+        const event = await this.eventsRepository.findOne({ where: { id } });
+        if (!event)
+            return;
+        const { studentId, time, date, tutorId } = event;
+        const sourceDate = new Date(date);
+        const dayOfWeek = sourceDate.getDay();
+        const allEvents = await this.eventsRepository.find({
+            where: {
+                studentId,
+                time,
+                tutorId
+            }
+        });
+        const eventsToDelete = allEvents.filter(e => {
+            const eDate = new Date(e.date);
+            return eDate.getDay() === dayOfWeek && e.date >= date;
+        });
+        if (eventsToDelete.length > 0) {
+            await this.eventsRepository.remove(eventsToDelete);
+        }
+    }
 };
 exports.CalendarService = CalendarService;
 exports.CalendarService = CalendarService = __decorate([

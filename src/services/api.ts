@@ -213,8 +213,8 @@ export const api = {
   },
 
   // Calendar - delete event
-  async deleteEvent(id: number) {
-    return this.request(`/calendar/${id}`, {
+  async deleteEvent(id: number, recurring: boolean = false) {
+    return this.request(`/calendar/${id}${recurring ? '?recurring=true' : ''}`, {
       method: 'DELETE',
     });
   },

@@ -1,15 +1,30 @@
-import { Controller, Get, Post, Put, Body, Delete, Param, UseGuards, Request, ForbiddenException, ParseIntPipe, Inject, forwardRef } from '@nestjs/common';
-import { CalendarService } from './calendar.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
-import { FinanceService } from '../finance/finance.service';
+import {
+  Controller,
+  Get,
+  Post,
+  Put,
+  Body,
+  Delete,
+  Param,
+  UseGuards,
+  Request,
+  ForbiddenException,
+  ParseIntPipe,
+  Inject,
+  forwardRef,
+  Query,
+} from "@nestjs/common";
+import { CalendarService } from "./calendar.service";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
+import { FinanceService } from "../finance/finance.service";
 
-@Controller('calendar')
+@Controller("calendar")
 @UseGuards(JwtAuthGuard)
 export class CalendarController {
   constructor(
     private readonly calendarService: CalendarService,
     @Inject(forwardRef(() => FinanceService))
-    private readonly financeService: FinanceService,
+    private readonly financeService: FinanceService
   ) {}
 
   @Get()
@@ -19,12 +34,14 @@ export class CalendarController {
 
   @Post()
   async create(@Body() createEventDto: any, @Request() req) {
-    const tutorId = req.user.role === 'tutor' ? req.user.sub : createEventDto.tutorId;
-    const studentId = req.user.role === 'student' ? req.user.sub : createEventDto.studentId;
-    
+    const tutorId =
+      req.user.role === "tutor" ? req.user.sub : createEventDto.tutorId;
+    const studentId =
+      req.user.role === "student" ? req.user.sub : createEventDto.studentId;
+
     // Verify connection exists
     await this.calendarService.verifyConnection(tutorId, studentId);
-    
+
     return this.calendarService.create({
       ...createEventDto,
       tutorId,
@@ -32,20 +49,26 @@ export class CalendarController {
     });
   }
 
-  @Put(':id')
-  async update(@Param('id', ParseIntPipe) id: number, @Body() updateEventDto: any, @Request() req) {
-    const tutorId = req.user.role === 'tutor' ? req.user.sub : updateEventDto.tutorId;
-    const studentId = req.user.role === 'student' ? req.user.sub : updateEventDto.studentId;
-    
+  @Put(":id")
+  async update(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() updateEventDto: any,
+    @Request() req
+  ) {
+    const tutorId =
+      req.user.role === "tutor" ? req.user.sub : updateEventDto.tutorId;
+    const studentId =
+      req.user.role === "student" ? req.user.sub : updateEventDto.studentId;
+
     // Verify connection exists
     await this.calendarService.verifyConnection(tutorId, studentId);
-    
+
     // Verify the event belongs to this tutor
     const event = await this.calendarService.findOne(id);
-    if (event && event.tutorId !== req.user.sub && req.user.role === 'tutor') {
-      throw new ForbiddenException('You can only edit your own lessons');
+    if (event && event.tutorId !== req.user.sub && req.user.role === "tutor") {
+      throw new ForbiddenException("You can only edit your own lessons");
     }
-    
+
     return this.calendarService.update(id, {
       ...updateEventDto,
       tutorId,
@@ -53,19 +76,31 @@ export class CalendarController {
     });
   }
 
-  @Delete(':id')
-  async remove(@Param('id') id: string, @Request() req) {
+  @Delete(":id")
+  async remove(
+    @Param("id") id: string,
+    @Query("recurring") recurring: string,
+    @Request() req
+  ) {
     // Only tutors can delete events
-    if (req.user.role !== 'tutor') {
-      throw new ForbiddenException('Only tutors can delete lessons');
+    if (req.user.role !== "tutor") {
+      throw new ForbiddenException("Only tutors can delete lessons");
     }
     // Verify the event belongs to this tutor
     const event = await this.calendarService.findOne(+id);
-    if (event && event.tutorId !== req.user.sub) {
-      throw new ForbiddenException('You can only delete your own lessons');
+    if (!event) {
+      return { message: "Event already deleted" };
     }
-    await this.calendarService.remove(+id);
-    return { message: 'Event deleted successfully' };
+    if (event.tutorId !== req.user.sub) {
+      throw new ForbiddenException("You can only delete your own lessons");
+    }
+
+    if (recurring === "true") {
+      await this.calendarService.removeRecurring(+id);
+      return { message: "Recurring events deleted successfully" };
+    } else {
+      await this.calendarService.remove(+id);
+      return { message: "Event deleted successfully" };
+    }
   }
 }
-

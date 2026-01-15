@@ -96,5 +96,40 @@ export class CalendarService {
   async remove(id: number): Promise<void> {
     await this.eventsRepository.delete(id);
   }
+
+  async removeRecurring(id: number): Promise<void> {
+    const event = await this.eventsRepository.findOne({ where: { id } });
+    if (!event) return;
+
+    const { studentId, time, date, tutorId } = event;
+    
+    // Get day of week for the source event
+    const sourceDate = new Date(date);
+    const dayOfWeek = sourceDate.getDay();
+
+    // We need to delete all future events with:
+    // 1. Same student
+    // 2. Same time
+    // 3. Same day of week
+    // 4. Same tutor
+    // 5. Date >= source event date
+
+    const allEvents = await this.eventsRepository.find({
+      where: {
+        studentId,
+        time,
+        tutorId
+      }
+    });
+
+    const eventsToDelete = allEvents.filter(e => {
+      const eDate = new Date(e.date);
+      return eDate.getDay() === dayOfWeek && e.date >= date;
+    });
+
+    if (eventsToDelete.length > 0) {
+      await this.eventsRepository.remove(eventsToDelete);
+    }
+  }
 }
 

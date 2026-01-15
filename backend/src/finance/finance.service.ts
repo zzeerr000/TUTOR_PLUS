@@ -119,7 +119,7 @@ export class FinanceService {
         // Create pending transaction for this past event
         try {
           const transaction = await this.create({
-            amount: 0, // Default amount, can be updated later
+            amount: event.amount || 0, // Use event amount
             status: 'pending',
             subject: event.subject || event.title,
             tutorId: event.tutorId,

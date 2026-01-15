@@ -40,5 +40,8 @@ export class Event {
 
   @Column({ nullable: true })
   transactionId: number;
+
+  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  amount: number;
 }
 

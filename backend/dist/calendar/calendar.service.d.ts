@@ -14,4 +14,5 @@ export declare class CalendarService {
     updatePaymentStatus(transactionId: number, status: boolean): Promise<void>;
     update(id: number, updateEventDto: any): Promise<Event>;
     remove(id: number): Promise<void>;
+    removeRecurring(id: number): Promise<void>;
 }
