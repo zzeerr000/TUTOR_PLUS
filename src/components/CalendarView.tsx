@@ -836,9 +836,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           {event.title}
                         </div>
                       </div>
-                      {userType === "tutor" && (
+                      {userType === "tutor" && !past && (
                         <button
-                          onClick={() => handleDeleteEvent(event.id)}
+                          onClick={() => setShowDeleteConfirm(event.id)}
                           className="text-gray-400 hover:text-red-500 transition-colors"
                         >
                           <X size={18} />
@@ -1013,16 +1013,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             >
                               <Edit size={16} />
                             </button>
-                            <button
-                              onClick={() => {
-                                setShowDeleteConfirm(event.id);
-                                setShowDateDetails(false);
-                              }}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
-                              title="Delete"
-                            >
-                              <Trash2 size={16} />
-                            </button>
+                            {!past && (
+                              <button
+                                onClick={() => {
+                                  setShowDeleteConfirm(event.id);
+                                  setShowDateDetails(false);
+                                }}
+                                className="text-gray-400 hover:text-red-500 transition-colors"
+                                title="Delete"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
                           </div>
                         )}
                       </div>
