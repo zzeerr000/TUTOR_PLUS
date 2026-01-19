@@ -1,7 +1,7 @@
-import { Repository } from 'typeorm';
-import { Transaction } from './entities/transaction.entity';
-import { Event } from '../calendar/entities/event.entity';
-import { ConnectionsService } from '../connections/connections.service';
+import { Repository } from "typeorm";
+import { Transaction } from "./entities/transaction.entity";
+import { Event } from "../calendar/entities/event.entity";
+import { ConnectionsService } from "../connections/connections.service";
 export declare class FinanceService {
     private transactionsRepository;
     private eventsRepository;
@@ -17,6 +17,7 @@ export declare class FinanceService {
         pending: number;
         pendingCount: number;
     }>;
+    deletePendingTransaction(transactionId: number): Promise<void>;
     deleteAllForTutor(tutorId: number): Promise<{
         deletedCount: number;
     }>;

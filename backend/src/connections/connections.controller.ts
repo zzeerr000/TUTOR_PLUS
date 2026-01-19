@@ -1,20 +1,35 @@
-import { Controller, Get, Post, Body, Param, UseGuards, Request, ParseIntPipe } from '@nestjs/common';
-import { ConnectionsService } from './connections.service';
-import { JwtAuthGuard } from '../auth/jwt-auth.guard';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Param,
+  UseGuards,
+  Request,
+  ParseIntPipe,
+} from "@nestjs/common";
+import { ConnectionsService } from "./connections.service";
+import { JwtAuthGuard } from "../auth/jwt-auth.guard";
 
-@Controller('connections')
+@Controller("connections")
 @UseGuards(JwtAuthGuard)
 export class ConnectionsController {
   constructor(private readonly connectionsService: ConnectionsService) {}
 
-  @Post('request')
+  @Post("request")
   createRequest(@Body() body: { code: string }, @Request() req) {
-    return this.connectionsService.createConnectionRequest(req.user.sub, body.code);
+    return this.connectionsService.createConnectionRequest(
+      req.user.sub,
+      body.code
+    );
   }
 
-  @Get('pending')
+  @Get("pending")
   getPendingRequests(@Request() req) {
-    return this.connectionsService.getPendingRequests(req.user.sub, req.user.role);
+    return this.connectionsService.getPendingRequests(
+      req.user.sub,
+      req.user.role
+    );
   }
 
   @Get()
@@ -22,14 +37,80 @@ export class ConnectionsController {
     return this.connectionsService.getConnections(req.user.sub, req.user.role);
   }
 
-  @Post(':id/approve')
-  approveConnection(@Param('id', ParseIntPipe) id: number, @Request() req) {
-    return this.connectionsService.approveConnection(id, req.user.sub);
+  @Post(":id/approve")
+  approveConnection(
+    @Param("id", ParseIntPipe) id: number,
+    @Body() body: { existingStudentId?: number },
+    @Request() req
+  ) {
+    return this.connectionsService.approveConnection(
+      id,
+      req.user.sub,
+      body.existingStudentId
+    );
   }
 
-  @Post(':id/reject')
-  rejectConnection(@Param('id', ParseIntPipe) id: number, @Request() req) {
+  @Post("manual")
+  createManualStudent(
+    @Body()
+    body: {
+      name: string;
+      defaultSubject?: string;
+      defaultPrice?: number;
+      defaultDuration?: number;
+    },
+    @Request() req
+  ) {
+    return this.connectionsService.createManualStudent(
+      req.user.sub,
+      body.name,
+      body.defaultSubject,
+      body.defaultPrice,
+      body.defaultDuration
+    );
+  }
+
+  @Post("link-virtual")
+  linkVirtualStudent(
+    @Body() body: { virtualStudentId: number; studentCode: string },
+    @Request() req
+  ) {
+    return this.connectionsService.linkVirtualStudentByCode(
+      req.user.sub,
+      body.virtualStudentId,
+      body.studentCode
+    );
+  }
+
+  @Post(":studentId/alias")
+  updateAlias(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @Body()
+    body: {
+      alias?: string;
+      defaultSubject?: string;
+      defaultPrice?: number;
+      defaultDuration?: number;
+    },
+    @Request() req
+  ) {
+    return this.connectionsService.updateStudentAlias(
+      req.user.sub,
+      studentId,
+      body
+    );
+  }
+
+  @Post(":id/reject")
+  rejectConnection(@Param("id", ParseIntPipe) id: number, @Request() req) {
     return this.connectionsService.rejectConnection(id, req.user.sub);
   }
-}
 
+  @Post(":studentId/delete")
+  removeStudent(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @Request() req
+  ) {
+    return this.connectionsService.removeStudent(req.user.sub, studentId);
+  }
+}

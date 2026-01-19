@@ -4,8 +4,10 @@ import { ConnectionsService } from '../connections/connections.service';
 export declare class FilesService {
     private filesRepository;
     private connectionsService;
+    private readonly uploadPath;
     constructor(filesRepository: Repository<FileEntity>, connectionsService: ConnectionsService);
-    create(createFileDto: any): Promise<FileEntity>;
+    uploadFile(file: Express.Multer.File, data: any): Promise<FileEntity>;
+    getFileForDownload(id: number, userId: number, userRole: string): Promise<FileEntity>;
     findAll(userId: number, userRole: string): Promise<FileEntity[]>;
     remove(id: number): Promise<void>;
     getStorageStats(userId: number, userRole: string): Promise<{

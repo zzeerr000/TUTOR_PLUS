@@ -24,11 +24,11 @@ __decorate([
     __metadata("design:type", Number)
 ], User.prototype, "id", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "email", void 0);
 __decorate([
-    (0, typeorm_1.Column)(),
+    (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], User.prototype, "password", void 0);
 __decorate([
@@ -37,7 +37,7 @@ __decorate([
 ], User.prototype, "name", void 0);
 __decorate([
     (0, typeorm_1.Column)({
-        type: 'text',
+        type: "text",
         enum: UserRole,
         default: UserRole.STUDENT,
     }),
@@ -48,11 +48,15 @@ __decorate([
     __metadata("design:type", String)
 ], User.prototype, "code", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ default: false }),
+    __metadata("design:type", Boolean)
+], User.prototype, "isVirtual", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], User.prototype, "createdAt", void 0);
 exports.User = User = __decorate([
-    (0, typeorm_1.Entity)('users'),
-    (0, typeorm_1.Index)(['email', 'role'], { unique: true })
+    (0, typeorm_1.Entity)("users"),
+    (0, typeorm_1.Index)(["email", "role"], { unique: true })
 ], User);
 //# sourceMappingURL=user.entity.js.map

@@ -1,4 +1,4 @@
-import { User } from '../../users/entities/user.entity';
+import { User } from "../../users/entities/user.entity";
 export declare enum ConnectionStatus {
     PENDING = "pending",
     APPROVED = "approved",
@@ -12,5 +12,9 @@ export declare class Connection {
     student: User;
     status: ConnectionStatus;
     requestedById: number;
+    studentAlias: string;
+    defaultSubject: string;
+    defaultPrice: number;
+    defaultDuration: number;
     createdAt: Date;
 }

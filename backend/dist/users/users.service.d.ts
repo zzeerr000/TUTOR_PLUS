@@ -5,6 +5,7 @@ export declare class UsersService {
     constructor(usersRepository: Repository<User>);
     private generateCode;
     create(email: string, password: string, name: string, role: string): Promise<User>;
+    createVirtualStudent(name: string): Promise<User>;
     getOrGenerateCode(userId: number): Promise<string>;
     findByCode(code: string): Promise<User | null>;
     findByEmail(email: string): Promise<User | null>;

@@ -8,6 +8,7 @@ import {
   Clock,
   FolderOpen,
   FileText,
+  Trash2,
 } from "lucide-react";
 import { api } from "../services/api";
 
@@ -111,6 +112,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         });
         setTodaySchedule(
           todayEvents.slice(0, 4).map((e: any) => ({
+            id: e.id,
             time: e.time,
             student: e.student?.name || "Student",
             subject: e.subject || "Lesson",
@@ -134,6 +136,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         });
         setUpcomingLessons(
           events.slice(0, 3).map((e: any) => ({
+            id: e.id,
             day: new Date(e.date).toLocaleDateString("en-US", {
               weekday: "short",
             }),
@@ -156,6 +159,17 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       console.error("Failed to load dashboard data:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleDeleteLesson = async (id: number) => {
+    if (window.confirm("Are you sure you want to delete this lesson?")) {
+      try {
+        await api.deleteEvent(id);
+        loadData();
+      } catch (error) {
+        console.error("Failed to delete lesson:", error);
+      }
     }
   };
   if (loading) {
@@ -283,6 +297,18 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                       {lesson.subject}
                     </div>
                   </div>
+                  {userType === "tutor" && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDeleteLesson(lesson.id);
+                      }}
+                      className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                      title="Delete lesson"
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  )}
                 </div>
               ))
             )}

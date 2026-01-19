@@ -1,27 +1,34 @@
-import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, Unique, Index } from 'typeorm';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  CreateDateColumn,
+  Unique,
+  Index,
+} from "typeorm";
 
 export enum UserRole {
-  TUTOR = 'tutor',
-  STUDENT = 'student',
+  TUTOR = "tutor",
+  STUDENT = "student",
 }
 
-@Entity('users')
-@Index(['email', 'role'], { unique: true })
+@Entity("users")
+@Index(["email", "role"], { unique: true })
 export class User {
   @PrimaryGeneratedColumn()
   id: number;
 
-  @Column()
+  @Column({ nullable: true })
   email: string;
 
-  @Column()
+  @Column({ nullable: true })
   password: string;
 
   @Column()
   name: string;
 
   @Column({
-    type: 'text',
+    type: "text",
     enum: UserRole,
     default: UserRole.STUDENT,
   })
@@ -30,7 +37,9 @@ export class User {
   @Column({ unique: true, nullable: true })
   code: string;
 
+  @Column({ default: false })
+  isVirtual: boolean;
+
   @CreateDateColumn()
   createdAt: Date;
 }
-

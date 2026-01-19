@@ -94,6 +94,10 @@ export class CalendarService {
   }
 
   async remove(id: number): Promise<void> {
+    const event = await this.eventsRepository.findOne({ where: { id } });
+    if (event && event.transactionId) {
+      await this.financeService.deletePendingTransaction(event.transactionId);
+    }
     await this.eventsRepository.delete(id);
   }
 
@@ -128,6 +132,12 @@ export class CalendarService {
     });
 
     if (eventsToDelete.length > 0) {
+      // Also delete pending transactions for these events
+      for (const e of eventsToDelete) {
+        if (e.transactionId) {
+          await this.financeService.deletePendingTransaction(e.transactionId);
+        }
+      }
       await this.eventsRepository.remove(eventsToDelete);
     }
   }

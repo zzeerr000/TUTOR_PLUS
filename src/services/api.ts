@@ -4,9 +4,13 @@ export const api = {
   async request(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem("token");
     const headers: any = {
-      "Content-Type": "application/json",
       ...options.headers,
     };
+
+    // Only set Content-Type to application/json if not sending FormData
+    if (!(options.body instanceof FormData)) {
+      headers["Content-Type"] = "application/json";
+    }
 
     if (token) {
       headers["Authorization"] = `Bearer ${token}`;
@@ -102,11 +106,33 @@ export const api = {
     return this.request("/files");
   },
 
-  async createFile(data: any) {
-    return this.request("/files", {
+  async uploadFile(formData: FormData) {
+    return this.request("/files/upload", {
       method: "POST",
-      body: JSON.stringify(data),
+      body: formData,
     });
+  },
+
+  async downloadFile(id: number, fileName: string) {
+    const response = await fetch(`${API_URL}/files/download/${id}`, {
+      headers: {
+        Authorization: `Bearer ${localStorage.getItem("token")}`,
+      },
+    });
+
+    if (!response.ok) {
+      throw new Error("Download failed");
+    }
+
+    const blob = await response.blob();
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    window.URL.revokeObjectURL(url);
+    document.body.removeChild(a);
   },
 
   // Finance
@@ -145,6 +171,12 @@ export const api = {
 
   async getStorageStats() {
     return this.request("/files/storage");
+  },
+
+  async deleteFile(id: number) {
+    return this.request(`/files/${id}`, {
+      method: "DELETE",
+    });
   },
 
   // Progress
@@ -201,22 +233,68 @@ export const api = {
     });
   },
 
-  async getPendingRequests() {
-    return this.request("/connections/pending");
-  },
-
   async getConnections() {
     return this.request("/connections");
   },
 
-  async approveConnection(id: number) {
+  async getPendingRequests() {
+    return this.request("/connections/pending");
+  },
+
+  async approveConnection(id: number, existingStudentId?: number) {
     return this.request(`/connections/${id}/approve`, {
       method: "POST",
+      body: JSON.stringify({ existingStudentId }),
     });
   },
 
   async rejectConnection(id: number) {
     return this.request(`/connections/${id}/reject`, {
+      method: "POST",
+    });
+  },
+
+  async createManualStudent(
+    name: string,
+    defaultSubject?: string,
+    defaultPrice?: number,
+    defaultDuration?: number
+  ) {
+    return this.request("/connections/manual", {
+      method: "POST",
+      body: JSON.stringify({
+        name,
+        defaultSubject,
+        defaultPrice,
+        defaultDuration,
+      }),
+    });
+  },
+
+  async linkVirtualStudent(virtualStudentId: number, studentCode: string) {
+    return this.request("/connections/link-virtual", {
+      method: "POST",
+      body: JSON.stringify({ virtualStudentId, studentCode }),
+    });
+  },
+
+  async updateStudentAlias(
+    studentId: number,
+    data: {
+      alias?: string;
+      defaultSubject?: string;
+      defaultPrice?: number;
+      defaultDuration?: number;
+    }
+  ) {
+    return this.request(`/connections/${studentId}/alias`, {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteStudent(studentId: number) {
+    return this.request(`/connections/${studentId}/delete`, {
       method: "POST",
     });
   },

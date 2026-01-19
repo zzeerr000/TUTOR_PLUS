@@ -19,6 +19,9 @@ export class FileEntity {
   url: string;
 
   @Column({ nullable: true })
+  path: string;
+
+  @Column({ nullable: true })
   subject: string;
 
   @Column()

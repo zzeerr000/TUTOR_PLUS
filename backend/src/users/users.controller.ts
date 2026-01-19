@@ -22,9 +22,19 @@ export class UsersController {
     if (req.user.role !== 'tutor') {
       return [];
     }
-    // Return only connected students
-    const connections = await this.connectionsService.getConnections(req.user.sub, req.user.role);
-    return connections.map(c => c.student);
+    // Return only connected students with connection metadata
+    const connections = await this.connectionsService.getConnections(
+      req.user.sub,
+      req.user.role
+    );
+    return connections.map((c) => ({
+      ...c.student,
+      connectionId: c.id,
+      studentAlias: c.studentAlias,
+      defaultSubject: c.defaultSubject,
+      defaultPrice: c.defaultPrice,
+      defaultDuration: c.defaultDuration,
+    }));
   }
 
   @Post('students')

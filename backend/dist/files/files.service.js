@@ -18,36 +18,96 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const file_entity_1 = require("./entities/file.entity");
 const connections_service_1 = require("../connections/connections.service");
+const fs = require("fs");
+const path = require("path");
 let FilesService = class FilesService {
     constructor(filesRepository, connectionsService) {
         this.filesRepository = filesRepository;
         this.connectionsService = connectionsService;
+        this.uploadPath = path.join(process.cwd(), 'uploads');
+        if (!fs.existsSync(this.uploadPath)) {
+            fs.mkdirSync(this.uploadPath, { recursive: true });
+        }
     }
-    async create(createFileDto) {
-        if (createFileDto.assignedToId) {
-            const connections = await this.connectionsService.getConnections(createFileDto.uploadedById, 'tutor');
-            const isConnected = connections.some(c => c.studentId === createFileDto.assignedToId);
+    async uploadFile(file, data) {
+        if (!file) {
+            throw new common_1.BadRequestException('No file uploaded');
+        }
+        const assignedToId = data.assignedToId ? parseInt(data.assignedToId) : null;
+        const uploadedById = data.uploadedById;
+        if (assignedToId) {
+            const connections = await this.connectionsService.getConnections(uploadedById, 'tutor');
+            const isConnected = connections.some(c => c.studentId === assignedToId);
             if (!isConnected) {
                 throw new common_1.BadRequestException('Can only assign files to connected students');
             }
         }
-        const file = this.filesRepository.create(createFileDto);
-        const saved = await this.filesRepository.save(file);
-        return Array.isArray(saved) ? saved[0] : saved;
+        const fileName = data.name || file.originalname;
+        const fileExtension = path.extname(file.originalname);
+        const storedFileName = `${Date.now()}-${Math.round(Math.random() * 1E9)}${fileExtension}`;
+        const filePath = path.join(this.uploadPath, storedFileName);
+        fs.writeFileSync(filePath, file.buffer);
+        let type = 'document';
+        const mimetype = file.mimetype;
+        if (mimetype.startsWith('video/'))
+            type = 'video';
+        else if (mimetype.startsWith('image/'))
+            type = 'image';
+        const formatBytes = (bytes) => {
+            if (bytes >= 1024 * 1024 * 1024)
+                return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+            if (bytes >= 1024 * 1024)
+                return `${(bytes / (1024 * 1024)).toFixed(2)} MB`;
+            if (bytes >= 1024)
+                return `${(bytes / 1024).toFixed(2)} KB`;
+            return `${bytes} B`;
+        };
+        const fileEntity = this.filesRepository.create({
+            name: fileName,
+            type: type,
+            size: formatBytes(file.size),
+            path: filePath,
+            subject: data.subject || 'Other',
+            uploadedById: uploadedById,
+            assignedToId: assignedToId,
+        });
+        return this.filesRepository.save(fileEntity);
+    }
+    async getFileForDownload(id, userId, userRole) {
+        const file = await this.filesRepository.findOne({
+            where: { id },
+            relations: ['uploadedBy', 'assignedTo'],
+        });
+        if (!file) {
+            throw new common_1.NotFoundException('File not found');
+        }
+        if (userRole === 'tutor') {
+            if (file.uploadedById !== userId) {
+                throw new common_1.ForbiddenException('You do not have permission to download this file');
+            }
+        }
+        else {
+            if (file.assignedToId && file.assignedToId !== userId) {
+                throw new common_1.ForbiddenException('You do not have permission to download this file');
+            }
+            const connections = await this.connectionsService.getConnections(userId, 'student');
+            const connectedTutorIds = connections.map(c => c.tutorId);
+            if (!connectedTutorIds.includes(file.uploadedById)) {
+                throw new common_1.ForbiddenException('You can only download files from connected tutors');
+            }
+        }
+        if (!fs.existsSync(file.path)) {
+            throw new common_1.NotFoundException('File not found on disk');
+        }
+        return file;
     }
     async findAll(userId, userRole) {
         if (userRole === 'tutor') {
-            const connections = await this.connectionsService.getConnections(userId, 'tutor');
-            const connectedStudentIds = connections.map(c => c.studentId);
-            if (connectedStudentIds.length === 0) {
-                return [];
-            }
             return this.filesRepository
                 .createQueryBuilder('file')
                 .leftJoinAndSelect('file.uploadedBy', 'uploadedBy')
                 .leftJoinAndSelect('file.assignedTo', 'assignedTo')
                 .where('file.uploadedById = :userId', { userId })
-                .andWhere('(file.assignedToId IN (:...studentIds) OR file.assignedToId IS NULL)', { studentIds: connectedStudentIds })
                 .orderBy('file.createdAt', 'DESC')
                 .getMany();
         }
@@ -68,6 +128,10 @@ let FilesService = class FilesService {
         }
     }
     async remove(id) {
+        const file = await this.filesRepository.findOne({ where: { id } });
+        if (file && file.path && fs.existsSync(file.path)) {
+            fs.unlinkSync(file.path);
+        }
         await this.filesRepository.delete(id);
     }
     async getStorageStats(userId, userRole) {

@@ -19,36 +19,37 @@ const typeorm_2 = require("typeorm");
 const connection_entity_1 = require("./entities/connection.entity");
 const users_service_1 = require("../users/users.service");
 let ConnectionsService = class ConnectionsService {
-    constructor(connectionsRepository, usersService) {
+    constructor(connectionsRepository, usersService, dataSource) {
         this.connectionsRepository = connectionsRepository;
         this.usersService = usersService;
+        this.dataSource = dataSource;
     }
     async createConnectionRequest(requestedById, code) {
         const requester = await this.usersService.findById(requestedById);
         if (!requester) {
-            throw new common_1.NotFoundException('Requester not found');
+            throw new common_1.NotFoundException("Requester not found");
         }
         const targetUser = await this.usersService.findByCode(code);
         if (!targetUser) {
-            throw new common_1.NotFoundException('User with this code not found');
+            throw new common_1.NotFoundException("User with this code not found");
         }
         if (targetUser.id === requestedById) {
-            throw new common_1.BadRequestException('Cannot connect to yourself');
+            throw new common_1.BadRequestException("Cannot connect to yourself");
         }
         if (requester.role === targetUser.role) {
-            throw new common_1.BadRequestException('Cannot connect to user with same role');
+            throw new common_1.BadRequestException("Cannot connect to user with same role");
         }
-        const tutorId = requester.role === 'tutor' ? requester.id : targetUser.id;
-        const studentId = requester.role === 'student' ? requester.id : targetUser.id;
+        const tutorId = requester.role === "tutor" ? requester.id : targetUser.id;
+        const studentId = requester.role === "student" ? requester.id : targetUser.id;
         const existing = await this.connectionsRepository.findOne({
             where: { tutorId, studentId },
         });
         if (existing) {
             if (existing.status === connection_entity_1.ConnectionStatus.APPROVED) {
-                throw new common_1.BadRequestException('Connection already exists');
+                throw new common_1.BadRequestException("Connection already exists");
             }
             if (existing.status === connection_entity_1.ConnectionStatus.PENDING) {
-                throw new common_1.BadRequestException('Connection request already pending');
+                throw new common_1.BadRequestException("Connection request already pending");
             }
             existing.status = connection_entity_1.ConnectionStatus.PENDING;
             existing.requestedById = requestedById;
@@ -63,41 +64,108 @@ let ConnectionsService = class ConnectionsService {
         return this.connectionsRepository.save(connection);
     }
     async getPendingRequests(userId, userRole) {
-        if (userRole === 'tutor') {
+        if (userRole === "tutor") {
             return this.connectionsRepository
-                .createQueryBuilder('connection')
-                .leftJoinAndSelect('connection.student', 'student')
-                .where('connection.tutorId = :tutorId', { tutorId: userId })
-                .andWhere('connection.status = :status', { status: connection_entity_1.ConnectionStatus.PENDING })
-                .andWhere('connection.requestedById != :userId', { userId })
-                .orderBy('connection.createdAt', 'DESC')
+                .createQueryBuilder("connection")
+                .leftJoinAndSelect("connection.student", "student")
+                .where("connection.tutorId = :tutorId", { tutorId: userId })
+                .andWhere("connection.status = :status", {
+                status: connection_entity_1.ConnectionStatus.PENDING,
+            })
+                .andWhere("connection.requestedById != :userId", { userId })
+                .orderBy("connection.createdAt", "DESC")
                 .getMany();
         }
         else {
             return this.connectionsRepository
-                .createQueryBuilder('connection')
-                .leftJoinAndSelect('connection.tutor', 'tutor')
-                .where('connection.studentId = :studentId', { studentId: userId })
-                .andWhere('connection.status = :status', { status: connection_entity_1.ConnectionStatus.PENDING })
-                .andWhere('connection.requestedById != :userId', { userId })
-                .orderBy('connection.createdAt', 'DESC')
+                .createQueryBuilder("connection")
+                .leftJoinAndSelect("connection.tutor", "tutor")
+                .where("connection.studentId = :studentId", { studentId: userId })
+                .andWhere("connection.status = :status", {
+                status: connection_entity_1.ConnectionStatus.PENDING,
+            })
+                .andWhere("connection.requestedById != :userId", { userId })
+                .orderBy("connection.createdAt", "DESC")
                 .getMany();
         }
     }
-    async approveConnection(connectionId, userId) {
+    async approveConnection(connectionId, userId, existingStudentId) {
         const connection = await this.connectionsRepository.findOne({
             where: { id: connectionId },
-            relations: ['tutor', 'student'],
+            relations: ["tutor", "student"],
         });
         if (!connection) {
-            throw new common_1.NotFoundException('Connection request not found');
+            throw new common_1.NotFoundException("Connection request not found");
         }
         const isRecipient = (connection.tutorId === userId && connection.requestedById !== userId) ||
             (connection.studentId === userId && connection.requestedById !== userId);
         if (!isRecipient) {
-            throw new common_1.BadRequestException('You cannot approve this request');
+            throw new common_1.BadRequestException("You cannot approve this request");
+        }
+        if (existingStudentId) {
+            await this.mergeVirtualStudent(userId, existingStudentId, connection.studentId);
+            const virtualUser = await this.usersService.findById(existingStudentId);
+            if (virtualUser && virtualUser.isVirtual) {
+                await this.connectionsRepository.delete({
+                    tutorId: userId,
+                    studentId: existingStudentId,
+                });
+                await this.usersService.deleteAccount(existingStudentId);
+            }
         }
         connection.status = connection_entity_1.ConnectionStatus.APPROVED;
+        return this.connectionsRepository.save(connection);
+    }
+    async mergeVirtualStudent(tutorId, virtualStudentId, realStudentId) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+        await queryRunner.startTransaction();
+        try {
+            await queryRunner.query("UPDATE events SET studentId = ? WHERE tutorId = ? AND studentId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE tasks SET assignedToId = ? WHERE userId = ? AND assignedToId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE files SET assignedToId = ? WHERE uploadedById = ? AND assignedToId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE progress SET studentId = ? WHERE tutorId = ? AND studentId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE transactions SET studentId = ? WHERE tutorId = ? AND studentId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE messages SET senderId = ? WHERE receiverId = ? AND senderId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.query("UPDATE messages SET receiverId = ? WHERE senderId = ? AND receiverId = ?", [realStudentId, tutorId, virtualStudentId]);
+            await queryRunner.commitTransaction();
+        }
+        catch (err) {
+            await queryRunner.rollbackTransaction();
+            throw err;
+        }
+        finally {
+            await queryRunner.release();
+        }
+    }
+    async linkVirtualStudentByCode(tutorId, virtualStudentId, studentCode) {
+        const realStudent = await this.usersService.findByCode(studentCode);
+        if (!realStudent) {
+            throw new common_1.NotFoundException("Student with this code not found");
+        }
+        if (realStudent.role !== "student") {
+            throw new common_1.BadRequestException("Code belongs to a tutor");
+        }
+        let connection = await this.connectionsRepository.findOne({
+            where: { tutorId, studentId: realStudent.id },
+        });
+        if (!connection) {
+            connection = this.connectionsRepository.create({
+                tutorId,
+                studentId: realStudent.id,
+                status: connection_entity_1.ConnectionStatus.APPROVED,
+                requestedById: tutorId,
+            });
+        }
+        else {
+            connection.status = connection_entity_1.ConnectionStatus.APPROVED;
+        }
+        await this.mergeVirtualStudent(tutorId, virtualStudentId, realStudent.id);
+        await this.connectionsRepository.delete({
+            tutorId,
+            studentId: virtualStudentId,
+        });
+        await this.usersService.deleteAccount(virtualStudentId);
         return this.connectionsRepository.save(connection);
     }
     async rejectConnection(connectionId, userId) {
@@ -105,30 +173,74 @@ let ConnectionsService = class ConnectionsService {
             where: { id: connectionId },
         });
         if (!connection) {
-            throw new common_1.NotFoundException('Connection request not found');
+            throw new common_1.NotFoundException("Connection request not found");
         }
         const isRecipient = (connection.tutorId === userId && connection.requestedById !== userId) ||
             (connection.studentId === userId && connection.requestedById !== userId);
         if (!isRecipient) {
-            throw new common_1.BadRequestException('You cannot reject this request');
+            throw new common_1.BadRequestException("You cannot reject this request");
         }
         connection.status = connection_entity_1.ConnectionStatus.REJECTED;
         await this.connectionsRepository.save(connection);
     }
     async getConnections(userId, userRole) {
-        if (userRole === 'tutor') {
+        if (userRole === "tutor") {
             return this.connectionsRepository.find({
                 where: { tutorId: userId, status: connection_entity_1.ConnectionStatus.APPROVED },
-                relations: ['student'],
-                order: { createdAt: 'DESC' },
+                relations: ["student"],
+                order: { createdAt: "DESC" },
             });
         }
         else {
             return this.connectionsRepository.find({
                 where: { studentId: userId, status: connection_entity_1.ConnectionStatus.APPROVED },
-                relations: ['tutor'],
-                order: { createdAt: 'DESC' },
+                relations: ["tutor"],
+                order: { createdAt: "DESC" },
             });
+        }
+    }
+    async createManualStudent(tutorId, name, defaultSubject, defaultPrice, defaultDuration) {
+        const student = await this.usersService.createVirtualStudent(name);
+        const connection = this.connectionsRepository.create({
+            tutorId,
+            studentId: student.id,
+            status: connection_entity_1.ConnectionStatus.APPROVED,
+            requestedById: tutorId,
+            defaultSubject,
+            defaultPrice,
+            defaultDuration,
+        });
+        return this.connectionsRepository.save(connection);
+    }
+    async updateStudentAlias(tutorId, studentId, data) {
+        const connection = await this.connectionsRepository.findOne({
+            where: { tutorId, studentId, status: connection_entity_1.ConnectionStatus.APPROVED },
+        });
+        if (!connection) {
+            throw new common_1.NotFoundException("Connection not found");
+        }
+        if (data.alias !== undefined)
+            connection.studentAlias = data.alias;
+        if (data.defaultSubject !== undefined)
+            connection.defaultSubject = data.defaultSubject;
+        if (data.defaultPrice !== undefined)
+            connection.defaultPrice = data.defaultPrice;
+        if (data.defaultDuration !== undefined)
+            connection.defaultDuration = data.defaultDuration;
+        return this.connectionsRepository.save(connection);
+    }
+    async removeStudent(tutorId, studentId) {
+        const connection = await this.connectionsRepository.findOne({
+            where: { tutorId, studentId },
+            relations: ["student"],
+        });
+        if (!connection) {
+            throw new common_1.NotFoundException("Connection not found");
+        }
+        const isVirtual = connection.student?.isVirtual;
+        await this.connectionsRepository.remove(connection);
+        if (isVirtual) {
+            await this.usersService.deleteAccount(studentId);
         }
     }
 };
@@ -137,6 +249,7 @@ exports.ConnectionsService = ConnectionsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(connection_entity_1.Connection)),
     __metadata("design:paramtypes", [typeorm_2.Repository,
-        users_service_1.UsersService])
+        users_service_1.UsersService,
+        typeorm_2.DataSource])
 ], ConnectionsService);
 //# sourceMappingURL=connections.service.js.map

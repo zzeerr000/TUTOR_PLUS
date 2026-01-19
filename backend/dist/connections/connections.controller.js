@@ -29,16 +29,28 @@ let ConnectionsController = class ConnectionsController {
     getConnections(req) {
         return this.connectionsService.getConnections(req.user.sub, req.user.role);
     }
-    approveConnection(id, req) {
-        return this.connectionsService.approveConnection(id, req.user.sub);
+    approveConnection(id, body, req) {
+        return this.connectionsService.approveConnection(id, req.user.sub, body.existingStudentId);
+    }
+    createManualStudent(body, req) {
+        return this.connectionsService.createManualStudent(req.user.sub, body.name, body.defaultSubject, body.defaultPrice, body.defaultDuration);
+    }
+    linkVirtualStudent(body, req) {
+        return this.connectionsService.linkVirtualStudentByCode(req.user.sub, body.virtualStudentId, body.studentCode);
+    }
+    updateAlias(studentId, body, req) {
+        return this.connectionsService.updateStudentAlias(req.user.sub, studentId, body);
     }
     rejectConnection(id, req) {
         return this.connectionsService.rejectConnection(id, req.user.sub);
     }
+    removeStudent(studentId, req) {
+        return this.connectionsService.removeStudent(req.user.sub, studentId);
+    }
 };
 exports.ConnectionsController = ConnectionsController;
 __decorate([
-    (0, common_1.Post)('request'),
+    (0, common_1.Post)("request"),
     __param(0, (0, common_1.Body)()),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
@@ -46,7 +58,7 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "createRequest", null);
 __decorate([
-    (0, common_1.Get)('pending'),
+    (0, common_1.Get)("pending"),
     __param(0, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Object]),
@@ -60,23 +72,57 @@ __decorate([
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "getConnections", null);
 __decorate([
-    (0, common_1.Post)(':id/approve'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Request)()),
+    (0, common_1.Post)(":id/approve"),
+    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:paramtypes", [Number, Object, Object]),
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "approveConnection", null);
 __decorate([
-    (0, common_1.Post)(':id/reject'),
-    __param(0, (0, common_1.Param)('id', common_1.ParseIntPipe)),
+    (0, common_1.Post)("manual"),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], ConnectionsController.prototype, "createManualStudent", null);
+__decorate([
+    (0, common_1.Post)("link-virtual"),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], ConnectionsController.prototype, "linkVirtualStudent", null);
+__decorate([
+    (0, common_1.Post)(":studentId/alias"),
+    __param(0, (0, common_1.Param)("studentId", common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object, Object]),
+    __metadata("design:returntype", void 0)
+], ConnectionsController.prototype, "updateAlias", null);
+__decorate([
+    (0, common_1.Post)(":id/reject"),
+    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
     __param(1, (0, common_1.Request)()),
     __metadata("design:type", Function),
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "rejectConnection", null);
+__decorate([
+    (0, common_1.Post)(":studentId/delete"),
+    __param(0, (0, common_1.Param)("studentId", common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], ConnectionsController.prototype, "removeStudent", null);
 exports.ConnectionsController = ConnectionsController = __decorate([
-    (0, common_1.Controller)('connections'),
+    (0, common_1.Controller)("connections"),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
     __metadata("design:paramtypes", [connections_service_1.ConnectionsService])
 ], ConnectionsController);

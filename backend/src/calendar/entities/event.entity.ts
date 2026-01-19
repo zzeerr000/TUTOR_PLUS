@@ -43,5 +43,8 @@ export class Event {
 
   @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
   amount: number;
+
+  @Column({ type: 'int', default: 60 })
+  duration: number; // in minutes
 }
 

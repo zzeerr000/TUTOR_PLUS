@@ -31,7 +31,7 @@ __decorate([
 ], Connection.prototype, "tutorId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
-    (0, typeorm_1.JoinColumn)({ name: 'tutorId' }),
+    (0, typeorm_1.JoinColumn)({ name: "tutorId" }),
     __metadata("design:type", user_entity_1.User)
 ], Connection.prototype, "tutor", void 0);
 __decorate([
@@ -40,12 +40,12 @@ __decorate([
 ], Connection.prototype, "studentId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
-    (0, typeorm_1.JoinColumn)({ name: 'studentId' }),
+    (0, typeorm_1.JoinColumn)({ name: "studentId" }),
     __metadata("design:type", user_entity_1.User)
 ], Connection.prototype, "student", void 0);
 __decorate([
     (0, typeorm_1.Column)({
-        type: 'text',
+        type: "text",
         enum: ConnectionStatus,
         default: ConnectionStatus.PENDING,
     }),
@@ -56,10 +56,26 @@ __decorate([
     __metadata("design:type", Number)
 ], Connection.prototype, "requestedById", void 0);
 __decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Connection.prototype, "studentAlias", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", String)
+], Connection.prototype, "defaultSubject", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "decimal", precision: 10, scale: 2, nullable: true }),
+    __metadata("design:type", Number)
+], Connection.prototype, "defaultPrice", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: "int", nullable: true }),
+    __metadata("design:type", Number)
+], Connection.prototype, "defaultDuration", void 0);
+__decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], Connection.prototype, "createdAt", void 0);
 exports.Connection = Connection = __decorate([
-    (0, typeorm_1.Entity)('connections')
+    (0, typeorm_1.Entity)("connections")
 ], Connection);
 //# sourceMappingURL=connection.entity.js.map

@@ -13,4 +13,5 @@ export declare class Event {
     paymentPending: boolean;
     transactionId: number;
     amount: number;
+    duration: number;
 }

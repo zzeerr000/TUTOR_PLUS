@@ -5,6 +5,7 @@ export declare class FileEntity {
     type: string;
     size: string;
     url: string;
+    path: string;
     subject: string;
     uploadedById: number;
     uploadedBy: User;

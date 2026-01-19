@@ -34,7 +34,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
     studentId: "",
     color: "#1db954",
     repeatType: "once" as "once" | "week" | "month",
-    amount: localStorage.getItem("last_lesson_price") || "0",
+    amount: localStorage.getItem("last_lesson_price") || "",
+    duration: "60",
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -57,12 +58,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
     try {
       setLoading(true);
       const data = await api.getEvents();
-      const formattedEvents = data.map((e: any) => ({
-        ...e,
-        title: e.subject
-          ? `${e.subject} - ${e.student?.name || e.tutor?.name || "User"}`
-          : e.title,
-      }));
+      const formattedEvents = data.map((e: any) => {
+        const studentName = e.student?.studentAlias || e.student?.name;
+        return {
+          ...e,
+          title: e.subject
+            ? `${e.subject} - ${studentName || e.tutor?.name || "User"}`
+            : e.title,
+        };
+      });
       setEvents(formattedEvents);
 
       // Update date details if modal is open
@@ -146,6 +150,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
           studentId: parseInt(newEvent.studentId),
           color: newEvent.color,
           amount: amount,
+          duration: parseInt(newEvent.duration) || 60,
         });
         setEditingEvent(null);
       } else {
@@ -162,6 +167,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             studentId: parseInt(newEvent.studentId),
             color: newEvent.color,
             amount: amount,
+            duration: parseInt(newEvent.duration) || 60,
           })
         );
 
@@ -177,6 +183,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         color: "#1db954",
         repeatType: "once",
         amount: localStorage.getItem("last_lesson_price") || "0",
+        duration: "60",
       });
       loadEvents();
       if (showDateDetails) {
@@ -315,6 +322,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       ...event,
       time: time24,
       amount: event.amount?.toString() || "0",
+      duration: event.duration?.toString() || "60",
     });
     setNewEvent({
       title: event.title || "",
@@ -325,6 +333,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       color: event.color || "#1db954",
       repeatType: "once",
       amount: event.amount?.toString() || "0",
+      duration: event.duration?.toString() || "60",
     });
     setShowAddDialog(true);
     setShowDateDetails(false);
@@ -350,6 +359,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         studentId: parseInt(newEvent.studentId),
         color: newEvent.color,
         amount: amount,
+        duration: parseInt(newEvent.duration) || 60,
       });
       setShowAddDialog(false);
       setEditingEvent(null);
@@ -362,6 +372,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         color: "#1db954",
         repeatType: "once",
         amount: localStorage.getItem("last_lesson_price") || "0",
+        duration: "60",
       });
       loadEvents();
       setShowDateDetails(false);
@@ -674,7 +685,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           >
                             {event.subject || event.title}
                           </div>
-                          <div className="text-xs opacity-90">{event.time}</div>
+                          <div className="text-xs opacity-90 flex items-center gap-1">
+                            {event.time}
+                            {event.duration && (
+                              <span className="opacity-70">
+                                ({event.duration}m)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -770,7 +788,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           >
                             {event.subject || event.title}
                           </div>
-                          <div className="text-xs opacity-90">{event.time}</div>
+                          <div className="text-xs opacity-90 flex items-center gap-1">
+                            {event.time}
+                            {event.duration && (
+                              <span className="opacity-70">
+                                ({event.duration} min)
+                              </span>
+                            )}
+                          </div>
                         </div>
                       );
                     })}
@@ -819,6 +844,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                               { month: "short", day: "numeric" }
                             )}{" "}
                             • {event.time}
+                            {event.duration && (
+                              <span className="ml-1 text-gray-500">
+                                ({event.duration} min)
+                              </span>
+                            )}
                           </div>
                           {past ? (
                             <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
@@ -836,7 +866,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           {event.title}
                         </div>
                       </div>
-                      {userType === "tutor" && !past && (
+                      {userType === "tutor" && (
                         <button
                           onClick={() => setShowDeleteConfirm(event.id)}
                           className="text-gray-400 hover:text-red-500 transition-colors"
@@ -954,13 +984,21 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           </div>
                           <div className="text-sm text-gray-400 flex items-center gap-2">
                             <Clock size={14} />
-                            <span className="font-medium">{event.time}</span>
+                            <span className="font-medium">
+                              {event.time}
+                              {event.duration && (
+                                <span className="ml-1 text-gray-500 font-normal">
+                                  ({event.duration} min)
+                                </span>
+                              )}
+                            </span>
                           </div>
                           <div className="text-sm text-gray-400 flex items-center gap-2 mt-1">
                             <User size={14} />
                             <span>
                               {userType === "tutor"
-                                ? event.student?.name
+                                ? event.student?.studentAlias ||
+                                  event.student?.name
                                 : event.tutor?.name}
                             </span>
                           </div>
@@ -1013,18 +1051,16 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             >
                               <Edit size={16} />
                             </button>
-                            {!past && (
-                              <button
-                                onClick={() => {
-                                  setShowDeleteConfirm(event.id);
-                                  setShowDateDetails(false);
-                                }}
-                                className="text-gray-400 hover:text-red-500 transition-colors"
-                                title="Delete"
-                              >
-                                <Trash2 size={16} />
-                              </button>
-                            )}
+                            <button
+                              onClick={() => {
+                                setShowDeleteConfirm(event.id);
+                                setShowDateDetails(false);
+                              }}
+                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              title="Delete"
+                            >
+                              <Trash2 size={16} />
+                            </button>
                           </div>
                         )}
                       </div>
@@ -1068,7 +1104,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     studentId: "",
                     color: "#1db954",
                     repeatType: "once",
-                    amount: localStorage.getItem("last_lesson_price") || "0",
+                    amount: localStorage.getItem("last_lesson_price") || "",
                   });
                 }}
                 className="text-gray-400 hover:text-white"
@@ -1089,16 +1125,34 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   />
                   <select
                     value={newEvent.studentId}
-                    onChange={(e) =>
-                      setNewEvent({ ...newEvent, studentId: e.target.value })
-                    }
+                    onChange={(e) => {
+                      const studentId = e.target.value;
+                      const student = students.find(
+                        (s) => s.id.toString() === studentId
+                      );
+                      if (student) {
+                        setNewEvent({
+                          ...newEvent,
+                          studentId: studentId,
+                          subject: student.defaultSubject || newEvent.subject,
+                          title: student.defaultSubject || newEvent.title,
+                          amount:
+                            student.defaultPrice?.toString() || newEvent.amount,
+                          duration:
+                            student.defaultDuration?.toString() ||
+                            newEvent.duration,
+                        });
+                      } else {
+                        setNewEvent({ ...newEvent, studentId: studentId });
+                      }
+                    }}
                     required
                     className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
                   >
                     <option value="">Select a student</option>
                     {students.map((student) => (
                       <option key={student.id} value={student.id}>
-                        {student.name}
+                        {student.studentAlias || student.name}
                       </option>
                     ))}
                   </select>
@@ -1169,14 +1223,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm text-gray-400 mb-2">
-                  Lesson Price
-                </label>
-                <div className="relative">
-                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 font-medium">
-                    $
-                  </span>
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Lesson Price
+                  </label>
                   <input
                     type="number"
                     value={newEvent.amount}
@@ -1186,9 +1237,31 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     required
                     min="0"
                     step="0.01"
-                    className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="0.00"
+                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    placeholder="$ 0"
                   />
+                </div>
+                <div>
+                  <label className="block text-sm text-gray-400 mb-2">
+                    Duration (min)
+                  </label>
+                  <div className="relative">
+                    <Clock
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      size={20}
+                    />
+                    <input
+                      type="number"
+                      value={newEvent.duration}
+                      onChange={(e) =>
+                        setNewEvent({ ...newEvent, duration: e.target.value })
+                      }
+                      required
+                      min="1"
+                      className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                      placeholder="60"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -1263,7 +1336,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       studentId: "",
                       color: "#1db954",
                       repeatType: "once",
-                      amount: localStorage.getItem("last_lesson_price") || "0",
+                      amount: localStorage.getItem("last_lesson_price") || "",
                     });
                   }}
                   className="flex-1 bg-[#282828] rounded-lg py-3 text-white hover:bg-[#333333] transition-colors"

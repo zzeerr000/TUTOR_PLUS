@@ -86,6 +86,10 @@ let CalendarService = class CalendarService {
         return updated;
     }
     async remove(id) {
+        const event = await this.eventsRepository.findOne({ where: { id } });
+        if (event && event.transactionId) {
+            await this.financeService.deletePendingTransaction(event.transactionId);
+        }
         await this.eventsRepository.delete(id);
     }
     async removeRecurring(id) {
@@ -107,6 +111,11 @@ let CalendarService = class CalendarService {
             return eDate.getDay() === dayOfWeek && e.date >= date;
         });
         if (eventsToDelete.length > 0) {
+            for (const e of eventsToDelete) {
+                if (e.transactionId) {
+                    await this.financeService.deletePendingTransaction(e.transactionId);
+                }
+            }
             await this.eventsRepository.remove(eventsToDelete);
         }
     }

@@ -7,7 +7,21 @@ export declare class UsersController {
     getCode(req: any): Promise<{
         code: string;
     }>;
-    getStudents(req: any): Promise<import("./entities/user.entity").User[]>;
+    getStudents(req: any): Promise<{
+        connectionId: number;
+        studentAlias: string;
+        defaultSubject: string;
+        defaultPrice: number;
+        defaultDuration: number;
+        id: number;
+        email: string;
+        password: string;
+        name: string;
+        role: import("./entities/user.entity").UserRole;
+        code: string;
+        isVirtual: boolean;
+        createdAt: Date;
+    }[]>;
     createStudent(createStudentDto: {
         email: string;
         password: string;

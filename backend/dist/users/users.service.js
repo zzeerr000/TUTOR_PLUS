@@ -54,6 +54,21 @@ let UsersService = class UsersService {
             throw error;
         }
     }
+    async createVirtualStudent(name) {
+        let code;
+        let existingCodeUser;
+        do {
+            code = this.generateCode();
+            existingCodeUser = await this.usersRepository.findOne({ where: { code } });
+        } while (existingCodeUser);
+        const user = this.usersRepository.create({
+            name,
+            role: 'student',
+            code,
+            isVirtual: true,
+        });
+        return await this.usersRepository.save(user);
+    }
     async getOrGenerateCode(userId) {
         const user = await this.findById(userId);
         if (!user) {

@@ -50,6 +50,25 @@ export class UsersService {
     }
   }
 
+  async createVirtualStudent(name: string): Promise<User> {
+    let code: string;
+    let existingCodeUser: User | null;
+    
+    // Generate unique code
+    do {
+      code = this.generateCode();
+      existingCodeUser = await this.usersRepository.findOne({ where: { code } });
+    } while (existingCodeUser);
+
+    const user = this.usersRepository.create({
+      name,
+      role: 'student' as any,
+      code,
+      isVirtual: true,
+    });
+    return await this.usersRepository.save(user);
+  }
+
   async getOrGenerateCode(userId: number): Promise<string> {
     const user = await this.findById(userId);
     if (!user) {

@@ -26,10 +26,10 @@ let FinanceService = class FinanceService {
         this.connectionsService = connectionsService;
     }
     async create(createTransactionDto) {
-        const connections = await this.connectionsService.getConnections(createTransactionDto.tutorId, 'tutor');
-        const isConnected = connections.some(c => c.studentId === createTransactionDto.studentId);
+        const connections = await this.connectionsService.getConnections(createTransactionDto.tutorId, "tutor");
+        const isConnected = connections.some((c) => c.studentId === createTransactionDto.studentId);
         if (!isConnected) {
-            throw new common_1.BadRequestException('Can only create transactions with connected students');
+            throw new common_1.BadRequestException("Can only create transactions with connected students");
         }
         const transaction = this.transactionsRepository.create(createTransactionDto);
         const saved = await this.transactionsRepository.save(transaction);
@@ -37,32 +37,36 @@ let FinanceService = class FinanceService {
     }
     async findAll(userId, userRole) {
         await this.checkAndCreateTransactionsForPastEvents();
-        if (userRole === 'tutor') {
-            const connections = await this.connectionsService.getConnections(userId, 'tutor');
-            const connectedStudentIds = connections.map(c => c.studentId);
+        if (userRole === "tutor") {
+            const connections = await this.connectionsService.getConnections(userId, "tutor");
+            const connectedStudentIds = connections.map((c) => c.studentId);
             if (connectedStudentIds.length === 0) {
                 return [];
             }
             return this.transactionsRepository
-                .createQueryBuilder('transaction')
-                .leftJoinAndSelect('transaction.student', 'student')
-                .where('transaction.tutorId = :tutorId', { tutorId: userId })
-                .andWhere('transaction.studentId IN (:...studentIds)', { studentIds: connectedStudentIds })
-                .orderBy('transaction.createdAt', 'DESC')
+                .createQueryBuilder("transaction")
+                .leftJoinAndSelect("transaction.student", "student")
+                .where("transaction.tutorId = :tutorId", { tutorId: userId })
+                .andWhere("transaction.studentId IN (:...studentIds)", {
+                studentIds: connectedStudentIds,
+            })
+                .orderBy("transaction.createdAt", "DESC")
                 .getMany();
         }
         else {
-            const connections = await this.connectionsService.getConnections(userId, 'student');
-            const connectedTutorIds = connections.map(c => c.tutorId);
+            const connections = await this.connectionsService.getConnections(userId, "student");
+            const connectedTutorIds = connections.map((c) => c.tutorId);
             if (connectedTutorIds.length === 0) {
                 return [];
             }
             return this.transactionsRepository
-                .createQueryBuilder('transaction')
-                .leftJoinAndSelect('transaction.tutor', 'tutor')
-                .where('transaction.studentId = :studentId', { studentId: userId })
-                .andWhere('transaction.tutorId IN (:...tutorIds)', { tutorIds: connectedTutorIds })
-                .orderBy('transaction.createdAt', 'DESC')
+                .createQueryBuilder("transaction")
+                .leftJoinAndSelect("transaction.tutor", "tutor")
+                .where("transaction.studentId = :studentId", { studentId: userId })
+                .andWhere("transaction.tutorId IN (:...tutorIds)", {
+                tutorIds: connectedTutorIds,
+            })
+                .orderBy("transaction.createdAt", "DESC")
                 .getMany();
         }
     }
@@ -72,27 +76,27 @@ let FinanceService = class FinanceService {
             where: {
                 transactionId: (0, typeorm_2.IsNull)(),
             },
-            relations: ['student', 'tutor'],
+            relations: ["student", "tutor"],
         });
         for (const event of events) {
             const eventDate = new Date(event.date);
             const timeStr = event.time;
             let hour24 = 0;
             let minute = 0;
-            if (timeStr.includes('AM') || timeStr.includes('PM')) {
-                const [timePart, period] = timeStr.split(' ');
-                const [hours, minutes] = timePart.split(':');
+            if (timeStr.includes("AM") || timeStr.includes("PM")) {
+                const [timePart, period] = timeStr.split(" ");
+                const [hours, minutes] = timePart.split(":");
                 hour24 = parseInt(hours);
-                if (period === 'PM' && hour24 !== 12) {
+                if (period === "PM" && hour24 !== 12) {
                     hour24 += 12;
                 }
-                else if (period === 'AM' && hour24 === 12) {
+                else if (period === "AM" && hour24 === 12) {
                     hour24 = 0;
                 }
                 minute = parseInt(minutes);
             }
             else {
-                const [hours, minutes] = timeStr.split(':');
+                const [hours, minutes] = timeStr.split(":");
                 hour24 = parseInt(hours);
                 minute = parseInt(minutes);
             }
@@ -100,15 +104,15 @@ let FinanceService = class FinanceService {
             const eventEndTime = new Date(eventDate);
             eventEndTime.setHours(eventEndTime.getHours() + 1);
             if (eventEndTime < now && !event.transactionId) {
-                const connections = await this.connectionsService.getConnections(event.tutorId, 'tutor');
-                const isConnected = connections.some(c => c.studentId === event.studentId);
+                const connections = await this.connectionsService.getConnections(event.tutorId, "tutor");
+                const isConnected = connections.some((c) => c.studentId === event.studentId);
                 if (!isConnected) {
                     continue;
                 }
                 try {
                     const transaction = await this.create({
                         amount: event.amount || 0,
-                        status: 'pending',
+                        status: "pending",
                         subject: event.subject || event.title,
                         tutorId: event.tutorId,
                         studentId: event.studentId,
@@ -119,7 +123,7 @@ let FinanceService = class FinanceService {
                     await this.eventsRepository.save(event);
                 }
                 catch (error) {
-                    console.error('Failed to create transaction for past event:', error);
+                    console.error("Failed to create transaction for past event:", error);
                 }
             }
         }
@@ -127,15 +131,15 @@ let FinanceService = class FinanceService {
     async confirmPayment(transactionId, tutorId) {
         const transaction = await this.transactionsRepository.findOne({
             where: { id: transactionId },
-            relations: ['tutor', 'student'],
+            relations: ["tutor", "student"],
         });
         if (!transaction) {
-            throw new common_1.BadRequestException('Transaction not found');
+            throw new common_1.BadRequestException("Transaction not found");
         }
         if (transaction.tutorId !== tutorId) {
-            throw new common_1.ForbiddenException('You can only confirm payments for your own transactions');
+            throw new common_1.ForbiddenException("You can only confirm payments for your own transactions");
         }
-        transaction.status = 'completed';
+        transaction.status = "completed";
         const updated = await this.transactionsRepository.save(transaction);
         await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false });
         return updated;
@@ -144,13 +148,15 @@ let FinanceService = class FinanceService {
         const transactions = await this.findAll(userId, userRole);
         const thisMonth = new Date();
         thisMonth.setDate(1);
-        const thisMonthTransactions = transactions.filter(t => new Date(t.createdAt) >= thisMonth && t.status === 'completed');
+        const thisMonthTransactions = transactions.filter((t) => new Date(t.createdAt) >= thisMonth && t.status === "completed");
         const lastMonth = new Date(thisMonth);
         lastMonth.setMonth(lastMonth.getMonth() - 1);
-        const lastMonthTransactions = transactions.filter(t => new Date(t.createdAt) >= lastMonth && new Date(t.createdAt) < thisMonth && t.status === 'completed');
+        const lastMonthTransactions = transactions.filter((t) => new Date(t.createdAt) >= lastMonth &&
+            new Date(t.createdAt) < thisMonth &&
+            t.status === "completed");
         const thisMonthTotal = thisMonthTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
         const lastMonthTotal = lastMonthTransactions.reduce((sum, t) => sum + Number(t.amount), 0);
-        const pending = transactions.filter(t => t.status === 'pending');
+        const pending = transactions.filter((t) => t.status === "pending");
         const pendingTotal = pending.reduce((sum, t) => sum + Number(t.amount), 0);
         return {
             thisMonth: thisMonthTotal,
@@ -159,9 +165,19 @@ let FinanceService = class FinanceService {
             pendingCount: pending.length,
         };
     }
+    async deletePendingTransaction(transactionId) {
+        const transaction = await this.transactionsRepository.findOne({
+            where: { id: transactionId },
+        });
+        if (transaction && transaction.status === "pending") {
+            await this.transactionsRepository.delete(transactionId);
+        }
+    }
     async deleteAllForTutor(tutorId) {
-        const transactions = await this.transactionsRepository.find({ where: { tutorId } });
-        const ids = transactions.map(t => t.id);
+        const transactions = await this.transactionsRepository.find({
+            where: { tutorId },
+        });
+        const ids = transactions.map((t) => t.id);
         if (ids.length === 0) {
             return { deletedCount: 0 };
         }
@@ -169,7 +185,7 @@ let FinanceService = class FinanceService {
             .createQueryBuilder()
             .update(event_entity_1.Event)
             .set({ transactionId: null, paymentPending: false })
-            .where('transactionId IN (:...ids)', { ids })
+            .where("transactionId IN (:...ids)", { ids })
             .execute();
         await this.transactionsRepository.delete({ tutorId });
         return { deletedCount: ids.length };
