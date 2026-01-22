@@ -56,7 +56,7 @@ export function Connections({ userType }: ConnectionsProps) {
 
   const handleApprove = async (
     requestId: number,
-    existingStudentId?: number
+    existingStudentId?: number,
   ) => {
     try {
       await api.approveConnection(requestId, existingStudentId);
@@ -67,7 +67,7 @@ export function Connections({ userType }: ConnectionsProps) {
       console.error("Failed to approve connection:", error);
       alert(
         error.message ||
-          "Failed to approve connection. You can only approve requests sent to you."
+          "Не удалось одобрить подключение. Вы можете одобрять только запросы, отправленные вам.",
       );
     }
   };
@@ -90,7 +90,7 @@ export function Connections({ userType }: ConnectionsProps) {
       console.error("Failed to reject connection:", error);
       alert(
         error.message ||
-          "Failed to reject connection. You can only reject requests sent to you."
+          "Не удалось отклонить подключение. Вы можете отклонять только запросы, отправленные вам.",
       );
     }
   };
@@ -98,7 +98,7 @@ export function Connections({ userType }: ConnectionsProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading connections...</div>
+        <div className="text-gray-400">Загрузка соединений...</div>
       </div>
     );
   }
@@ -108,7 +108,7 @@ export function Connections({ userType }: ConnectionsProps) {
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
         <div>
-          <h2 className="text-xl mb-3">Pending Requests</h2>
+          <h2 className="text-xl mb-3">Ожидающие запросы</h2>
           <div className="space-y-2">
             {pendingRequests.map((request) => {
               const otherUser =
@@ -131,15 +131,17 @@ export function Connections({ userType }: ConnectionsProps) {
                     </div>
                     <div>
                       <div className="font-medium">
-                        {otherUser?.name || "Unknown User"}
+                        {otherUser?.name || "Неизвестный пользователь"}
                       </div>
                       <div className="text-sm text-gray-400">
-                        {userType === "tutor" ? "Student" : "Tutor"} •{" "}
+                        {userType === "tutor" ? "Ученик" : "Репетитор"} •{" "}
                         {otherUser?.email}
                       </div>
                       <div className="text-xs text-gray-500 mt-1">
                         <Clock size={12} className="inline mr-1" />
-                        {new Date(request.createdAt).toLocaleDateString()}
+                        {new Date(request.createdAt).toLocaleDateString(
+                          "ru-RU",
+                        )}
                       </div>
                     </div>
                   </div>
@@ -149,14 +151,14 @@ export function Connections({ userType }: ConnectionsProps) {
                       className="px-4 py-2 bg-[#1db954] rounded-lg text-sm font-medium hover:bg-[#1ed760] transition-colors flex items-center gap-2"
                     >
                       <Check size={16} />
-                      Approve
+                      Одобрить
                     </button>
                     <button
                       onClick={() => handleReject(request.id)}
                       className="px-4 py-2 bg-[#282828] rounded-lg text-sm font-medium hover:bg-[#333333] transition-colors flex items-center gap-2"
                     >
                       <X size={16} />
-                      Reject
+                      Отклонить
                     </button>
                   </div>
                 </div>
@@ -170,20 +172,24 @@ export function Connections({ userType }: ConnectionsProps) {
       <div>
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-xl">
-            {userType === "tutor" ? "Connected Students" : "Connected Tutors"}
+            {userType === "tutor"
+              ? "Связанные ученики"
+              : "Связанные репетиторы"}
           </h2>
           <button
             onClick={() => setShowAddDialog(true)}
             className="px-4 py-2 bg-[#1db954] rounded-lg text-sm font-medium hover:bg-[#1ed760] transition-colors flex items-center gap-2"
           >
             <Plus size={16} />
-            Connect
+            Подключиться
           </button>
         </div>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {connections.length === 0 ? (
             <div className="text-center text-gray-400 py-8">
-              No {userType === "tutor" ? "students" : "tutors"} connected yet
+              {userType === "tutor"
+                ? "Ученики еще не подключены"
+                : "Репетиторы еще не подключены"}
             </div>
           ) : (
             connections.map((connection) => {
@@ -210,7 +216,7 @@ export function Connections({ userType }: ConnectionsProps) {
                   </div>
                   <div className="flex-1">
                     <div className="font-medium">
-                      {displayName || "Unknown User"}
+                      {displayName || "Неизвестный пользователь"}
                       {connection.studentAlias &&
                         connection.studentAlias !== otherUser?.name && (
                           <span className="text-xs text-gray-500 ml-2">
@@ -219,17 +225,17 @@ export function Connections({ userType }: ConnectionsProps) {
                         )}
                       {otherUser?.isVirtual && (
                         <span className="text-xs text-yellow-500 ml-2 px-1.5 py-0.5 bg-yellow-500/10 rounded">
-                          Manual
+                          Вручную
                         </span>
                       )}
                     </div>
                     <div className="text-sm text-gray-400">
-                      {otherUser?.email || "No email (Manual Profile)"}
+                      {otherUser?.email || "Нет почты (Ручной профиль)"}
                     </div>
                   </div>
                   <div className="text-xs text-gray-500">
-                    Connected{" "}
-                    {new Date(connection.createdAt).toLocaleDateString()}
+                    Подключен{" "}
+                    {new Date(connection.createdAt).toLocaleDateString("ru-RU")}
                   </div>
                 </div>
               );
@@ -242,9 +248,9 @@ export function Connections({ userType }: ConnectionsProps) {
       {showLinkDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
-            <h2 className="text-xl font-semibold mb-4">Connect Student</h2>
+            <h2 className="text-xl font-semibold mb-4">Подключить ученика</h2>
             <p className="text-gray-400 text-sm mb-6">
-              How would you like to connect{" "}
+              Как бы вы хотели подключить{" "}
               <strong>{selectedRequest?.student?.name}</strong>?
             </p>
 
@@ -253,7 +259,7 @@ export function Connections({ userType }: ConnectionsProps) {
                 onClick={() => handleApprove(selectedRequest.id)}
                 className="w-full bg-[#1db954] text-white py-3 rounded-lg font-semibold hover:bg-[#1ed760] transition-colors"
               >
-                Create New Profile
+                Создать новый профиль
               </button>
 
               <div className="relative my-6">
@@ -262,7 +268,7 @@ export function Connections({ userType }: ConnectionsProps) {
                 </div>
                 <div className="relative flex justify-center text-xs uppercase">
                   <span className="bg-[#181818] px-2 text-gray-500">
-                    Or link to existing manual profile
+                    Или привязать к существующему ручному профилю
                   </span>
                 </div>
               </div>
@@ -286,7 +292,7 @@ export function Connections({ userType }: ConnectionsProps) {
                           {c.studentAlias || c.student.name}
                         </div>
                         <div className="text-xs text-gray-500">
-                          Manual Profile
+                          Ручной профиль
                         </div>
                       </div>
                     </button>
@@ -300,7 +306,7 @@ export function Connections({ userType }: ConnectionsProps) {
                 }}
                 className="w-full bg-[#282828] text-white py-2 rounded-lg text-sm hover:bg-[#333333] transition-colors"
               >
-                Cancel
+                Отмена
               </button>
             </div>
           </div>
@@ -313,7 +319,7 @@ export function Connections({ userType }: ConnectionsProps) {
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
-                Connect with {userType === "tutor" ? "Student" : "Tutor"}
+                Подключиться к {userType === "tutor" ? "ученику" : "репетитору"}
               </h2>
               <button
                 onClick={() => {
@@ -330,7 +336,7 @@ export function Connections({ userType }: ConnectionsProps) {
             <form onSubmit={handleRequestConnection} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Enter {userType === "tutor" ? "Student" : "Tutor"} Code
+                  Введите код {userType === "tutor" ? "ученика" : "репетитора"}
                 </label>
                 <div className="relative">
                   <Search
@@ -350,8 +356,8 @@ export function Connections({ userType }: ConnectionsProps) {
                   />
                 </div>
                 <div className="text-xs text-gray-500 mt-2">
-                  Ask the {userType === "tutor" ? "student" : "tutor"} for their
-                  connection code
+                  Попросите у {userType === "tutor" ? "ученика" : "репетитора"}{" "}
+                  его код подключения
                 </div>
               </div>
 
@@ -371,14 +377,14 @@ export function Connections({ userType }: ConnectionsProps) {
                   }}
                   className="flex-1 bg-[#282828] rounded-lg py-3 text-white hover:bg-[#333333] transition-colors"
                 >
-                  Cancel
+                  Отмена
                 </button>
                 <button
                   type="submit"
                   disabled={submitting || connectionCode.length !== 6}
                   className="flex-1 bg-[#1db954] rounded-lg py-3 text-white font-medium hover:bg-[#1ed760] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 >
-                  {submitting ? "Sending..." : "Send Request"}
+                  {submitting ? "Отправка..." : "Отправить запрос"}
                 </button>
               </div>
             </form>

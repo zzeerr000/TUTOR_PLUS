@@ -20,6 +20,7 @@ interface CalendarViewProps {
 type CalendarViewType = "month" | "week" | "day";
 
 export function CalendarView({ userType }: CalendarViewProps) {
+  const [currency, setCurrency] = useState(api.getCurrencySymbol());
   const [viewType, setViewType] = useState<CalendarViewType>("month");
   const [currentDate, setCurrentDate] = useState(new Date()); // Current date
   const [events, setEvents] = useState<any[]>([]);
@@ -44,7 +45,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const [showDateDetails, setShowDateDetails] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -52,6 +53,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
     if (userType === "tutor") {
       loadStudents();
     }
+
+    const handleStorageChange = () => {
+      setCurrency(api.getCurrencySymbol());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [userType]);
 
   const loadEvents = async () => {
@@ -63,7 +71,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         return {
           ...e,
           title: e.subject
-            ? `${e.subject} - ${studentName || e.tutor?.name || "User"}`
+            ? `${e.subject} - ${studentName || e.tutor?.name || "Пользователь"}`
             : e.title,
         };
       });
@@ -72,7 +80,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       // Update date details if modal is open
       if (showDateDetails && selectedDate) {
         const dayEvents = formattedEvents.filter(
-          (e: any) => e.date === selectedDate
+          (e: any) => e.date === selectedDate,
         );
         setSelectedDateEvents(dayEvents);
       }
@@ -95,14 +103,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const convertTo12Hour = (time24: string): string => {
     const [hours, minutes] = time24.split(":");
     const hour = parseInt(hours);
-    const ampm = hour >= 12 ? "PM" : "AM";
+    const ampm = hour >= 12 ? "ПП" : "ДП";
     const hour12 = hour % 12 || 12;
     return `${hour12}:${minutes} ${ampm}`;
   };
 
   const generateRepeatDates = (
     startDate: string,
-    repeatType: "once" | "week" | "month"
+    repeatType: "once" | "week" | "month",
   ): string[] => {
     if (repeatType === "once") {
       return [startDate];
@@ -168,7 +176,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             color: newEvent.color,
             amount: amount,
             duration: parseInt(newEvent.duration) || 60,
-          })
+          }),
         );
 
         await Promise.all(eventPromises);
@@ -193,7 +201,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
     } catch (err: any) {
       setError(
         err.message ||
-          (editingEvent ? "Failed to update lesson" : "Failed to create lesson")
+          (editingEvent
+            ? "Не удалось обновить занятие"
+            : "Не удалось создать занятие"),
       );
     } finally {
       setSubmitting(false);
@@ -202,7 +212,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
   const handleDeleteEvent = async (
     eventId: number,
-    recurring: boolean = false
+    recurring: boolean = false,
   ) => {
     try {
       await api.deleteEvent(eventId, recurring);
@@ -211,7 +221,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       await loadEvents();
     } catch (error) {
       console.error("Failed to delete event:", error);
-      alert("Failed to delete lesson. Please try again.");
+      alert("Не удалось удалить занятие. Пожалуйста, попробуйте еще раз.");
     }
   };
 
@@ -221,27 +231,30 @@ export function CalendarView({ userType }: CalendarViewProps) {
     const firstDay = new Date(year, month, 1);
     const lastDay = new Date(year, month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDayOfWeek = firstDay.getDay();
+    // Adjust to make Monday the first day (0)
+    // Sunday is 0, Monday is 1... -> Monday is 0, Sunday is 6
+    let startingDayOfWeek = firstDay.getDay() - 1;
+    if (startingDayOfWeek === -1) startingDayOfWeek = 6;
 
     return { daysInMonth, startingDayOfWeek };
   };
 
   const { daysInMonth, startingDayOfWeek } = getDaysInMonth(currentDate);
 
-  const monthName = currentDate.toLocaleString("default", {
+  const monthName = currentDate.toLocaleString("ru-RU", {
     month: "long",
     year: "numeric",
   });
 
   const prevMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() - 1, 1),
     );
   };
 
   const nextMonth = () => {
     setCurrentDate(
-      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1)
+      new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 1),
     );
   };
 
@@ -261,7 +274,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
     const week: Date[] = [];
     const startOfWeek = new Date(date);
     const day = startOfWeek.getDay();
-    const diff = startOfWeek.getDate() - day;
+    // Adjust to make Monday the start of the week
+    const diff = startOfWeek.getDate() - (day === 0 ? 6 : day - 1);
     startOfWeek.setDate(diff);
 
     for (let i = 0; i < 7; i++) {
@@ -274,21 +288,21 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
   const getEventsForWeekDate = (date: Date) => {
     const dateStr = `${date.getFullYear()}-${String(
-      date.getMonth() + 1
+      date.getMonth() + 1,
     ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
     return events.filter((e) => e.date === dateStr);
   };
 
   const getEventsForDate = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(
-      currentDate.getMonth() + 1
+      currentDate.getMonth() + 1,
     ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     return events.filter((e) => e.date === dateStr);
   };
 
   const handleDateClick = (day: number) => {
     const dateStr = `${currentDate.getFullYear()}-${String(
-      currentDate.getMonth() + 1
+      currentDate.getMonth() + 1,
     ).padStart(2, "0")}-${String(day).padStart(2, "0")}`;
     const dayEvents = getEventsForDate(day);
     setSelectedDate(dateStr);
@@ -306,13 +320,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const handleEditEvent = (event: any) => {
     // Convert 12-hour format to 24-hour format
     let time24 = event.time;
-    if (event.time.includes("AM") || event.time.includes("PM")) {
+    if (
+      event.time.includes("AM") ||
+      event.time.includes("PM") ||
+      event.time.includes("ДП") ||
+      event.time.includes("ПП")
+    ) {
       const [timePart, period] = event.time.split(" ");
       const [hours, minutes] = timePart.split(":");
       let hour24 = parseInt(hours);
-      if (period === "PM" && hour24 !== 12) {
+      if ((period === "PM" || period === "ПП") && hour24 !== 12) {
         hour24 += 12;
-      } else if (period === "AM" && hour24 === 12) {
+      } else if ((period === "AM" || period === "ДП") && hour24 === 12) {
         hour24 = 0;
       }
       time24 = `${String(hour24).padStart(2, "0")}:${minutes}`;
@@ -377,7 +396,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       loadEvents();
       setShowDateDetails(false);
     } catch (err: any) {
-      setError(err.message || "Failed to update lesson");
+      setError(err.message || "Не удалось обновить занятие");
     } finally {
       setSubmitting(false);
     }
@@ -391,13 +410,19 @@ export function CalendarView({ userType }: CalendarViewProps) {
     let hour24 = 0;
     let minutes = 0;
 
-    if (eventTime.includes("AM") || eventTime.includes("PM")) {
+    if (
+      eventTime.includes("AM") ||
+      eventTime.includes("PM") ||
+      eventTime.includes("ДП") ||
+      eventTime.includes("ПП")
+    ) {
       const [timePart, period] = eventTime.split(" ");
       const [h, m] = timePart.split(":");
       hour24 = parseInt(h);
       minutes = parseInt(m);
-      if (period === "PM" && hour24 !== 12) hour24 += 12;
-      else if (period === "AM" && hour24 === 12) hour24 = 0;
+      if ((period === "PM" || period === "ПП") && hour24 !== 12) hour24 += 12;
+      else if ((period === "AM" || period === "ДП") && hour24 === 12)
+        hour24 = 0;
     } else {
       const [h, m] = eventTime.split(":");
       hour24 = parseInt(h);
@@ -406,8 +431,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
     const eventDateTime = new Date(
       `${datePart}T${String(hour24).padStart(2, "0")}:${String(
-        minutes
-      ).padStart(2, "0")}:00`
+        minutes,
+      ).padStart(2, "0")}:00`,
     );
     return eventDateTime < now;
   };
@@ -415,10 +440,10 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const weekDates = getWeekDates(currentDate);
   const weekStartDate = weekDates[0];
   const weekEndDate = weekDates[6];
-  const weekRange = `${weekStartDate.toLocaleDateString("default", {
+  const weekRange = `${weekStartDate.toLocaleDateString("ru-RU", {
     month: "short",
     day: "numeric",
-  })} - ${weekEndDate.toLocaleDateString("default", {
+  })} - ${weekEndDate.toLocaleDateString("ru-RU", {
     month: "short",
     day: "numeric",
     year: "numeric",
@@ -452,13 +477,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
       // If dates are the same, compare times
       // Convert 12-hour format to 24-hour for comparison
       const parseTime = (timeStr: string): number => {
-        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+        if (
+          timeStr.includes("AM") ||
+          timeStr.includes("PM") ||
+          timeStr.includes("ДП") ||
+          timeStr.includes("ПП")
+        ) {
           const [timePart, period] = timeStr.split(" ");
           const [hours, minutes] = timePart.split(":");
           let hour24 = parseInt(hours);
-          if (period === "PM" && hour24 !== 12) {
+          if ((period === "PM" || period === "ПП") && hour24 !== 12) {
             hour24 += 12;
-          } else if (period === "AM" && hour24 === 12) {
+          } else if ((period === "AM" || period === "ДП") && hour24 === 12) {
             hour24 = 0;
           }
           return hour24 * 60 + parseInt(minutes);
@@ -485,7 +515,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Month
+            Месяц
           </button>
           <button
             onClick={() => setViewType("week")}
@@ -495,7 +525,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Week
+            Неделя
           </button>
           <button
             onClick={() => setViewType("day")}
@@ -505,7 +535,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 : "text-gray-400 hover:text-white"
             }`}
           >
-            Day
+            День
           </button>
         </div>
         <div className="flex items-center gap-2">
@@ -513,13 +543,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
             {viewType === "month"
               ? monthName
               : viewType === "week"
-              ? weekRange
-              : currentDate.toLocaleDateString("default", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
+                ? weekRange
+                : currentDate.toLocaleDateString("ru-RU", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
           </h2>
           <div className="flex gap-2">
             <button
@@ -543,7 +573,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         <div className="bg-[#181818] rounded-lg p-4">
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-2 mb-2">
-            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+            {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => (
               <div key={day} className="text-center text-xs text-gray-400 py-2">
                 {day}
               </div>
@@ -618,7 +648,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 date.getMonth() === today.getMonth() &&
                 date.getFullYear() === today.getFullYear();
               const dateStr = `${date.getFullYear()}-${String(
-                date.getMonth() + 1
+                date.getMonth() + 1,
               ).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 
               return (
@@ -636,7 +666,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         isToday ? "text-white" : ""
                       }`}
                     >
-                      {date.toLocaleDateString("default", { weekday: "short" })}
+                      {date.toLocaleDateString("ru-RU", { weekday: "short" })}
                     </div>
                     <div
                       className={`text-lg font-semibold ${
@@ -656,7 +686,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   >
                     {dayEvents.length === 0 && userType === "tutor" && (
                       <div className="text-xs text-gray-500 text-center py-2">
-                        Click to add
+                        Нажмите, чтобы добавить
                       </div>
                     )}
                     {dayEvents.map((event, eventIdx) => {
@@ -689,7 +719,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             {event.time}
                             {event.duration && (
                               <span className="opacity-70">
-                                ({event.duration}m)
+                                ({event.duration} мин)
                               </span>
                             )}
                           </div>
@@ -710,10 +740,10 @@ export function CalendarView({ userType }: CalendarViewProps) {
           <div className="space-y-2">
             {Array.from({ length: 24 }).map((_, hour) => {
               const dateStr = `${currentDate.getFullYear()}-${String(
-                currentDate.getMonth() + 1
+                currentDate.getMonth() + 1,
               ).padStart(2, "0")}-${String(currentDate.getDate()).padStart(
                 2,
-                "0"
+                "0",
               )}`;
               const dayEvents = events.filter((e) => e.date === dateStr);
 
@@ -721,13 +751,21 @@ export function CalendarView({ userType }: CalendarViewProps) {
               const hourEvents = dayEvents.filter((e) => {
                 const timeStr = e.time;
                 // Handle both 12-hour and 24-hour formats
-                if (timeStr.includes("AM") || timeStr.includes("PM")) {
+                if (
+                  timeStr.includes("AM") ||
+                  timeStr.includes("PM") ||
+                  timeStr.includes("ДП") ||
+                  timeStr.includes("ПП")
+                ) {
                   const [timePart, period] = timeStr.split(" ");
                   const [hours] = timePart.split(":");
                   let hour24 = parseInt(hours);
-                  if (period === "PM" && hour24 !== 12) {
+                  if ((period === "PM" || period === "ПП") && hour24 !== 12) {
                     hour24 += 12;
-                  } else if (period === "AM" && hour24 === 12) {
+                  } else if (
+                    (period === "AM" || period === "ДП") &&
+                    hour24 === 12
+                  ) {
                     hour24 = 0;
                   }
                   return hour24 === hour;
@@ -759,7 +797,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   <div className="flex-1 space-y-1">
                     {hourEvents.length === 0 && userType === "tutor" && (
                       <div className="text-xs text-gray-500 py-2">
-                        Click to add event
+                        Нажмите, чтобы добавить занятие
                       </div>
                     )}
                     {hourEvents.map((event, eventIdx) => {
@@ -792,7 +830,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             {event.time}
                             {event.duration && (
                               <span className="opacity-70">
-                                ({event.duration} min)
+                                ({event.duration} мин)
                               </span>
                             )}
                           </div>
@@ -809,18 +847,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
       {/* Events List */}
       <div>
-        <h3 className="text-lg mb-3">Events This Week</h3>
+        <h3 className="text-lg mb-3">События на этой неделе</h3>
         <div className="space-y-2">
           {loading ? (
             <div className="text-center text-gray-400 py-8">
-              Loading events...
+              Загрузка событий...
             </div>
           ) : (
             (() => {
               const weekEvents = getCurrentWeekEvents();
               return weekEvents.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
-                  No events scheduled for this week
+                  На эту неделю событий не запланировано
                 </div>
               ) : (
                 weekEvents.map((event) => {
@@ -839,24 +877,24 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
                           <div className="text-sm text-gray-400">
-                            {new Date(event.date).toLocaleDateString(
-                              "default",
-                              { month: "short", day: "numeric" }
-                            )}{" "}
+                            {new Date(event.date).toLocaleDateString("ru-RU", {
+                              month: "short",
+                              day: "numeric",
+                            })}{" "}
                             • {event.time}
                             {event.duration && (
                               <span className="ml-1 text-gray-500">
-                                ({event.duration} min)
+                                ({event.duration} мин)
                               </span>
                             )}
                           </div>
                           {past ? (
                             <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
-                              Completed
+                              Завершено
                             </span>
                           ) : (
                             <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                              Upcoming
+                              Предстоит
                             </span>
                           )}
                         </div>
@@ -890,9 +928,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-semibold">
-                  Lessons for{" "}
+                  Занятия на{" "}
                   {selectedDate &&
-                    new Date(selectedDate).toLocaleDateString("en-US", {
+                    new Date(selectedDate).toLocaleDateString("ru-RU", {
                       weekday: "long",
                       year: "numeric",
                       month: "long",
@@ -910,7 +948,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       setShowDateDetails(false);
                     }}
                     className="p-2 bg-[#1db954] rounded-lg hover:bg-[#1ed760] transition-colors"
-                    title="Add new lesson"
+                    title="Добавить занятие"
                   >
                     <Plus size={18} />
                   </button>
@@ -931,7 +969,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             <div className="space-y-3">
               {selectedDateEvents.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
-                  No lessons scheduled for this date
+                  На эту дату занятий не запланировано
                   {userType === "tutor" && (
                     <div className="mt-2">
                       <button
@@ -946,7 +984,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         }}
                         className="text-[#1db954] hover:underline text-sm"
                       >
-                        Add your first lesson
+                        Добавьте первое занятие
                       </button>
                     </div>
                   )}
@@ -974,11 +1012,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             </div>
                             {past ? (
                               <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
-                                Completed
+                                Завершено
                               </span>
                             ) : (
                               <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                                Upcoming
+                                Предстоит
                               </span>
                             )}
                           </div>
@@ -988,7 +1026,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                               {event.time}
                               {event.duration && (
                                 <span className="ml-1 text-gray-500 font-normal">
-                                  ({event.duration} min)
+                                  ({event.duration} мин)
                                 </span>
                               )}
                             </span>
@@ -1004,36 +1042,37 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           </div>
                           {event.amount > 0 && (
                             <div className="text-sm text-[#1db954] font-medium mt-1">
-                              ${Number(event.amount).toFixed(2)}
+                              {currency}
+                              {Number(event.amount).toFixed(2)}
                             </div>
                           )}
                           {event.paymentPending && (
                             <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between">
                               <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded">
-                                Payment Pending
+                                Ожидает оплаты
                               </span>
                               {userType === "tutor" && event.transactionId && (
                                 <button
                                   onClick={async () => {
                                     try {
                                       await api.confirmPayment(
-                                        event.transactionId
+                                        event.transactionId,
                                       );
                                       loadEvents();
                                       const dayEvents = events.filter(
-                                        (e) => e.date === selectedDate
+                                        (e) => e.date === selectedDate,
                                       );
                                       setSelectedDateEvents(dayEvents);
                                     } catch (error: any) {
                                       alert(
                                         error.message ||
-                                          "Failed to confirm payment"
+                                          "Не удалось подтвердить оплату",
                                       );
                                     }
                                   }}
                                   className="text-xs bg-[#1db954] text-white px-3 py-1 rounded hover:bg-[#1ed760] transition-colors"
                                 >
-                                  Confirm Payment
+                                  Подтвердить оплату
                                 </button>
                               )}
                             </div>
@@ -1047,7 +1086,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                                 setShowDateDetails(false);
                               }}
                               className="text-gray-400 hover:text-[#1db954] transition-colors"
-                              title="Edit"
+                              title="Редактировать"
                             >
                               <Edit size={16} />
                             </button>
@@ -1057,7 +1096,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                                 setShowDateDetails(false);
                               }}
                               className="text-gray-400 hover:text-red-500 transition-colors"
-                              title="Delete"
+                              title="Удалить"
                             >
                               <Trash2 size={16} />
                             </button>
@@ -1091,7 +1130,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Schedule New Lesson</h2>
+              <h2 className="text-xl font-semibold">
+                {editingEvent
+                  ? "Редактировать занятие"
+                  : "Запланировать новое занятие"}
+              </h2>
               <button
                 onClick={() => {
                   setShowAddDialog(false);
@@ -1105,6 +1148,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     color: "#1db954",
                     repeatType: "once",
                     amount: localStorage.getItem("last_lesson_price") || "",
+                    duration: "60",
                   });
                 }}
                 className="text-gray-400 hover:text-white"
@@ -1116,7 +1160,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             <form onSubmit={handleAddEvent} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Student
+                  Ученик
                 </label>
                 <div className="relative">
                   <User
@@ -1128,7 +1172,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     onChange={(e) => {
                       const studentId = e.target.value;
                       const student = students.find(
-                        (s) => s.id.toString() === studentId
+                        (s) => s.id.toString() === studentId,
                       );
                       if (student) {
                         setNewEvent({
@@ -1149,7 +1193,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     required
                     className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
                   >
-                    <option value="">Select a student</option>
+                    <option value="">Выберите ученика</option>
                     {students.map((student) => (
                       <option key={student.id} value={student.id}>
                         {student.studentAlias || student.name}
@@ -1161,7 +1205,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Subject
+                  Предмет
                 </label>
                 <div className="relative">
                   <BookOpen
@@ -1180,7 +1224,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }
                     required
                     className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="Mathematics"
+                    placeholder="Математика"
                   />
                 </div>
               </div>
@@ -1188,7 +1232,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Date
+                    Дата
                   </label>
                   <input
                     type="date"
@@ -1203,7 +1247,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Time
+                    Время
                   </label>
                   <div className="relative">
                     <Clock
@@ -1226,7 +1270,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Lesson Price
+                    Стоимость занятия
                   </label>
                   <input
                     type="number"
@@ -1238,12 +1282,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     min="0"
                     step="0.01"
                     className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="$ 0"
+                    placeholder={`${currency} 0`}
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Duration (min)
+                    Длительность (мин)
                   </label>
                   <div className="relative">
                     <Clock
@@ -1268,7 +1312,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               {!editingEvent && (
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Repeat
+                    Повторение
                   </label>
                   <div className="relative">
                     <select
@@ -1284,18 +1328,16 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       }
                       className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
                     >
-                      <option value="once">Once</option>
-                      <option value="week">Weekly</option>
-                      <option value="month">Monthly</option>
+                      <option value="once">Один раз</option>
+                      <option value="week">Еженедельно</option>
+                      <option value="month">Ежемесячно</option>
                     </select>
                   </div>
                 </div>
               )}
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
-                  Color
-                </label>
+                <label className="block text-sm text-gray-400 mb-2">Цвет</label>
                 <div className="flex gap-2">
                   {["#1db954", "#2e77d0", "#af2896", "#e8115b", "#f59e0b"].map(
                     (color) => (
@@ -1310,7 +1352,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         }`}
                         style={{ backgroundColor: color }}
                       />
-                    )
+                    ),
                   )}
                 </div>
               </div>
@@ -1337,11 +1379,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       color: "#1db954",
                       repeatType: "once",
                       amount: localStorage.getItem("last_lesson_price") || "",
+                      duration: "60",
                     });
                   }}
                   className="flex-1 bg-[#282828] rounded-lg py-3 text-white hover:bg-[#333333] transition-colors"
                 >
-                  Cancel
+                  Отмена
                 </button>
                 <button
                   type="submit"
@@ -1350,11 +1393,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 >
                   {submitting
                     ? editingEvent
-                      ? "Updating..."
-                      : "Scheduling..."
+                      ? "Обновление..."
+                      : "Планирование..."
                     : editingEvent
-                    ? "Update Lesson"
-                    : "Schedule Lesson"}
+                      ? "Обновить занятие"
+                      : "Запланировать занятие"}
                 </button>
               </div>
             </form>
@@ -1366,28 +1409,28 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-[#181818] rounded-xl p-6 w-full max-w-sm border border-gray-800 shadow-2xl">
-            <h3 className="text-xl font-bold mb-2">Delete Lesson</h3>
+            <h3 className="text-xl font-bold mb-2">Удалить занятие</h3>
             <p className="text-gray-400 mb-6">
-              How would you like to delete this lesson?
+              Как вы хотите удалить это занятие?
             </p>
             <div className="space-y-3">
               <button
                 onClick={() => handleDeleteEvent(showDeleteConfirm, false)}
                 className="w-full bg-[#282828] text-white py-3 rounded-lg font-medium hover:bg-[#333333] transition-colors"
               >
-                Delete only this lesson
+                Удалить только это занятие
               </button>
               <button
                 onClick={() => handleDeleteEvent(showDeleteConfirm, true)}
                 className="w-full bg-red-600 text-white py-3 rounded-lg font-medium hover:bg-red-700 transition-colors"
               >
-                Delete all future repetitions
+                Удалить все будущие повторения
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
                 className="w-full text-gray-400 py-2 hover:text-white transition-colors"
               >
-                Cancel
+                Отмена
               </button>
             </div>
           </div>

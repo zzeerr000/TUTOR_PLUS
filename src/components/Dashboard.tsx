@@ -32,9 +32,17 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   const [upcomingLessons, setUpcomingLessons] = useState<any[]>([]);
   const [recentProgress, setRecentProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [currency, setCurrency] = useState(api.getCurrencySymbol());
 
   useEffect(() => {
     loadData();
+
+    const handleStorageChange = () => {
+      setCurrency(api.getCurrencySymbol());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, [userType]);
 
   const isEventPast = (eventDate: string, eventTime: string) => {
@@ -44,13 +52,19 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
     let hour24 = 0;
     let minutes = 0;
 
-    if (eventTime.includes("AM") || eventTime.includes("PM")) {
+    if (
+      eventTime.includes("AM") ||
+      eventTime.includes("PM") ||
+      eventTime.includes("ДП") ||
+      eventTime.includes("ПП")
+    ) {
       const [timePart, period] = eventTime.split(" ");
       const [h, m] = timePart.split(":");
       hour24 = parseInt(h);
       minutes = parseInt(m);
-      if (period === "PM" && hour24 !== 12) hour24 += 12;
-      else if (period === "AM" && hour24 === 12) hour24 = 0;
+      if ((period === "PM" || period === "ПП") && hour24 !== 12) hour24 += 12;
+      else if ((period === "AM" || period === "ДП") && hour24 === 12)
+        hour24 = 0;
     } else {
       const [h, m] = eventTime.split(":");
       hour24 = parseInt(h);
@@ -59,8 +73,8 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
 
     const eventDateTime = new Date(
       `${datePart}T${String(hour24).padStart(2, "0")}:${String(
-        minutes
-      ).padStart(2, "0")}:00`
+        minutes,
+      ).padStart(2, "0")}:00`,
     );
     return eventDateTime < now;
   };
@@ -93,10 +107,10 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       });
 
       const pendingTasksCount = tasks.filter(
-        (t: any) => t.status !== "completed"
+        (t: any) => t.status !== "completed",
       ).length;
       const activeTasksCount = tasks.filter(
-        (t: any) => t.status !== "completed"
+        (t: any) => t.status !== "completed",
       ).length;
 
       if (userType === "tutor") {
@@ -114,11 +128,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           todayEvents.slice(0, 4).map((e: any) => ({
             id: e.id,
             time: e.time,
-            student: e.student?.name || "Student",
-            subject: e.subject || "Lesson",
+            student: e.student?.name || "Ученик",
+            subject: e.subject || "Занятие",
             color: e.color || "#1db954",
             past: isEventPast(e.date, e.time),
-          }))
+          })),
         );
       } else {
         const progressStats = await api
@@ -137,22 +151,22 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         setUpcomingLessons(
           events.slice(0, 3).map((e: any) => ({
             id: e.id,
-            day: new Date(e.date).toLocaleDateString("en-US", {
+            day: new Date(e.date).toLocaleDateString("ru-RU", {
               weekday: "short",
             }),
             time: e.time,
-            subject: e.subject || "Lesson",
-            tutor: e.tutor?.name || "Tutor",
+            subject: e.subject || "Занятие",
+            tutor: e.tutor?.name || "Репетитор",
             color: e.color || "#1db954",
             past: isEventPast(e.date, e.time),
-          }))
+          })),
         );
         setRecentProgress(
           progress.slice(0, 3).map((p: any) => ({
             subject: p.subject,
             progress: Math.round(Number(p.progress)),
             color: "#1db954",
-          }))
+          })),
         );
       }
     } catch (error) {
@@ -163,7 +177,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   };
 
   const handleDeleteLesson = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this lesson?")) {
+    if (window.confirm("Вы уверены, что хотите удалить это занятие?")) {
       try {
         await api.deleteEvent(id);
         loadData();
@@ -175,7 +189,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading dashboard...</div>
+        <div className="text-gray-400">Загрузка панели управления...</div>
       </div>
     );
   }
@@ -188,73 +202,74 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
             <Users size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.students}</div>
-            <div className="text-sm opacity-90">Active Students</div>
+            <div className="text-sm opacity-90">Активные студенты</div>
           </div>
           <div className="bg-gradient-to-br from-[#1ed760] to-[#1db954] rounded-lg p-4">
             <Calendar size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.lessonsToday}</div>
-            <div className="text-sm opacity-90">Lessons Today</div>
+            <div className="text-sm opacity-90">Занятий сегодня</div>
           </div>
           <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
             <DollarSign size={24} className="mb-2" />
             <div className="text-2xl mb-1">
-              ${stats.thisMonth.toLocaleString()}
+              {currency}
+              {stats.thisMonth.toLocaleString()}
             </div>
-            <div className="text-sm opacity-90">This Month</div>
+            <div className="text-sm opacity-90">В этом месяце</div>
           </div>
           <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
             <CheckSquare size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.pendingTasks}</div>
-            <div className="text-sm opacity-90">Pending Tasks</div>
+            <div className="text-sm opacity-90">Ожидающие задачи</div>
           </div>
         </div>
 
         {/* Quick Actions */}
         <div>
-          <h2 className="text-xl mb-3">Quick Actions</h2>
+          <h2 className="text-xl mb-3">Быстрые действия</h2>
           <div className="grid grid-cols-2 gap-3">
             <button
               onClick={() => onNavigate("materials")}
               className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
             >
               <FolderOpen size={24} className="mb-2 text-[#1db954]" />
-              <div className="mb-1">Materials</div>
-              <div className="text-sm text-gray-400">Upload & manage files</div>
+              <div className="mb-1">Материалы</div>
+              <div className="text-sm text-gray-400">Загрузка и управление</div>
             </button>
             <button
               onClick={() => onNavigate("finance")}
               className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
             >
               <DollarSign size={24} className="mb-2 text-[#2e77d0]" />
-              <div className="mb-1">Finance</div>
-              <div className="text-sm text-gray-400">Track payments</div>
+              <div className="mb-1">Финансы</div>
+              <div className="text-sm text-gray-400">Отслеживание оплат</div>
             </button>
             <button
               onClick={() => onNavigate("tasks")}
               className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
             >
               <CheckSquare size={24} className="mb-2 text-[#af2896]" />
-              <div className="mb-1">Tasks</div>
-              <div className="text-sm text-gray-400">Manage assignments</div>
+              <div className="mb-1">Задания</div>
+              <div className="text-sm text-gray-400">Управление заданиями</div>
             </button>
             <button
               onClick={() => onNavigate("calendar")}
               className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
             >
               <Calendar size={24} className="mb-2 text-[#e8115b]" />
-              <div className="mb-1">Schedule</div>
-              <div className="text-sm text-gray-400">View all lessons</div>
+              <div className="mb-1">Расписание</div>
+              <div className="text-sm text-gray-400">Все занятия</div>
             </button>
           </div>
         </div>
 
         {/* Today's Schedule */}
         <div>
-          <h2 className="text-xl mb-3">Today's Schedule</h2>
+          <h2 className="text-xl mb-3">Расписание на сегодня</h2>
           <div className="space-y-2">
             {todaySchedule.length === 0 ? (
               <div className="text-center text-gray-400 py-8">
-                No lessons scheduled for today
+                На сегодня занятий нет
               </div>
             ) : (
               todaySchedule.map((lesson, idx) => (
@@ -278,11 +293,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                       </div>
                       {lesson.past ? (
                         <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
-                          Completed
+                          Завершено
                         </span>
                       ) : (
                         <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                          Upcoming
+                          Предстоит
                         </span>
                       )}
                     </div>
@@ -304,7 +319,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                         handleDeleteLesson(lesson.id);
                       }}
                       className="text-gray-400 hover:text-red-500 transition-colors p-2"
-                      title="Delete lesson"
+                      title="Удалить занятие"
                     >
                       <Trash2 size={16} />
                     </button>
@@ -326,55 +341,55 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
           <CheckSquare size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.activeTasks}</div>
-          <div className="text-sm opacity-90">Active Tasks</div>
+          <div className="text-sm opacity-90">Активные задачи</div>
         </div>
         <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
           <Calendar size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.lessonsThisWeek}</div>
-          <div className="text-sm opacity-90">Lessons This Week</div>
+          <div className="text-sm opacity-90">Занятий на неделе</div>
         </div>
         <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
           <TrendingUp size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.avgProgress}%</div>
-          <div className="text-sm opacity-90">Avg. Progress</div>
+          <div className="text-sm opacity-90">Средний прогресс</div>
         </div>
         <div className="bg-gradient-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4">
           <Clock size={24} className="mb-2" />
-          <div className="text-2xl mb-1">{stats.studyTime}h</div>
-          <div className="text-sm opacity-90">Study Time</div>
+          <div className="text-2xl mb-1">{stats.studyTime}ч</div>
+          <div className="text-sm opacity-90">Время обучения</div>
         </div>
       </div>
 
       {/* Quick Actions */}
       <div>
-        <h2 className="text-xl mb-3">Quick Actions</h2>
+        <h2 className="text-xl mb-3">Быстрые действия</h2>
         <div className="grid grid-cols-2 gap-3">
           <button
             onClick={() => onNavigate("materials")}
             className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
           >
             <FolderOpen size={24} className="mb-2 text-[#1db954]" />
-            <div className="mb-1">Materials</div>
-            <div className="text-sm text-gray-400">View study materials</div>
+            <div className="mb-1">Материалы</div>
+            <div className="text-sm text-gray-400">Учебные материалы</div>
           </button>
           <button
             onClick={() => onNavigate("tasks")}
             className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
           >
             <CheckSquare size={24} className="mb-2 text-[#2e77d0]" />
-            <div className="mb-1">Tasks</div>
-            <div className="text-sm text-gray-400">View assignments</div>
+            <div className="mb-1">Задания</div>
+            <div className="text-sm text-gray-400">Ваши задания</div>
           </button>
         </div>
       </div>
 
       {/* Upcoming Lessons */}
       <div>
-        <h2 className="text-xl mb-3">Upcoming Lessons</h2>
+        <h2 className="text-xl mb-3">Ближайшие занятия</h2>
         <div className="space-y-2">
           {upcomingLessons.length === 0 ? (
             <div className="text-center text-gray-400 py-8">
-              No upcoming lessons
+              Нет ближайших занятий
             </div>
           ) : (
             upcomingLessons.map((lesson, idx) => (
@@ -395,11 +410,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                     </div>
                     {lesson.past ? (
                       <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
-                        Completed
+                        Завершено
                       </span>
                     ) : (
                       <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                        Upcoming
+                        Предстоит
                       </span>
                     )}
                   </div>
@@ -418,11 +433,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
 
       {/* Recent Progress */}
       <div>
-        <h2 className="text-xl mb-3">Recent Progress</h2>
+        <h2 className="text-xl mb-3">Последний прогресс</h2>
         <div className="space-y-3">
           {recentProgress.length === 0 ? (
             <div className="text-center text-gray-400 py-8">
-              No progress data available
+              Нет данных о прогрессе
             </div>
           ) : (
             recentProgress.map((item, idx) => (

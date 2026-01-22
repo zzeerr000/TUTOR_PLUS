@@ -46,10 +46,10 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         err.message.includes("NetworkError")
       ) {
         setError(
-          "Cannot connect to server. Make sure the backend is running on http://localhost:3000"
+          "Не удается подключиться к серверу. Убедитесь, что бэкенд запущен на http://localhost:3000"
         );
       } else {
-        setError(err.message || "Something went wrong");
+        setError(err.message || "Что-то пошло не так");
       }
     } finally {
       setLoading(false);
@@ -62,7 +62,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2 text-white">TutorHub</h1>
           <p className="text-gray-400">
-            {isLogin ? "Welcome back!" : "Create your account"}
+            {isLogin ? "С возвращением!" : "Создайте аккаунт"}
           </p>
         </div>
 
@@ -72,7 +72,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               <>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Full Name
+                    Полное имя
                   </label>
                   <div className="relative">
                     <User
@@ -85,14 +85,14 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                       onChange={(e) => setName(e.target.value)}
                       required={!isLogin}
                       className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                      placeholder="John Doe"
+                      placeholder="Иван Иванов"
                     />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Role
+                    Роль
                   </label>
                   <div className="grid grid-cols-2 gap-3">
                     <button
@@ -115,7 +115,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                           role === "tutor" ? "text-[#1db954]" : "text-gray-400"
                         }`}
                       >
-                        Tutor
+                        Преподаватель
                       </div>
                     </button>
                     <button
@@ -142,7 +142,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                             : "text-gray-400"
                         }`}
                       >
-                        Student
+                        Ученик
                       </div>
                     </button>
                   </div>
@@ -172,7 +172,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             {isLogin && (
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Login as
+                  Войти как
                 </label>
                 <div className="grid grid-cols-2 gap-3">
                   <button
@@ -195,7 +195,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                         role === "tutor" ? "text-[#1db954]" : "text-gray-400"
                       }`}
                     >
-                      Tutor
+                      Преподаватель
                     </div>
                   </button>
                   <button
@@ -220,7 +220,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                         role === "student" ? "text-[#1db954]" : "text-gray-400"
                       }`}
                     >
-                      Student
+                      Ученик
                     </div>
                   </button>
                 </div>
@@ -229,7 +229,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
             <div>
               <label className="block text-sm text-gray-400 mb-2">
-                Password
+                Пароль
               </label>
               <div className="relative">
                 <Lock
@@ -259,7 +259,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               disabled={loading}
               className="w-full bg-[#1db954] rounded-lg py-3 text-white font-medium hover:bg-[#1ed760] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Loading..." : isLogin ? "Sign In" : "Sign Up"}
+              {loading ? "Загрузка..." : isLogin ? "Войти" : "Зарегистрироваться"}
             </button>
           </form>
 
@@ -281,8 +281,8 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               }}
             >
               {isLogin
-                ? "Don't have an account? Sign up"
-                : "Already have an account? Sign in"}
+                ? "Нет аккаунта? Зарегистрироваться"
+                : "Уже есть аккаунт? Войти"}
             </button>
           </div>
         </div>

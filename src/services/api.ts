@@ -308,4 +308,8 @@ export const api = {
       }
     );
   },
+
+  getCurrencySymbol() {
+    return localStorage.getItem("currency") || "$";
+  },
 };

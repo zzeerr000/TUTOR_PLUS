@@ -48,7 +48,7 @@ export function Messenger({ userType }: MessengerProps) {
             return {
               id: otherUser.id,
               name: otherUser.name,
-              lastMessage: 'No messages yet',
+              lastMessage: 'Нет сообщений',
               time: '',
               unread: 0,
               avatar: otherUser.name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2),
@@ -97,7 +97,7 @@ export function Messenger({ userType }: MessengerProps) {
         id: m.id,
         text: m.text,
         sent: m.senderId === userId,
-          time: createdAt.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' }),
+          time: createdAt.toLocaleTimeString('ru-RU', { hour: 'numeric', minute: '2-digit' }),
           createdAt: createdAt.toISOString(),
         };
       });
@@ -144,7 +144,7 @@ export function Messenger({ userType }: MessengerProps) {
         }, 100);
       } catch (error: any) {
         console.error('Failed to send message:', error);
-        alert(error.message || 'Failed to send message. Make sure you are connected to this user.');
+        alert(error.message || 'Не удалось отправить сообщение. Убедитесь, что вы связаны с этим пользователем.');
       }
     }
   };
@@ -154,7 +154,7 @@ export function Messenger({ userType }: MessengerProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading conversations...</div>
+        <div className="text-gray-400">Загрузка сообщений...</div>
       </div>
     );
   }
@@ -163,14 +163,14 @@ export function Messenger({ userType }: MessengerProps) {
     <div className="space-y-4 pb-6">
       {/* Header with New Chat Button */}
       <div className="flex items-center justify-between">
-        <h2 className="text-xl font-semibold">Messages</h2>
+        <h2 className="text-xl font-semibold">Сообщения</h2>
         {connections.length > 0 && (
           <button
             onClick={() => setShowNewChatDialog(true)}
             className="px-4 py-2 bg-[#1db954] rounded-lg text-sm font-medium hover:bg-[#1ed760] transition-colors flex items-center gap-2"
           >
             <Plus size={16} />
-            New Chat
+            Новый чат
           </button>
         )}
       </div>
@@ -180,7 +180,7 @@ export function Messenger({ userType }: MessengerProps) {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={20} />
         <input
           type="text"
-          placeholder="Search conversations..."
+          placeholder="Поиск диалогов..."
           className="w-full bg-[#181818] rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
         />
       </div>
@@ -190,8 +190,8 @@ export function Messenger({ userType }: MessengerProps) {
         {chats.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             {connections.length === 0 
-              ? 'No connections yet. Connect with users to start messaging.' 
-              : 'No conversations yet. Start a new chat!'}
+              ? 'Нет подключений. Свяжитесь с пользователями, чтобы начать общение.' 
+              : 'Нет диалогов. Начните новый чат!'}
           </div>
         ) : (
           chats.map((chat) => (
@@ -245,7 +245,7 @@ export function Messenger({ userType }: MessengerProps) {
               </div>
               <div>
                 <div>{currentChat.name}</div>
-                <div className="text-xs text-gray-400">Active now</div>
+                <div className="text-xs text-gray-400">В сети</div>
               </div>
             </div>
           </div>
@@ -253,7 +253,7 @@ export function Messenger({ userType }: MessengerProps) {
           {/* Messages */}
           <div className="p-4 space-y-3 max-h-96 overflow-y-auto" id="messages-container" style={{ minHeight: '200px' }}>
             {messages.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">No messages yet. Start the conversation!</div>
+              <div className="text-center text-gray-400 py-8">Нет сообщений. Начните беседу!</div>
             ) : (
               messages.map((msg, index) => {
                 const prevMsg = index > 0 ? messages[index - 1] : null;
@@ -266,7 +266,7 @@ export function Messenger({ userType }: MessengerProps) {
                   <React.Fragment key={msg.id || index}>
                     {showDate && (
                       <div className="text-center text-xs text-gray-500 my-4">
-                        {msgDate.toLocaleDateString('en-US', { 
+                        {msgDate.toLocaleDateString('ru-RU', { 
                           weekday: 'long', 
                           year: 'numeric', 
                           month: 'long', 
@@ -304,7 +304,7 @@ export function Messenger({ userType }: MessengerProps) {
                 value={message}
                 onChange={(e) => setMessage(e.target.value)}
                 onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-                placeholder="Type a message..."
+                placeholder="Введите сообщение..."
                 className="flex-1 bg-[#282828] rounded-full px-4 py-2 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
               />
               <button
@@ -319,8 +319,8 @@ export function Messenger({ userType }: MessengerProps) {
       ) : (
         <div className="text-center text-gray-400 py-12">
           {chats.length === 0 
-            ? 'No conversations yet. Start a new chat!' 
-            : 'Select a conversation to start messaging'}
+            ? 'Нет диалогов. Начните новый чат!' 
+            : 'Выберите чат, чтобы начать общение'}
         </div>
       )}
 
@@ -329,7 +329,7 @@ export function Messenger({ userType }: MessengerProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Start New Chat</h2>
+              <h2 className="text-xl font-semibold">Начать новый чат</h2>
               <button
                 onClick={() => setShowNewChatDialog(false)}
                 className="text-gray-400 hover:text-white"
@@ -341,7 +341,7 @@ export function Messenger({ userType }: MessengerProps) {
             <div className="space-y-2 max-h-96 overflow-y-auto">
               {connections.length === 0 ? (
                 <div className="text-center text-gray-400 py-8">
-                  No connected {userType === 'tutor' ? 'students' : 'tutors'} yet
+                  Нет подключенных {userType === 'tutor' ? 'учеников' : 'репетиторов'}
                 </div>
               ) : (
                 connections.map((conn) => {
@@ -366,7 +366,7 @@ export function Messenger({ userType }: MessengerProps) {
                         <div className="flex-1">
                           <div className="font-medium">{otherUser.name}</div>
                           <div className="text-sm text-gray-400">
-                            {existingChat ? 'Continue conversation' : 'Start new conversation'}
+                            {existingChat ? 'Продолжить беседу' : 'Начать новую беседу'}
                           </div>
                         </div>
                       </div>

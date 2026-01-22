@@ -47,9 +47,17 @@ export function StudentManager() {
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [currency, setCurrency] = useState(api.getCurrencySymbol());
 
   useEffect(() => {
     loadData();
+
+    const handleStorageChange = () => {
+      setCurrency(api.getCurrencySymbol());
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
 
   const loadData = async () => {
@@ -67,11 +75,11 @@ export function StudentManager() {
       const studentsWithProgress = connections.map((conn: any) => {
         const student = conn.student;
         const studentProgress = progressData.find(
-          (p: any) => p.studentId === student.id
+          (p: any) => p.studentId === student.id,
         );
         const nextEvent = events.find(
           (e: any) =>
-            e.studentId === student.id && new Date(e.date) >= new Date()
+            e.studentId === student.id && new Date(e.date) >= new Date(),
         );
         const colors = ["#1db954", "#2e77d0", "#af2896", "#e8115b"];
         const color = colors[student.id % colors.length];
@@ -81,19 +89,19 @@ export function StudentManager() {
           name: conn.studentAlias || student.name,
           originalName: student.name,
           isVirtual: student.isVirtual,
-          subject: studentProgress?.subject || conn.defaultSubject || "General",
+          subject: studentProgress?.subject || conn.defaultSubject || "Общий",
           defaultSubject: conn.defaultSubject,
           defaultPrice: conn.defaultPrice,
           defaultDuration: conn.defaultDuration,
           progress: Math.round(Number(studentProgress?.progress || 0)),
           hoursCompleted: Math.round(
-            Number(studentProgress?.hoursStudied || 0)
+            Number(studentProgress?.hoursStudied || 0),
           ),
           nextLesson: nextEvent
-            ? `${new Date(nextEvent.date).toLocaleDateString("en-US", {
+            ? `${new Date(nextEvent.date).toLocaleDateString("ru-RU", {
                 weekday: "short",
               })}, ${nextEvent.time}`
-            : "No upcoming lesson",
+            : "Нет предстоящих занятий",
           avatar: (conn.studentAlias || student.name)
             .split(" ")
             .map((n: string) => n[0])
@@ -101,7 +109,7 @@ export function StudentManager() {
             .toUpperCase()
             .slice(0, 2),
           color,
-          status: student.isVirtual ? "virtual" : "active",
+          status: student.isVirtual ? "виртуальный" : "активный",
         };
       });
 
@@ -111,8 +119,8 @@ export function StudentManager() {
           ? Math.round(
               progressData.reduce(
                 (sum: number, p: any) => sum + Number(p.progress),
-                0
-              ) / progressData.length
+                0,
+              ) / progressData.length,
             )
           : 0;
       setStats({
@@ -137,7 +145,7 @@ export function StudentManager() {
         newStudent.name,
         newStudent.defaultSubject,
         newStudent.defaultPrice ? Number(newStudent.defaultPrice) : undefined,
-        newStudent.defaultDuration ? Number(newStudent.defaultDuration) : 60
+        newStudent.defaultDuration ? Number(newStudent.defaultDuration) : 60,
       );
       setShowAddDialog(false);
       setNewStudent({
@@ -149,7 +157,7 @@ export function StudentManager() {
       });
       loadData();
     } catch (err: any) {
-      setError(err.message || "Failed to create student");
+      setError(err.message || "Не удалось создать профиль ученика");
     } finally {
       setSubmitting(false);
     }
@@ -174,7 +182,7 @@ export function StudentManager() {
       setShowEditDialog(false);
       loadData();
     } catch (err: any) {
-      setError(err.message || "Failed to update student");
+      setError(err.message || "Не удалось обновить данные ученика");
     } finally {
       setSubmitting(false);
     }
@@ -188,19 +196,19 @@ export function StudentManager() {
     try {
       await api.linkVirtualStudent(
         linkData.virtualStudentId,
-        linkData.studentCode
+        linkData.studentCode,
       );
       setShowLinkDialog(false);
       loadData();
     } catch (err: any) {
-      setError(err.message || "Failed to link student");
+      setError(err.message || "Не удалось привязать аккаунт");
     } finally {
       setSubmitting(false);
     }
   };
 
   const handleDeleteStudent = async (studentId: number, name: string) => {
-    if (!window.confirm(`Are you sure you want to remove ${name}?`)) {
+    if (!window.confirm(`Вы уверены, что хотите удалить ${name}?`)) {
       return;
     }
 
@@ -209,7 +217,7 @@ export function StudentManager() {
       await api.deleteStudent(studentId);
       loadData();
     } catch (err: any) {
-      alert(err.message || "Failed to remove student");
+      alert(err.message || "Не удалось удалить ученика");
     } finally {
       setSubmitting(false);
     }
@@ -218,7 +226,7 @@ export function StudentManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading students...</div>
+        <div className="text-gray-400">Загрузка учеников...</div>
       </div>
     );
   }
@@ -233,7 +241,7 @@ export function StudentManager() {
         />
         <input
           type="text"
-          placeholder="Search students..."
+          placeholder="Поиск учеников..."
           className="w-full bg-[#181818] rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
         />
       </div>
@@ -242,19 +250,19 @@ export function StudentManager() {
       <div className="grid grid-cols-3 gap-3">
         <div className="bg-[#181818] rounded-lg p-3 text-center">
           <div className="text-2xl text-[#1db954] mb-1">{stats.total}</div>
-          <div className="text-xs text-gray-400">Total Students</div>
+          <div className="text-xs text-gray-400">Всего учеников</div>
         </div>
         <div className="bg-[#181818] rounded-lg p-3 text-center">
           <div className="text-2xl text-[#2e77d0] mb-1">
             {stats.lessonsToday}
           </div>
-          <div className="text-xs text-gray-400">Lessons Today</div>
+          <div className="text-xs text-gray-400">Занятий сегодня</div>
         </div>
         <div className="bg-[#181818] rounded-lg p-3 text-center">
           <div className="text-2xl text-[#af2896] mb-1">
             {stats.avgProgress}%
           </div>
-          <div className="text-xs text-gray-400">Avg. Progress</div>
+          <div className="text-xs text-gray-400">Средний прогресс</div>
         </div>
       </div>
 
@@ -262,7 +270,7 @@ export function StudentManager() {
       <div className="space-y-3">
         {students.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
-            No students found
+            Ученики не найдены
           </div>
         ) : (
           students.map((student) => (
@@ -312,7 +320,7 @@ export function StudentManager() {
                           setShowEditDialog(true);
                         }}
                         className="p-1.5 text-gray-400 hover:text-white transition-colors"
-                        title="Rename"
+                        title="Переименовать"
                       >
                         <Edit2 size={14} />
                       </button>
@@ -326,7 +334,7 @@ export function StudentManager() {
                             setShowLinkDialog(true);
                           }}
                           className="p-1.5 text-gray-400 hover:text-[#1db954] transition-colors"
-                          title="Link with code"
+                          title="Привязать по коду"
                         >
                           <Link size={14} />
                         </button>
@@ -336,7 +344,7 @@ export function StudentManager() {
                           handleDeleteStudent(student.id, student.name)
                         }
                         className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
-                        title="Remove Student"
+                        title="Удалить ученика"
                       >
                         <Trash2 size={14} />
                       </button>
@@ -352,7 +360,7 @@ export function StudentManager() {
               {/* Progress Bar */}
               <div className="mb-3">
                 <div className="flex items-center justify-between text-sm mb-1">
-                  <span className="text-gray-400">Progress</span>
+                  <span className="text-gray-400">Прогресс</span>
                   <span className="text-gray-400">{student.progress}%</span>
                 </div>
                 <div className="w-full bg-[#282828] rounded-full h-2">
@@ -370,7 +378,7 @@ export function StudentManager() {
               <div className="flex items-center gap-4 text-sm">
                 <div className="flex items-center gap-1 text-gray-400">
                   <Clock size={14} />
-                  <span>{student.hoursCompleted}h completed</span>
+                  <span>{student.hoursCompleted}ч пройдено</span>
                 </div>
                 <div className="flex items-center gap-1 text-gray-400">
                   <CheckCircle size={14} />
@@ -395,12 +403,18 @@ export function StudentManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Add New Student</h2>
+              <h2 className="text-xl font-semibold">Добавить нового ученика</h2>
               <button
                 onClick={() => {
                   setShowAddDialog(false);
                   setError("");
-                  setNewStudent({ name: "", isManual: true });
+                  setNewStudent({
+                    name: "",
+                    isManual: true,
+                    defaultSubject: "",
+                    defaultPrice: "",
+                    defaultDuration: "60",
+                  });
                 }}
                 className="text-gray-400 hover:text-white"
               >
@@ -411,7 +425,7 @@ export function StudentManager() {
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Full Name
+                  Полное имя
                 </label>
                 <div className="relative">
                   <User
@@ -426,7 +440,7 @@ export function StudentManager() {
                     }
                     required
                     className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="John Doe"
+                    placeholder="Иван Иванов"
                   />
                 </div>
               </div>
@@ -434,7 +448,7 @@ export function StudentManager() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Default Subject
+                    Предмет по умолчанию
                   </label>
                   <input
                     type="text"
@@ -446,12 +460,12 @@ export function StudentManager() {
                       })
                     }
                     className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="Math, English..."
+                    placeholder="Математика, Английский..."
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Price per Lesson
+                    Цена за занятие
                   </label>
                   <input
                     type="number"
@@ -463,14 +477,14 @@ export function StudentManager() {
                       })
                     }
                     className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="$ 0"
+                    placeholder={`${currency} 0`}
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Default Duration (min)
+                  Длительность по умолчанию (мин)
                 </label>
                 <select
                   value={newStudent.defaultDuration}
@@ -482,11 +496,11 @@ export function StudentManager() {
                   }
                   className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
                 >
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">60 minutes</option>
-                  <option value="90">90 minutes</option>
-                  <option value="120">120 minutes</option>
+                  <option value="30">30 минут</option>
+                  <option value="45">45 минут</option>
+                  <option value="60">60 минут</option>
+                  <option value="90">90 минут</option>
+                  <option value="120">120 минут</option>
                 </select>
               </div>
 
@@ -497,7 +511,7 @@ export function StudentManager() {
                 disabled={submitting}
                 className="w-full bg-[#1db954] text-white py-3 rounded-lg font-semibold hover:bg-[#1ed760] transition-colors disabled:opacity-50"
               >
-                {submitting ? "Creating..." : "Create Profile"}
+                {submitting ? "Создание..." : "Создать профиль"}
               </button>
             </form>
           </div>
@@ -509,7 +523,7 @@ export function StudentManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Rename Student</h2>
+              <h2 className="text-xl font-semibold">Переименовать ученика</h2>
               <button
                 onClick={() => setShowEditDialog(false)}
                 className="text-gray-400 hover:text-white"
@@ -521,7 +535,7 @@ export function StudentManager() {
             <form onSubmit={handleUpdateAlias} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Display Name
+                  Отображаемое имя
                 </label>
                 <input
                   type="text"
@@ -534,14 +548,14 @@ export function StudentManager() {
                   placeholder={editData.originalName}
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Original name: {editData.originalName}
+                  Исходное имя: {editData.originalName}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Default Subject
+                    Предмет по умолчанию
                   </label>
                   <input
                     type="text"
@@ -553,12 +567,12 @@ export function StudentManager() {
                       })
                     }
                     className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="Math, English..."
+                    placeholder="Математика, Английский..."
                   />
                 </div>
                 <div>
                   <label className="block text-sm text-gray-400 mb-2">
-                    Price per Lesson
+                    Цена за занятие
                   </label>
                   <input
                     type="number"
@@ -570,14 +584,14 @@ export function StudentManager() {
                       })
                     }
                     className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="$ 0"
+                    placeholder={`${currency} 0`}
                   />
                 </div>
               </div>
 
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Default Duration (min)
+                  Длительность по умолчанию (мин)
                 </label>
                 <select
                   value={editData.defaultDuration}
@@ -589,11 +603,11 @@ export function StudentManager() {
                   }
                   className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
                 >
-                  <option value="30">30 minutes</option>
-                  <option value="45">45 minutes</option>
-                  <option value="60">60 minutes</option>
-                  <option value="90">90 minutes</option>
-                  <option value="120">120 minutes</option>
+                  <option value="30">30 минут</option>
+                  <option value="45">45 минут</option>
+                  <option value="60">60 минут</option>
+                  <option value="90">90 минут</option>
+                  <option value="120">120 минут</option>
                 </select>
               </div>
 
@@ -604,7 +618,7 @@ export function StudentManager() {
                 disabled={submitting}
                 className="w-full bg-[#1db954] text-white py-3 rounded-lg font-semibold hover:bg-[#1ed760] transition-colors disabled:opacity-50"
               >
-                {submitting ? "Updating..." : "Save Changes"}
+                {submitting ? "Обновление..." : "Сохранить изменения"}
               </button>
             </form>
           </div>
@@ -616,7 +630,9 @@ export function StudentManager() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Link with Student Code</h2>
+              <h2 className="text-xl font-semibold">
+                Привязать по коду ученика
+              </h2>
               <button
                 onClick={() => setShowLinkDialog(false)}
                 className="text-gray-400 hover:text-white"
@@ -628,7 +644,7 @@ export function StudentManager() {
             <form onSubmit={handleLinkStudent} className="space-y-4">
               <div>
                 <label className="block text-sm text-gray-400 mb-2">
-                  Student Code
+                  Код ученика
                 </label>
                 <input
                   type="text"
@@ -641,11 +657,11 @@ export function StudentManager() {
                   }
                   required
                   className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                  placeholder="Enter 6-digit code"
+                  placeholder="Введите 6-значный код"
                 />
                 <p className="text-xs text-gray-500 mt-2">
-                  Link this manual profile with a real student account. All
-                  history will be preserved.
+                  Свяжите этот профиль с реальным аккаунтом ученика. Вся история
+                  будет сохранена.
                 </p>
               </div>
 
@@ -656,7 +672,7 @@ export function StudentManager() {
                 disabled={submitting}
                 className="w-full bg-[#1db954] text-white py-3 rounded-lg font-semibold hover:bg-[#1ed760] transition-colors disabled:opacity-50"
               >
-                {submitting ? "Linking..." : "Link Account"}
+                {submitting ? "Привязка..." : "Привязать аккаунт"}
               </button>
             </form>
           </div>

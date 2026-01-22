@@ -51,7 +51,7 @@ export function Tasks({ userType }: TasksProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading tasks...</div>
+        <div className="text-gray-400">Загрузка задач...</div>
       </div>
     );
   }
@@ -62,6 +62,15 @@ export function Tasks({ userType }: TasksProps) {
       case 'medium': return '#ff9500';
       case 'low': return '#1db954';
       default: return '#b3b3b3';
+    }
+  };
+
+  const getFilterLabel = (f: string) => {
+    switch (f) {
+      case 'all': return 'Все';
+      case 'pending': return 'В процессе';
+      case 'completed': return 'Завершено';
+      default: return f;
     }
   };
 
@@ -79,49 +88,55 @@ export function Tasks({ userType }: TasksProps) {
                 : 'bg-[#181818] text-gray-400 hover:text-white'
             }`}
           >
-            {f.charAt(0).toUpperCase() + f.slice(1)}
+            {getFilterLabel(f)}
           </button>
         ))}
       </div>
 
       {/* Task List */}
       <div className="space-y-2">
-        {filteredTasks.map((task) => (
-          <div
-            key={task.id}
-            className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors"
-          >
-            <div className="flex items-start gap-3">
-              <button
-                className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
-                  task.completed
-                    ? 'bg-[#1db954] border-[#1db954]'
-                    : 'border-gray-600 hover:border-gray-400'
-                }`}
-              >
-                {task.completed && <Check size={16} />}
-              </button>
-              <div className="flex-1 min-w-0">
-                <div className={`mb-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
-                  {task.title}
-                </div>
-                <div className="flex items-center gap-2 text-sm text-gray-400">
-                  {task.dueDate && (
-                    <>
-                      <Clock size={14} />
-                      <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                    </>
-                  )}
-                </div>
-              </div>
-              <div
-                className="flex-shrink-0 w-2 h-2 rounded-full mt-2"
-                style={{ backgroundColor: getPriorityColor(task.priority) }}
-                title={`${task.priority} priority`}
-              />
-            </div>
+        {filteredTasks.length === 0 ? (
+          <div className="text-center text-gray-400 py-8">
+            Задач не найдено
           </div>
-        ))}
+        ) : (
+          filteredTasks.map((task) => (
+            <div
+              key={task.id}
+              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors"
+            >
+              <div className="flex items-start gap-3">
+                <button
+                  className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
+                    task.completed
+                      ? 'bg-[#1db954] border-[#1db954]'
+                      : 'border-gray-600 hover:border-gray-400'
+                  }`}
+                >
+                  {task.completed && <Check size={16} />}
+                </button>
+                <div className="flex-1 min-w-0">
+                  <div className={`mb-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                    {task.title}
+                  </div>
+                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                    {task.dueDate && (
+                      <>
+                        <Clock size={14} />
+                        <span>{new Date(task.dueDate).toLocaleDateString('ru-RU')}</span>
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div
+                  className="flex-shrink-0 w-2 h-2 rounded-full mt-2"
+                  style={{ backgroundColor: getPriorityColor(task.priority) }}
+                  title={`${task.priority === 'high' ? 'Высокий' : task.priority === 'medium' ? 'Средний' : 'Низкий'} приоритет`}
+                />
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
       {/* Add Task Button */}

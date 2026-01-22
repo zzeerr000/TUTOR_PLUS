@@ -56,13 +56,13 @@ export function FileManager({ userType }: FileManagerProps) {
             f.type === "document"
               ? FileText
               : f.type === "video"
-              ? Video
-              : Image,
-          date: new Date(f.createdAt).toLocaleDateString("en-US", {
+                ? Video
+                : Image,
+          date: new Date(f.createdAt).toLocaleDateString("ru-RU", {
             month: "short",
             day: "numeric",
           }),
-        }))
+        })),
       );
       loadStorageStats();
     } catch (error) {
@@ -96,11 +96,11 @@ export function FileManager({ userType }: FileManagerProps) {
       await api.uploadFile(formData);
       setShowUploadModal(false);
       setSelectedFile(null);
-      setUploadData({ name: "", subject: "Mathematics", assignedToId: "" });
+      setUploadData({ name: "", subject: "Математика", assignedToId: "" });
       await loadFiles();
     } catch (error) {
       console.error("Upload failed:", error);
-      alert("Failed to upload file");
+      alert("Не удалось загрузить файл");
     } finally {
       setUploading(false);
     }
@@ -111,12 +111,12 @@ export function FileManager({ userType }: FileManagerProps) {
       await api.downloadFile(file.id, file.name);
     } catch (error) {
       console.error("Download failed:", error);
-      alert("Failed to download file");
+      alert("Не удалось скачать файл");
     }
   };
 
   const handleDelete = async (id: number) => {
-    if (window.confirm("Are you sure you want to delete this file?")) {
+    if (window.confirm("Вы уверены, что хотите удалить этот файл?")) {
       try {
         await api.deleteFile(id);
         await loadFiles();
@@ -154,10 +154,13 @@ export function FileManager({ userType }: FileManagerProps) {
   const getSubjectColor = (subject: string) => {
     switch (subject) {
       case "Mathematics":
+      case "Математика":
         return "#1db954";
       case "Physics":
+      case "Физика":
         return "#2e77d0";
       case "Chemistry":
+      case "Химия":
         return "#af2896";
       default:
         return "#b3b3b3";
@@ -167,7 +170,7 @@ export function FileManager({ userType }: FileManagerProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Loading files...</div>
+        <div className="text-gray-400">Загрузка файлов...</div>
       </div>
     );
   }
@@ -177,10 +180,10 @@ export function FileManager({ userType }: FileManagerProps) {
       {/* Filter Tabs */}
       <div className="flex gap-2 overflow-x-auto">
         {[
-          { id: "all", label: "All Files" },
-          { id: "documents", label: "Documents" },
-          { id: "videos", label: "Videos" },
-          { id: "images", label: "Images" },
+          { id: "all", label: "Все файлы" },
+          { id: "documents", label: "Документы" },
+          { id: "videos", label: "Видео" },
+          { id: "images", label: "Изображения" },
         ].map((f) => (
           <button
             key={f.id}
@@ -199,7 +202,7 @@ export function FileManager({ userType }: FileManagerProps) {
       {/* Storage Info */}
       <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
         <div className="flex items-center justify-between mb-2">
-          <span>Storage Used</span>
+          <span>Использовано памяти</span>
           <span>
             {storageStats.usedFormatted} / {storageStats.totalFormatted}
           </span>
@@ -210,7 +213,7 @@ export function FileManager({ userType }: FileManagerProps) {
             style={{
               width: `${Math.min(
                 (storageStats.used / storageStats.total) * 100,
-                100
+                100,
               )}%`,
             }}
           />
@@ -221,7 +224,7 @@ export function FileManager({ userType }: FileManagerProps) {
       <div className="space-y-2">
         {filteredFiles.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
-            No files available
+            Нет доступных файлов
           </div>
         ) : (
           filteredFiles.map((file) => {
@@ -249,7 +252,15 @@ export function FileManager({ userType }: FileManagerProps) {
                           color: getSubjectColor(file.subject),
                         }}
                       >
-                        {file.subject}
+                        {file.subject === "Mathematics"
+                          ? "Математика"
+                          : file.subject === "Physics"
+                            ? "Физика"
+                            : file.subject === "Chemistry"
+                              ? "Химия"
+                              : file.subject === "Other"
+                                ? "Другое"
+                                : file.subject}
                       </span>
                     </div>
                   </div>
@@ -257,7 +268,7 @@ export function FileManager({ userType }: FileManagerProps) {
                     <button
                       onClick={() => handleDownload(file)}
                       className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
-                      title="Download"
+                      title="Скачать"
                     >
                       <Download size={16} />
                     </button>
@@ -265,7 +276,7 @@ export function FileManager({ userType }: FileManagerProps) {
                       <button
                         onClick={() => handleDelete(file.id)}
                         className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors"
-                        title="Delete"
+                        title="Удалить"
                       >
                         <X size={16} />
                       </button>
@@ -274,7 +285,7 @@ export function FileManager({ userType }: FileManagerProps) {
                 </div>
                 {file.assignedTo && (
                   <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
-                    <span>Assigned to:</span>
+                    <span>Назначено:</span>
                     <span className="text-[#1db954]">
                       {file.assignedTo.name}
                     </span>
@@ -295,7 +306,7 @@ export function FileManager({ userType }: FileManagerProps) {
               setSelectedFile(null);
               setUploadData({
                 name: "",
-                subject: "Mathematics",
+                subject: "Математика",
                 assignedToId: "",
               });
             }}
@@ -309,7 +320,7 @@ export function FileManager({ userType }: FileManagerProps) {
             <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
               <div className="bg-[#181818] rounded-lg max-w-md w-full p-6">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl">Upload Material</h3>
+                  <h3 className="text-xl">Загрузить материал</h3>
                   <button
                     onClick={() => setShowUploadModal(false)}
                     className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
@@ -348,14 +359,16 @@ export function FileManager({ userType }: FileManagerProps) {
                           {selectedFile.name}
                         </p>
                         <p className="text-sm text-gray-400">
-                          {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
+                          {(selectedFile.size / 1024 / 1024).toFixed(2)} МБ
                         </p>
                       </div>
                     ) : (
                       <>
-                        <p className="mb-2">Click to upload or drag and drop</p>
+                        <p className="mb-2">
+                          Нажмите для загрузки или перетащите файл
+                        </p>
                         <p className="text-sm text-gray-400">
-                          PDF, DOC, MP4, PNG, JPG (max. 100MB)
+                          PDF, DOC, MP4, PNG, JPG (макс. 100МБ)
                         </p>
                       </>
                     )}
@@ -364,7 +377,7 @@ export function FileManager({ userType }: FileManagerProps) {
                   {/* Form Fields */}
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
-                      File Display Name
+                      Отображаемое имя файла
                     </label>
                     <input
                       type="text"
@@ -372,14 +385,14 @@ export function FileManager({ userType }: FileManagerProps) {
                       onChange={(e) =>
                         setUploadData({ ...uploadData, name: e.target.value })
                       }
-                      placeholder="Enter file name"
+                      placeholder="Введите имя файла"
                       className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
                     />
                   </div>
 
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
-                      Subject
+                      Предмет
                     </label>
                     <select
                       value={uploadData.subject}
@@ -391,16 +404,16 @@ export function FileManager({ userType }: FileManagerProps) {
                       }
                       className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
                     >
-                      <option>Mathematics</option>
-                      <option>Physics</option>
-                      <option>Chemistry</option>
-                      <option>Other</option>
+                      <option>Математика</option>
+                      <option>Физика</option>
+                      <option>Химия</option>
+                      <option>Другое</option>
                     </select>
                   </div>
 
                   <div>
                     <label className="block text-sm text-gray-400 mb-2">
-                      Assign to Students
+                      Назначить ученикам
                     </label>
                     <select
                       value={uploadData.assignedToId}
@@ -412,7 +425,7 @@ export function FileManager({ userType }: FileManagerProps) {
                       }
                       className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
                     >
-                      <option value="">All Students</option>
+                      <option value="">Всем ученикам</option>
                       {students.map((student) => (
                         <option key={student.id} value={student.id}>
                           {student.name}
@@ -428,7 +441,7 @@ export function FileManager({ userType }: FileManagerProps) {
                       disabled={uploading}
                       className="flex-1 bg-[#282828] rounded-lg py-3 hover:bg-[#333333] transition-colors disabled:opacity-50"
                     >
-                      Cancel
+                      Отмена
                     </button>
                     <button
                       onClick={handleUpload}
@@ -438,10 +451,10 @@ export function FileManager({ userType }: FileManagerProps) {
                       {uploading ? (
                         <>
                           <div className="w-4 h-4 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-                          Uploading...
+                          Загрузка...
                         </>
                       ) : (
-                        "Upload"
+                        "Загрузить"
                       )}
                     </button>
                   </div>
