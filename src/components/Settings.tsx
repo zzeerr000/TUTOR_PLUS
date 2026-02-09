@@ -1,5 +1,5 @@
-import React, { useState } from "react";
-import { User, Trash2, Save, AlertTriangle } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { User, Trash2, Save, AlertTriangle, Video } from "lucide-react";
 import { api } from "../services/api";
 
 interface SettingsProps {
@@ -29,6 +29,32 @@ export function Settings({
   const [deleteLoading, setDeleteLoading] = useState(false);
   // Add: local loading state for finance history deletion
   const [financeDeleteLoading, setFinanceDeleteLoading] = useState(false);
+  const [zoomConnected, setZoomConnected] = useState(false);
+  const [zoomLoading, setZoomLoading] = useState(false);
+
+  useEffect(() => {
+    checkZoomStatus();
+  }, []);
+
+  const checkZoomStatus = async () => {
+    try {
+      const status = await api.getZoomStatus();
+      setZoomConnected(status.connected);
+    } catch (e) {
+      setZoomConnected(false);
+    }
+  };
+
+  const handleConnectZoom = async () => {
+    setZoomLoading(true);
+    try {
+      const { url } = await api.getZoomConnectUrl();
+      window.location.href = url;
+    } catch (err: any) {
+      setError(err.message || "Не удалось получить ссылку на авторизацию Zoom");
+      setZoomLoading(false);
+    }
+  };
 
   const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -80,8 +106,7 @@ export function Settings({
   // Add: handler to delete finance history for tutors
   const handleDeleteFinanceHistory = async () => {
     if (user.role !== "tutor") return;
-    if (!confirm("Это удалит ВСЮ вашу историю финансов. Продолжить?"))
-      return;
+    if (!confirm("Это удалит ВСЮ вашу историю финансов. Продолжить?")) return;
 
     setError("");
     setFinanceDeleteLoading(true);
@@ -149,9 +174,7 @@ export function Settings({
               disabled
               className="w-full bg-[#282828] rounded-lg px-4 py-3 text-gray-500 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Email нельзя изменить
-            </p>
+            <p className="text-xs text-gray-500 mt-1">Email нельзя изменить</p>
           </div>
 
           <div>
@@ -186,6 +209,48 @@ export function Settings({
         </form>
       </div>
 
+      {/* Zoom Integration Section */}
+      <div className="bg-[#181818] rounded-lg p-6 border border-gray-800">
+        <div className="flex items-center gap-3 mb-4">
+          <Video className="text-[#1db954]" size={24} />
+          <h2 className="text-xl font-semibold">Интеграция с Zoom</h2>
+        </div>
+
+        <div className="space-y-4">
+          <p className="text-sm text-gray-400">
+            Подключите ваш личный аккаунт Zoom, чтобы создавать конференции для
+            ваших занятий прямо из приложения.
+          </p>
+
+          <div className="flex items-center justify-between p-4 bg-[#282828] rounded-lg border border-gray-700">
+            <div className="flex items-center gap-3">
+              <div
+                className={`w-3 h-3 rounded-full ${zoomConnected ? "bg-[#1db954]" : "bg-gray-600"}`}
+              ></div>
+              <span className="font-medium">
+                {zoomConnected ? "Zoom подключен" : "Zoom не подключен"}
+              </span>
+            </div>
+
+            <button
+              onClick={handleConnectZoom}
+              disabled={zoomLoading}
+              className={`px-6 py-2 rounded-lg font-medium transition-colors ${
+                zoomConnected
+                  ? "bg-gray-700 text-white hover:bg-gray-600"
+                  : "bg-[#1db954] text-white hover:bg-[#1ed760]"
+              }`}
+            >
+              {zoomLoading
+                ? "Загрузка..."
+                : zoomConnected
+                  ? "Переподключить"
+                  : "Подключить Zoom"}
+            </button>
+          </div>
+        </div>
+      </div>
+
       {/* Add: Delete Finance History (visible only for tutors) */}
       {user.role === "tutor" && (
         <div className="bg-[#181818] rounded-lg p-6 border border-yellow-500/30">
@@ -218,7 +283,9 @@ export function Settings({
               disabled={financeDeleteLoading}
               className="w-full bg-yellow-500 rounded-lg py-3 text-white font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {financeDeleteLoading ? "Удаление..." : "Удалить историю финансов"}
+              {financeDeleteLoading
+                ? "Удаление..."
+                : "Удалить историю финансов"}
             </button>
           </div>
         </div>
@@ -228,14 +295,16 @@ export function Settings({
       <div className="bg-[#181818] rounded-lg p-6 border border-red-500/30">
         <div className="flex items-center gap-3 mb-4">
           <Trash2 className="text-red-500" size={24} />
-          <h2 className="text-xl font-semibold text-red-500">Удалить аккаунт</h2>
+          <h2 className="text-xl font-semibold text-red-500">
+            Удалить аккаунт
+          </h2>
         </div>
 
         <div className="space-y-4">
           <div className="bg-red-500/10 border border-red-500/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle
-                className="text-red-500 flex-shrink-0 mt-0.5"
+                className="text-red-500 shrink-0 mt-0.5"
                 size={20}
               />
               <div className="text-sm text-gray-300">
@@ -243,8 +312,7 @@ export function Settings({
                   Предупреждение: Это действие нельзя отменить
                 </p>
                 <p className="text-gray-400">
-                  Удаление аккаунта навсегда удалит все ваши данные,
-                  включая:
+                  Удаление аккаунта навсегда удалит все ваши данные, включая:
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-gray-400">
                   <li>Все ваши связи</li>

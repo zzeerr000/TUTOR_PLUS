@@ -46,7 +46,7 @@ export const api = {
     } catch (error: any) {
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         throw new Error(
-          "Cannot connect to server. Make sure the backend is running on http://localhost:3000"
+          "Cannot connect to server. Make sure the backend is running on http://localhost:3000",
         );
       }
       throw error;
@@ -65,7 +65,7 @@ export const api = {
     email: string,
     password: string,
     name: string,
-    role: "tutor" | "student"
+    role: "tutor" | "student",
   ) {
     return this.request("/auth/register", {
       method: "POST",
@@ -258,7 +258,7 @@ export const api = {
     name: string,
     defaultSubject?: string,
     defaultPrice?: number,
-    defaultDuration?: number
+    defaultDuration?: number,
   ) {
     return this.request("/connections/manual", {
       method: "POST",
@@ -285,7 +285,7 @@ export const api = {
       defaultSubject?: string;
       defaultPrice?: number;
       defaultDuration?: number;
-    }
+    },
   ) {
     return this.request(`/connections/${studentId}/alias`, {
       method: "POST",
@@ -305,8 +305,40 @@ export const api = {
       `/calendar/${id}${recurring ? "?recurring=true" : ""}`,
       {
         method: "DELETE",
-      }
+      },
     );
+  },
+
+  // Zoom
+  async getZoomStatus(): Promise<{ connected: boolean }> {
+    return this.request("/zoom/status", {
+      method: "GET",
+    });
+  },
+
+  async getZoomConnectUrl(): Promise<{ url: string }> {
+    return this.request("/zoom/connect", {
+      method: "GET",
+    });
+  },
+
+  async getZoomSignature(
+    meetingNumber: string,
+    role: number,
+  ): Promise<{ signature: string; sdkKey: string }> {
+    return this.request(
+      `/zoom/signature?meetingNumber=${meetingNumber}&role=${role}`,
+      {
+        method: "GET",
+      },
+    );
+  },
+
+  async createZoomMeeting(topic: string, duration?: number) {
+    return this.request("/zoom/create-meeting", {
+      method: "POST",
+      body: JSON.stringify({ topic, duration }),
+    });
   },
 
   getCurrencySymbol() {

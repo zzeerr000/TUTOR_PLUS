@@ -119,7 +119,7 @@ export function Connections({ userType }: ConnectionsProps) {
                   className="bg-[#181818] rounded-lg p-4 flex items-center justify-between hover:bg-[#282828] transition-colors"
                 >
                   <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center shrink-0">
                       <span className="text-white font-medium">
                         {otherUser?.name
                           ?.split(" ")
@@ -204,7 +204,7 @@ export function Connections({ userType }: ConnectionsProps) {
                   key={connection.id}
                   className="bg-[#181818] rounded-lg p-4 flex items-center gap-3 hover:bg-[#282828] transition-colors"
                 >
-                  <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0">
+                  <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center shrink-0">
                     <span className="text-white font-medium">
                       {displayName
                         ?.split(" ")

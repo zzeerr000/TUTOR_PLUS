@@ -8,6 +8,7 @@ var __decorate = (this && this.__decorate) || function (decorators, target, key,
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.AppModule = void 0;
 const common_1 = require("@nestjs/common");
+const config_1 = require("@nestjs/config");
 const typeorm_1 = require("@nestjs/typeorm");
 const auth_module_1 = require("./auth/auth.module");
 const users_module_1 = require("./users/users.module");
@@ -18,6 +19,7 @@ const finance_module_1 = require("./finance/finance.module");
 const calendar_module_1 = require("./calendar/calendar.module");
 const progress_module_1 = require("./progress/progress.module");
 const connections_module_1 = require("./connections/connections.module");
+const zoom_module_1 = require("./zoom/zoom.module");
 const app_controller_1 = require("./app.controller");
 const user_entity_1 = require("./users/entities/user.entity");
 const task_entity_1 = require("./tasks/entities/task.entity");
@@ -33,10 +35,23 @@ exports.AppModule = AppModule;
 exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
+            config_1.ConfigModule.forRoot({
+                isGlobal: true,
+                envFilePath: ".env",
+            }),
             typeorm_1.TypeOrmModule.forRoot({
-                type: 'sqlite',
-                database: 'tutorplus.db',
-                entities: [user_entity_1.User, task_entity_1.Task, message_entity_1.Message, file_entity_1.FileEntity, transaction_entity_1.Transaction, event_entity_1.Event, progress_entity_1.Progress, connection_entity_1.Connection],
+                type: "sqlite",
+                database: "tutorplus.db",
+                entities: [
+                    user_entity_1.User,
+                    task_entity_1.Task,
+                    message_entity_1.Message,
+                    file_entity_1.FileEntity,
+                    transaction_entity_1.Transaction,
+                    event_entity_1.Event,
+                    progress_entity_1.Progress,
+                    connection_entity_1.Connection,
+                ],
                 synchronize: true,
             }),
             auth_module_1.AuthModule,
@@ -48,6 +63,7 @@ exports.AppModule = AppModule = __decorate([
             calendar_module_1.CalendarModule,
             progress_module_1.ProgressModule,
             connections_module_1.ConnectionsModule,
+            zoom_module_1.ZoomModule,
         ],
         controllers: [app_controller_1.AppController],
     })

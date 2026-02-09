@@ -237,7 +237,7 @@ export function Finance({ userType }: FinanceProps) {
             <ChevronLeft size={24} />
           </button>
 
-          <div className="flex flex-col items-center min-w-[140px]">
+          <div className="flex flex-col items-center min-w-35">
             <span className="text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-0.5">
               Период
             </span>

@@ -11,6 +11,7 @@ import {
   LogOut,
   Copy,
   Check,
+  Video,
   Settings as SettingsIcon,
 } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
@@ -25,6 +26,10 @@ import { Auth } from "./components/Auth";
 import { Connections } from "./components/Connections";
 import { Settings } from "./components/Settings";
 import { api } from "./services/api";
+
+const VideoChat = React.lazy(() =>
+  import("./components/VideoChat").then((m) => ({ default: m.VideoChat })),
+);
 
 interface User {
   id: number;
@@ -46,6 +51,15 @@ export default function App() {
     const storedToken = localStorage.getItem("token");
     if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
+    }
+
+    // Handle URL parameters for tab navigation (e.g., from Zoom redirect)
+    const urlParams = new URLSearchParams(window.location.search);
+    const tab = urlParams.get("tab");
+    if (tab) {
+      setActiveTab(tab);
+      // Clean up the URL
+      window.history.replaceState({}, document.title, window.location.pathname);
     }
   }, []);
 
@@ -110,6 +124,7 @@ export default function App() {
     { id: "students", label: "Студенты", icon: Users },
     { id: "connections", label: "Связи", icon: Users },
     { id: "messenger", label: "Чат", icon: MessageCircle },
+    { id: "video", label: "Видеочат", icon: Video },
     { id: "settings", label: "Настройки", icon: SettingsIcon },
   ];
 
@@ -120,6 +135,7 @@ export default function App() {
     { id: "connections", label: "Связи", icon: Users },
     { id: "progress", label: "Прогресс", icon: TrendingUp },
     { id: "messenger", label: "Чат", icon: MessageCircle },
+    { id: "video", label: "Видеочат", icon: Video },
     { id: "settings", label: "Настройки", icon: SettingsIcon },
   ];
 
@@ -139,6 +155,8 @@ export default function App() {
         return <Connections userType={userType} />;
       case "messenger":
         return <Messenger userType={userType} />;
+      case "video":
+        return <VideoChat user={user} onNavigate={setActiveTab} />;
       case "finance":
         return <Finance userType={user?.role} />;
       case "materials":
@@ -161,7 +179,7 @@ export default function App() {
   return (
     <div className="min-h-screen bg-[#121212] text-white pb-20">
       {/* Header */}
-      <div className="sticky top-0 bg-gradient-to-b from-[#1a1a1a] to-[#121212] z-50 px-4 py-6">
+      <div className="sticky top-0 bg-linear-to-b from-[#1a1a1a] to-[#121212] z-50 px-4 py-6">
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl">TutorHub</h1>
@@ -187,7 +205,7 @@ export default function App() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowCodeMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 bg-[#181818] border border-gray-800 rounded-lg p-4 min-w-[200px] shadow-lg z-20">
+                  <div className="absolute right-0 top-full mt-2 bg-[#1a1a1a] border border-gray-800 rounded-xl p-4 shadow-2xl z-[60] min-w-50">
                     <div className="text-xs text-gray-400 mb-2">
                       Ваш код подключения
                     </div>
@@ -231,7 +249,17 @@ export default function App() {
       </div>
 
       {/* Content */}
-      <div className="px-8 pt-8">{renderContent()}</div>
+      <div className="px-8 pt-8">
+        <React.Suspense
+          fallback={
+            <div className="flex items-center justify-center min-h-[400px]">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#1db954]"></div>
+            </div>
+          }
+        >
+          {renderContent()}
+        </React.Suspense>
+      </div>
 
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50">

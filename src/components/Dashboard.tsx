@@ -199,17 +199,17 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       <div className="space-y-6 pb-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
+          <div className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
             <Users size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.students}</div>
             <div className="text-sm opacity-90">Активные студенты</div>
           </div>
-          <div className="bg-gradient-to-br from-[#1ed760] to-[#1db954] rounded-lg p-4">
+          <div className="bg-linear-to-br from-[#1ed760] to-[#1db954] rounded-lg p-4">
             <Calendar size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.lessonsToday}</div>
             <div className="text-sm opacity-90">Занятий сегодня</div>
           </div>
-          <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
+          <div className="bg-linear-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
             <DollarSign size={24} className="mb-2" />
             <div className="text-2xl mb-1">
               {currency}
@@ -217,7 +217,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
             </div>
             <div className="text-sm opacity-90">В этом месяце</div>
           </div>
-          <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
+          <div className="bg-linear-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
             <CheckSquare size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.pendingTasks}</div>
             <div className="text-sm opacity-90">Ожидающие задачи</div>
@@ -338,22 +338,22 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
     <div className="space-y-6 pb-6">
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
+        <div className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
           <CheckSquare size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.activeTasks}</div>
           <div className="text-sm opacity-90">Активные задачи</div>
         </div>
-        <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
+        <div className="bg-linear-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
           <Calendar size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.lessonsThisWeek}</div>
           <div className="text-sm opacity-90">Занятий на неделе</div>
         </div>
-        <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
+        <div className="bg-linear-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
           <TrendingUp size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.avgProgress}%</div>
           <div className="text-sm opacity-90">Средний прогресс</div>
         </div>
-        <div className="bg-gradient-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4">
+        <div className="bg-linear-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4">
           <Clock size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.studyTime}ч</div>
           <div className="text-sm opacity-90">Время обучения</div>

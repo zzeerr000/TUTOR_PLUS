@@ -9,6 +9,9 @@ export declare class User {
     name: string;
     role: UserRole;
     code: string;
+    zoomAccessToken: string;
+    zoomRefreshToken: string;
+    zoomTokenExpires: number;
     isVirtual: boolean;
     createdAt: Date;
 }

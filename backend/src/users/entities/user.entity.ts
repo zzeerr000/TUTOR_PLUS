@@ -37,6 +37,15 @@ export class User {
   @Column({ unique: true, nullable: true })
   code: string;
 
+  @Column({ nullable: true })
+  zoomAccessToken: string;
+
+  @Column({ nullable: true })
+  zoomRefreshToken: string;
+
+  @Column({ nullable: true, type: "bigint" })
+  zoomTokenExpires: number;
+
   @Column({ default: false })
   isVirtual: boolean;
 

@@ -19,6 +19,9 @@ export declare class UsersController {
         name: string;
         role: import("./entities/user.entity").UserRole;
         code: string;
+        zoomAccessToken: string;
+        zoomRefreshToken: string;
+        zoomTokenExpires: number;
         isVirtual: boolean;
         createdAt: Date;
     }[]>;
