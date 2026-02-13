@@ -1,7 +1,7 @@
-import { Repository } from 'typeorm';
-import { Event } from './entities/event.entity';
-import { ConnectionsService } from '../connections/connections.service';
-import { FinanceService } from '../finance/finance.service';
+import { Repository } from "typeorm";
+import { Event } from "./entities/event.entity";
+import { ConnectionsService } from "../connections/connections.service";
+import { FinanceService } from "../finance/finance.service";
 export declare class CalendarService {
     private eventsRepository;
     private connectionsService;

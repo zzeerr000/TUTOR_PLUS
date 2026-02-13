@@ -46,5 +46,8 @@ export class Event {
 
   @Column({ type: 'int', default: 60 })
   duration: number; // in minutes
+
+  @Column({ type: 'text', nullable: true })
+  notes: string;
 }
 

@@ -1,11 +1,15 @@
 import { Repository, DataSource } from "typeorm";
 import { Connection } from "./entities/connection.entity";
 import { UsersService } from "../users/users.service";
+import { CalendarService } from "../calendar/calendar.service";
+import { HomeworkService } from "../homework/homework.service";
 export declare class ConnectionsService {
     private connectionsRepository;
     private usersService;
     private dataSource;
-    constructor(connectionsRepository: Repository<Connection>, usersService: UsersService, dataSource: DataSource);
+    private calendarService;
+    private homeworkService;
+    constructor(connectionsRepository: Repository<Connection>, usersService: UsersService, dataSource: DataSource, calendarService: CalendarService, homeworkService: HomeworkService);
     createConnectionRequest(requestedById: number, code: string): Promise<Connection>;
     getPendingRequests(userId: number, userRole: string): Promise<Connection[]>;
     approveConnection(connectionId: number, userId: number, existingStudentId?: number): Promise<Connection>;
@@ -21,4 +25,12 @@ export declare class ConnectionsService {
         defaultDuration?: number;
     }): Promise<Connection>;
     removeStudent(tutorId: number, studentId: number): Promise<void>;
+    getStudentStats(tutorId: number, studentId: number): Promise<{
+        lessonsCount: number;
+        activeHomework: number;
+        missedHomework: number;
+        completedHomework: number;
+        lessonsHistory: import("../calendar/entities/event.entity").Event[];
+        homeworkHistory: import("../homework/entities/homework.entity").Homework[];
+    }>;
 }

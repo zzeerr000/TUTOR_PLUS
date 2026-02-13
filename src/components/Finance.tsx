@@ -7,6 +7,7 @@ import {
   Check,
   ChevronLeft,
   ChevronRight,
+  X,
 } from "lucide-react";
 import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
 import { api } from "../services/api";
@@ -127,6 +128,21 @@ export function Finance({ userType }: FinanceProps) {
       await loadData();
     } catch (error: any) {
       alert(error.message || "Не удалось подтвердить оплату");
+    }
+  };
+
+  const handleCancelPayment = async (transactionId: number) => {
+    if (
+      !confirm(
+        "Вы уверены, что хотите удалить это занятие из финансов? Оно пропадёт из списка ожидания и не попадёт в историю.",
+      )
+    )
+      return;
+    try {
+      await api.cancelPayment(transactionId);
+      await loadData();
+    } catch (error: any) {
+      alert(error.message || "Не удалось удалить занятие");
     }
   };
 
@@ -346,11 +362,15 @@ export function Finance({ userType }: FinanceProps) {
                       className={`w-10 h-10 rounded-full flex items-center justify-center ${
                         transaction.status === "completed"
                           ? "bg-[#1db954]/10 text-[#1db954]"
-                          : "bg-yellow-500/10 text-yellow-500"
+                          : transaction.status === "canceled"
+                            ? "bg-red-500/10 text-red-500"
+                            : "bg-yellow-500/10 text-yellow-500"
                       }`}
                     >
                       {transaction.status === "completed" ? (
                         <Check size={20} />
+                      ) : transaction.status === "canceled" ? (
+                        <X size={20} />
                       ) : (
                         <Calendar size={20} />
                       )}
@@ -369,7 +389,9 @@ export function Finance({ userType }: FinanceProps) {
                       className={`font-semibold ${
                         transaction.status === "completed"
                           ? "text-[#1db954]"
-                          : "text-yellow-500"
+                          : transaction.status === "canceled"
+                            ? "text-red-500"
+                            : "text-yellow-500"
                       }`}
                     >
                       {currency}
@@ -378,7 +400,9 @@ export function Finance({ userType }: FinanceProps) {
                     <div className="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">
                       {transaction.status === "completed"
                         ? "Зачислено"
-                        : "Ожидается"}
+                        : transaction.status === "canceled"
+                          ? "Отменено"
+                          : "Ожидается"}
                     </div>
                   </div>
                 </div>
@@ -414,7 +438,13 @@ export function Finance({ userType }: FinanceProps) {
                   </div>
                   <div className="flex items-center gap-3">
                     <div className="text-right">
-                      <div className="text-[#1db954] mb-1">
+                      <div
+                        className={`mb-1 ${
+                          transaction.status === "canceled"
+                            ? "text-red-500"
+                            : "text-[#1db954]"
+                        }`}
+                      >
                         {currency}
                         {transaction.amount}
                       </div>
@@ -422,23 +452,36 @@ export function Finance({ userType }: FinanceProps) {
                         className={`text-xs px-2 py-1 rounded-full ${
                           transaction.status === "completed"
                             ? "bg-[#1db954]/20 text-[#1db954]"
-                            : "bg-yellow-500/20 text-yellow-500"
+                            : transaction.status === "canceled"
+                              ? "bg-red-500/20 text-red-500"
+                              : "bg-yellow-500/20 text-yellow-500"
                         }`}
                       >
                         {transaction.status === "completed"
                           ? "Выполнено"
-                          : "Ожидает"}
+                          : transaction.status === "canceled"
+                            ? "Отменено"
+                            : "Ожидает"}
                       </span>
                     </div>
                     {userType === "tutor" &&
                       transaction.status === "pending" && (
-                        <button
-                          onClick={() => handleConfirmPayment(transaction.id)}
-                          className="p-2 bg-[#1db954] rounded-lg hover:bg-[#1ed760] transition-colors"
-                          title="Подтвердить оплату"
-                        >
-                          <Check size={18} />
-                        </button>
+                        <div className="flex gap-2">
+                          <button
+                            onClick={() => handleCancelPayment(transaction.id)}
+                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                            title="Отменить занятие"
+                          >
+                            <X size={18} />
+                          </button>
+                          <button
+                            onClick={() => handleConfirmPayment(transaction.id)}
+                            className="p-2 bg-[#1db954] text-white rounded-lg hover:bg-[#1ed760] transition-colors shadow-sm"
+                            title="Подтвердить оплату"
+                          >
+                            <Check size={18} />
+                          </button>
+                        </div>
                       )}
                   </div>
                 </div>

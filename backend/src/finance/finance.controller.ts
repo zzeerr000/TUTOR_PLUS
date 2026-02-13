@@ -49,6 +49,14 @@ export class FinanceController {
     return this.financeService.confirmPayment(id, req.user.sub);
   }
 
+  @Put(":id/cancel")
+  async cancelPayment(@Param("id", ParseIntPipe) id: number, @Request() req) {
+    if (req.user.role !== "tutor") {
+      throw new ForbiddenException("Only tutors can cancel payments");
+    }
+    return this.financeService.cancelPayment(id, req.user.sub);
+  }
+
   // Add: delete finance history for the current tutor
   @Put("history")
   async clearHistory(@Request() req) {

@@ -22,8 +22,28 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get()
-  findAll(@Request() req) {
-    return this.filesService.findAll(req.user.sub, req.user.role);
+  findAll(@Request() req, @Param("folderId") folderId?: string) {
+    return this.filesService.findAll(req.user.sub, req.user.role, folderId ? +folderId : null);
+  }
+
+  @Get("folder/:folderId")
+  findInFolder(@Request() req, @Param("folderId") folderId: string) {
+    return this.filesService.findAll(req.user.sub, req.user.role, +folderId);
+  }
+
+  @Post("folders")
+  createFolder(@Body() body: { name: string, parentId?: number }, @Request() req) {
+    return this.filesService.createFolder(body.name, req.user.sub, body.parentId);
+  }
+
+  @Delete("folders/:id")
+  removeFolder(@Param("id") id: string, @Request() req) {
+    return this.filesService.removeFolder(+id, req.user.sub);
+  }
+
+  @Post(":id/move")
+  moveFile(@Param("id") id: string, @Body() body: { folderId: number | null }, @Request() req) {
+    return this.filesService.moveFile(+id, body.folderId, req.user.sub);
   }
 
   @Post("upload")

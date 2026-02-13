@@ -14,7 +14,7 @@ import {
   Settings as SettingsIcon,
 } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
-import { Tasks } from "./components/Tasks";
+import { Homework } from "./components/Homework";
 import { CalendarView } from "./components/CalendarView";
 import { FileManager } from "./components/FileManager";
 import { Messenger } from "./components/Messenger";
@@ -107,6 +107,7 @@ export default function App() {
   const tutorTabs = [
     { id: "dashboard", label: "Главная", icon: Home },
     { id: "calendar", label: "Календарь", icon: Calendar },
+    { id: "homework", label: "ДЗ", icon: CheckSquare },
     { id: "students", label: "Студенты", icon: Users },
     { id: "connections", label: "Связи", icon: Users },
     { id: "messenger", label: "Чат", icon: MessageCircle },
@@ -116,7 +117,7 @@ export default function App() {
   const studentTabs = [
     { id: "dashboard", label: "Главная", icon: Home },
     { id: "calendar", label: "Календарь", icon: Calendar },
-    { id: "tasks", label: "Задания", icon: CheckSquare },
+    { id: "homework", label: "ДЗ", icon: CheckSquare },
     { id: "connections", label: "Связи", icon: Users },
     { id: "progress", label: "Прогресс", icon: TrendingUp },
     { id: "messenger", label: "Чат", icon: MessageCircle },
@@ -129,8 +130,8 @@ export default function App() {
     switch (activeTab) {
       case "dashboard":
         return <Dashboard userType={userType} onNavigate={setActiveTab} />;
-      case "tasks":
-        return <Tasks userType={userType} />;
+      case "homework":
+        return <Homework userType={userType} />;
       case "calendar":
         return <CalendarView userType={userType} />;
       case "students":

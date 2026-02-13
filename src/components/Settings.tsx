@@ -30,6 +30,9 @@ export function Settings({
   // Add: local loading state for finance history deletion
   const [financeDeleteLoading, setFinanceDeleteLoading] = useState(false);
 
+  // Add: local loading state for all data deletion
+  const [allDataDeleteLoading, setAllDataDeleteLoading] = useState(false);
+
   const handleUpdateSettings = async (e: React.FormEvent) => {
     e.preventDefault();
     if (name.trim() === "") {
@@ -80,8 +83,7 @@ export function Settings({
   // Add: handler to delete finance history for tutors
   const handleDeleteFinanceHistory = async () => {
     if (user.role !== "tutor") return;
-    if (!confirm("Это удалит ВСЮ вашу историю финансов. Продолжить?"))
-      return;
+    if (!confirm("Это удалит ВСЮ вашу историю финансов. Продолжить?")) return;
 
     setError("");
     setFinanceDeleteLoading(true);
@@ -92,6 +94,28 @@ export function Settings({
       setError(err.message || "Не удалось удалить историю финансов");
     } finally {
       setFinanceDeleteLoading(false);
+    }
+  };
+
+  const handleClearAllData = async () => {
+    if (
+      !confirm(
+        "Это удалит календарь, ДЗ, историю финансов и занятий во всем проекте. Продолжить?",
+      )
+    )
+      return;
+
+    setError("");
+    setAllDataDeleteLoading(true);
+    try {
+      await api.clearAllData();
+      alert("Все данные (календарь, ДЗ, финансы) успешно удалены.");
+      // Dispatch storage event to refresh other components if needed
+      window.dispatchEvent(new Event("storage"));
+    } catch (err: any) {
+      setError(err.message || "Не удалось очистить данные");
+    } finally {
+      setAllDataDeleteLoading(false);
     }
   };
 
@@ -149,9 +173,7 @@ export function Settings({
               disabled
               className="w-full bg-[#282828] rounded-lg px-4 py-3 text-gray-500 cursor-not-allowed"
             />
-            <p className="text-xs text-gray-500 mt-1">
-              Email нельзя изменить
-            </p>
+            <p className="text-xs text-gray-500 mt-1">Email нельзя изменить</p>
           </div>
 
           <div>
@@ -188,38 +210,73 @@ export function Settings({
 
       {/* Add: Delete Finance History (visible only for tutors) */}
       {user.role === "tutor" && (
-        <div className="bg-[#181818] rounded-lg p-6 border border-yellow-500/30">
-          <div className="flex items-center gap-3 mb-4">
-            <AlertTriangle className="text-yellow-500" size={24} />
-            <h2 className="text-xl font-semibold text-yellow-500">
-              Удалить историю финансов
-            </h2>
-          </div>
-
-          <div className="space-y-4">
-            <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-sm text-gray-300">
-              <p className="font-medium mb-2">
-                Предупреждение: Это действие удалит все ваши транзакции.
-              </p>
-              <p className="text-gray-400">
-                Все финансовые записи (завершенные и ожидающие) для вашего
-                аккаунта преподавателя будут удалены.
-              </p>
+        <div className="space-y-6">
+          <div className="bg-[#181818] rounded-lg p-6 border border-yellow-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="text-yellow-500" size={24} />
+              <h2 className="text-xl font-semibold text-yellow-500">
+                Глобальная очистка данных
+              </h2>
             </div>
 
-            {error && (
-              <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 text-red-500 text-sm">
-                {error}
+            <div className="space-y-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-sm text-gray-300">
+                <p className="font-medium mb-2">
+                  Это действие удалит во всем проекте:
+                </p>
+                <ul className="list-disc list-inside space-y-1 text-gray-400">
+                  <li>Все события календаря</li>
+                  <li>Все домашние задания</li>
+                  <li>Всю историю финансов</li>
+                  <li>Все задачи и сообщения</li>
+                </ul>
               </div>
-            )}
 
-            <button
-              onClick={handleDeleteFinanceHistory}
-              disabled={financeDeleteLoading}
-              className="w-full bg-yellow-500 rounded-lg py-3 text-white font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {financeDeleteLoading ? "Удаление..." : "Удалить историю финансов"}
-            </button>
+              <button
+                onClick={handleClearAllData}
+                disabled={allDataDeleteLoading}
+                className="w-full bg-[#1db954] rounded-lg py-3 text-white font-medium hover:bg-[#1ed760] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {allDataDeleteLoading ? "Очистка..." : "Очистить все данные проекта"}
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-[#181818] rounded-lg p-6 border border-yellow-500/30">
+            <div className="flex items-center gap-3 mb-4">
+              <AlertTriangle className="text-yellow-500" size={24} />
+              <h2 className="text-xl font-semibold text-yellow-500">
+                Удалить историю финансов
+              </h2>
+            </div>
+
+            <div className="space-y-4">
+              <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-4 text-sm text-gray-300">
+                <p className="font-medium mb-2">
+                  Предупреждение: Это действие удалит все ваши транзакции.
+                </p>
+                <p className="text-gray-400">
+                  Все финансовые записи (завершенные и ожидающие) для вашего
+                  аккаунта преподавателя будут удалены.
+                </p>
+              </div>
+
+              {error && (
+                <div className="bg-red-500/10 border border-red-500 rounded-lg p-3 text-red-500 text-sm">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={handleDeleteFinanceHistory}
+                disabled={financeDeleteLoading}
+                className="w-full bg-yellow-500 rounded-lg py-3 text-white font-medium hover:bg-yellow-600 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {financeDeleteLoading
+                  ? "Удаление..."
+                  : "Удалить историю финансов"}
+              </button>
+            </div>
           </div>
         </div>
       )}
@@ -228,7 +285,9 @@ export function Settings({
       <div className="bg-[#181818] rounded-lg p-6 border border-red-500/30">
         <div className="flex items-center gap-3 mb-4">
           <Trash2 className="text-red-500" size={24} />
-          <h2 className="text-xl font-semibold text-red-500">Удалить аккаунт</h2>
+          <h2 className="text-xl font-semibold text-red-500">
+            Удалить аккаунт
+          </h2>
         </div>
 
         <div className="space-y-4">
@@ -243,8 +302,7 @@ export function Settings({
                   Предупреждение: Это действие нельзя отменить
                 </p>
                 <p className="text-gray-400">
-                  Удаление аккаунта навсегда удалит все ваши данные,
-                  включая:
+                  Удаление аккаунта навсегда удалит все ваши данные, включая:
                 </p>
                 <ul className="list-disc list-inside mt-2 space-y-1 text-gray-400">
                   <li>Все ваши связи</li>

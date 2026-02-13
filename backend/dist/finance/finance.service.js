@@ -144,6 +144,23 @@ let FinanceService = class FinanceService {
         await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false });
         return updated;
     }
+    async cancelPayment(transactionId, tutorId) {
+        const transaction = await this.transactionsRepository.findOne({
+            where: { id: transactionId },
+            relations: ["tutor", "student"],
+        });
+        if (!transaction) {
+            throw new common_1.BadRequestException("Transaction not found");
+        }
+        if (transaction.tutorId !== tutorId) {
+            throw new common_1.ForbiddenException("You can only delete your own transactions");
+        }
+        if (transaction.status !== "pending") {
+            throw new common_1.BadRequestException("Can only delete pending transactions");
+        }
+        await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false, transactionId: null });
+        await this.transactionsRepository.delete(transactionId);
+    }
     async getStats(userId, userRole) {
         const transactions = await this.findAll(userId, userRole);
         const thisMonth = new Date();

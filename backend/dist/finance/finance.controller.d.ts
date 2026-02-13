@@ -11,6 +11,7 @@ export declare class FinanceController {
     }>;
     create(createTransactionDto: any, req: any): Promise<import("./entities/transaction.entity").Transaction>;
     confirmPayment(id: number, req: any): Promise<import("./entities/transaction.entity").Transaction>;
+    cancelPayment(id: number, req: any): Promise<void>;
     clearHistory(req: any): Promise<{
         deletedCount: number;
     }>;

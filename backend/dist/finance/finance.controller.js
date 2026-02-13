@@ -41,6 +41,12 @@ let FinanceController = class FinanceController {
         }
         return this.financeService.confirmPayment(id, req.user.sub);
     }
+    async cancelPayment(id, req) {
+        if (req.user.role !== "tutor") {
+            throw new common_1.ForbiddenException("Only tutors can cancel payments");
+        }
+        return this.financeService.cancelPayment(id, req.user.sub);
+    }
     async clearHistory(req) {
         if (req.user.role !== "tutor") {
             throw new common_1.ForbiddenException("Only tutors can clear finance history");
@@ -79,6 +85,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", Promise)
 ], FinanceController.prototype, "confirmPayment", null);
+__decorate([
+    (0, common_1.Put)(":id/cancel"),
+    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", Promise)
+], FinanceController.prototype, "cancelPayment", null);
 __decorate([
     (0, common_1.Put)("history"),
     __param(0, (0, common_1.Request)()),

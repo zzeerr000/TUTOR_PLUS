@@ -47,6 +47,9 @@ let ConnectionsController = class ConnectionsController {
     removeStudent(studentId, req) {
         return this.connectionsService.removeStudent(req.user.sub, studentId);
     }
+    getStudentStats(studentId, req) {
+        return this.connectionsService.getStudentStats(req.user.sub, studentId);
+    }
 };
 exports.ConnectionsController = ConnectionsController;
 __decorate([
@@ -121,6 +124,14 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "removeStudent", null);
+__decorate([
+    (0, common_1.Get)(":studentId/stats"),
+    __param(0, (0, common_1.Param)("studentId", common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], ConnectionsController.prototype, "getStudentStats", null);
 exports.ConnectionsController = ConnectionsController = __decorate([
     (0, common_1.Controller)("connections"),
     (0, common_1.UseGuards)(jwt_auth_guard_1.JwtAuthGuard),
