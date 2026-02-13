@@ -46,7 +46,7 @@ export const api = {
     } catch (error: any) {
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         throw new Error(
-          "Cannot connect to server. Make sure the backend is running on http://localhost:3000"
+          "Cannot connect to server. Make sure the backend is running on http://localhost:3000",
         );
       }
       throw error;
@@ -65,7 +65,7 @@ export const api = {
     email: string,
     password: string,
     name: string,
-    role: "tutor" | "student"
+    role: "tutor" | "student",
   ) {
     return this.request("/auth/register", {
       method: "POST",
@@ -102,8 +102,29 @@ export const api = {
   },
 
   // Files
-  async getFiles() {
-    return this.request("/files");
+  async getFiles(folderId?: number | null) {
+    const endpoint = folderId ? `/files/folder/${folderId}` : "/files";
+    return this.request(endpoint);
+  },
+
+  async createFolder(name: string, parentId?: number | null) {
+    return this.request("/files/folders", {
+      method: "POST",
+      body: JSON.stringify({ name, parentId }),
+    });
+  },
+
+  async deleteFolder(id: number) {
+    return this.request(`/files/folders/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async moveFile(fileId: number, folderId: number | null) {
+    return this.request(`/files/${fileId}/move`, {
+      method: "POST",
+      body: JSON.stringify({ folderId }),
+    });
   },
 
   async uploadFile(formData: FormData) {
@@ -166,6 +187,51 @@ export const api = {
   async confirmPayment(transactionId: number) {
     return this.request(`/finance/${transactionId}/confirm`, {
       method: "PUT",
+    });
+  },
+
+  async cancelPayment(transactionId: number) {
+    return this.request(`/finance/${transactionId}/cancel`, {
+      method: "PUT",
+    });
+  },
+
+  // Homework
+  async getHomework() {
+    return this.request("/homework");
+  },
+
+  async getHomeworkById(id: number) {
+    return this.request(`/homework/${id}`);
+  },
+
+  async createHomework(data: any) {
+    return this.request("/homework", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateHomework(id: number, data: any) {
+    return this.request(`/homework/${id}`, {
+      method: "PUT",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteHomework(id: number) {
+    return this.request(`/homework/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async uploadHomeworkFile(homeworkId: number, file: File) {
+    const formData = new FormData();
+    formData.append("file", file);
+    formData.append("homeworkId", homeworkId.toString());
+    return this.request("/files/upload", {
+      method: "POST",
+      body: formData,
     });
   },
 
@@ -258,7 +324,7 @@ export const api = {
     name: string,
     defaultSubject?: string,
     defaultPrice?: number,
-    defaultDuration?: number
+    defaultDuration?: number,
   ) {
     return this.request("/connections/manual", {
       method: "POST",
@@ -285,7 +351,7 @@ export const api = {
       defaultSubject?: string;
       defaultPrice?: number;
       defaultDuration?: number;
-    }
+    },
   ) {
     return this.request(`/connections/${studentId}/alias`, {
       method: "POST",
@@ -299,14 +365,25 @@ export const api = {
     });
   },
 
+  async getStudentStats(studentId: number) {
+    return this.request(`/connections/${studentId}/stats`);
+  },
+
   // Calendar - delete event
   async deleteEvent(id: number, recurring: boolean = false) {
     return this.request(
       `/calendar/${id}${recurring ? "?recurring=true" : ""}`,
       {
         method: "DELETE",
-      }
+      },
     );
+  },
+
+  // Admin / Cleanup
+  async clearAllData() {
+    return this.request("/admin/clear-data", {
+      method: "POST",
+    });
   },
 
   getCurrencySymbol() {

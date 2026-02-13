@@ -18,15 +18,18 @@ const finance_module_1 = require("./finance/finance.module");
 const calendar_module_1 = require("./calendar/calendar.module");
 const progress_module_1 = require("./progress/progress.module");
 const connections_module_1 = require("./connections/connections.module");
+const homework_module_1 = require("./homework/homework.module");
 const app_controller_1 = require("./app.controller");
 const user_entity_1 = require("./users/entities/user.entity");
 const task_entity_1 = require("./tasks/entities/task.entity");
 const message_entity_1 = require("./messages/entities/message.entity");
 const file_entity_1 = require("./files/entities/file.entity");
+const folder_entity_1 = require("./files/entities/folder.entity");
 const transaction_entity_1 = require("./finance/entities/transaction.entity");
 const event_entity_1 = require("./calendar/entities/event.entity");
 const progress_entity_1 = require("./progress/entities/progress.entity");
 const connection_entity_1 = require("./connections/entities/connection.entity");
+const homework_entity_1 = require("./homework/entities/homework.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -34,9 +37,20 @@ exports.AppModule = AppModule = __decorate([
     (0, common_1.Module)({
         imports: [
             typeorm_1.TypeOrmModule.forRoot({
-                type: 'sqlite',
-                database: 'tutorplus.db',
-                entities: [user_entity_1.User, task_entity_1.Task, message_entity_1.Message, file_entity_1.FileEntity, transaction_entity_1.Transaction, event_entity_1.Event, progress_entity_1.Progress, connection_entity_1.Connection],
+                type: "sqlite",
+                database: "tutorplus.db",
+                entities: [
+                    user_entity_1.User,
+                    task_entity_1.Task,
+                    message_entity_1.Message,
+                    file_entity_1.FileEntity,
+                    folder_entity_1.FolderEntity,
+                    transaction_entity_1.Transaction,
+                    event_entity_1.Event,
+                    progress_entity_1.Progress,
+                    connection_entity_1.Connection,
+                    homework_entity_1.Homework,
+                ],
                 synchronize: true,
             }),
             auth_module_1.AuthModule,
@@ -48,6 +62,7 @@ exports.AppModule = AppModule = __decorate([
             calendar_module_1.CalendarModule,
             progress_module_1.ProgressModule,
             connections_module_1.ConnectionsModule,
+            homework_module_1.HomeworkModule,
         ],
         controllers: [app_controller_1.AppController],
     })

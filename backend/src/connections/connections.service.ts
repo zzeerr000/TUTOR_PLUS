@@ -2,11 +2,15 @@ import {
   Injectable,
   BadRequestException,
   NotFoundException,
+  Inject,
+  forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
 import { Repository, DataSource } from "typeorm";
 import { Connection, ConnectionStatus } from "./entities/connection.entity";
 import { UsersService } from "../users/users.service";
+import { CalendarService } from "../calendar/calendar.service";
+import { HomeworkService } from "../homework/homework.service";
 
 @Injectable()
 export class ConnectionsService {
@@ -14,12 +18,15 @@ export class ConnectionsService {
     @InjectRepository(Connection)
     private connectionsRepository: Repository<Connection>,
     private usersService: UsersService,
-    private dataSource: DataSource
+    private dataSource: DataSource,
+    @Inject(forwardRef(() => CalendarService))
+    private calendarService: CalendarService,
+    private homeworkService: HomeworkService,
   ) {}
 
   async createConnectionRequest(
     requestedById: number,
-    code: string
+    code: string,
   ): Promise<Connection> {
     const requester = await this.usersService.findById(requestedById);
     if (!requester) {
@@ -75,7 +82,7 @@ export class ConnectionsService {
 
   async getPendingRequests(
     userId: number,
-    userRole: string
+    userRole: string,
   ): Promise<Connection[]> {
     if (userRole === "tutor") {
       // Only return requests where tutor is the recipient (not the requester)
@@ -107,7 +114,7 @@ export class ConnectionsService {
   async approveConnection(
     connectionId: number,
     userId: number,
-    existingStudentId?: number
+    existingStudentId?: number,
   ): Promise<Connection> {
     const connection = await this.connectionsRepository.findOne({
       where: { id: connectionId },
@@ -132,7 +139,7 @@ export class ConnectionsService {
       await this.mergeVirtualStudent(
         userId,
         existingStudentId,
-        connection.studentId
+        connection.studentId,
       );
       // After merging, we can delete the virtual user if it was virtual
       const virtualUser = await this.usersService.findById(existingStudentId);
@@ -153,7 +160,7 @@ export class ConnectionsService {
   private async mergeVirtualStudent(
     tutorId: number,
     virtualStudentId: number,
-    realStudentId: number
+    realStudentId: number,
   ): Promise<void> {
     const queryRunner = this.dataSource.createQueryRunner();
     await queryRunner.connect();
@@ -163,31 +170,31 @@ export class ConnectionsService {
       // Update all related tables
       await queryRunner.query(
         "UPDATE events SET studentId = ? WHERE tutorId = ? AND studentId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE tasks SET assignedToId = ? WHERE userId = ? AND assignedToId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE files SET assignedToId = ? WHERE uploadedById = ? AND assignedToId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE progress SET studentId = ? WHERE tutorId = ? AND studentId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE transactions SET studentId = ? WHERE tutorId = ? AND studentId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE messages SET senderId = ? WHERE receiverId = ? AND senderId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
       await queryRunner.query(
         "UPDATE messages SET receiverId = ? WHERE senderId = ? AND receiverId = ?",
-        [realStudentId, tutorId, virtualStudentId]
+        [realStudentId, tutorId, virtualStudentId],
       );
 
       await queryRunner.commitTransaction();
@@ -202,7 +209,7 @@ export class ConnectionsService {
   async linkVirtualStudentByCode(
     tutorId: number,
     virtualStudentId: number,
-    studentCode: string
+    studentCode: string,
   ): Promise<Connection> {
     const realStudent = await this.usersService.findByCode(studentCode);
     if (!realStudent) {
@@ -265,7 +272,7 @@ export class ConnectionsService {
 
   async getConnections(
     userId: number,
-    userRole: string
+    userRole: string,
   ): Promise<Connection[]> {
     if (userRole === "tutor") {
       return this.connectionsRepository.find({
@@ -287,7 +294,7 @@ export class ConnectionsService {
     name: string,
     defaultSubject?: string,
     defaultPrice?: number,
-    defaultDuration?: number
+    defaultDuration?: number,
   ): Promise<Connection> {
     const student = await this.usersService.createVirtualStudent(name);
 
@@ -312,7 +319,7 @@ export class ConnectionsService {
       defaultSubject?: string;
       defaultPrice?: number;
       defaultDuration?: number;
-    }
+    },
   ): Promise<Connection> {
     const connection = await this.connectionsRepository.findOne({
       where: { tutorId, studentId, status: ConnectionStatus.APPROVED },
@@ -352,5 +359,76 @@ export class ConnectionsService {
     if (isVirtual) {
       await this.usersService.deleteAccount(studentId);
     }
+  }
+
+  async getStudentStats(tutorId: number, studentId: number) {
+    const connection = await this.connectionsRepository.findOne({
+      where: { tutorId, studentId, status: ConnectionStatus.APPROVED },
+    });
+
+    if (!connection) {
+      throw new NotFoundException("Connection not found");
+    }
+
+    const allEvents = await this.calendarService.findAll(tutorId, "tutor");
+    const studentEvents = allEvents
+      .filter((e) => e.studentId === studentId)
+      .sort(
+        (a, b) =>
+          new Date(b.date).getTime() - new Date(a.date).getTime() ||
+          b.time.localeCompare(a.time),
+      );
+
+    const now = new Date();
+    
+    const pastLessons = studentEvents.filter((e) => {
+      const eventDate = e.date.split("T")[0];
+      const timeParts = e.time.split(":");
+      const h = timeParts[0].padStart(2, "0");
+      const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+      const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
+      return lessonDateTime < now;
+    });
+
+    const upcomingLessons = studentEvents
+      .filter((e) => {
+        const eventDate = e.date.split("T")[0];
+        const timeParts = e.time.split(":");
+        const h = timeParts[0].padStart(2, "0");
+        const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+        const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
+        return lessonDateTime >= now;
+      })
+      .sort(
+        (a, b) =>
+          new Date(a.date).getTime() - new Date(b.date).getTime() ||
+          a.time.localeCompare(b.time),
+      );
+
+    const filteredLessonsHistory = [...upcomingLessons, ...pastLessons];
+
+    const allHomework = await this.homeworkService.findAll(tutorId, "tutor");
+    const studentHomework = allHomework.filter(
+      (h) => h.studentId === studentId && h.status !== "draft",
+    );
+
+    const activeHW = studentHomework.filter(
+      (h) => h.status === "pending",
+    ).length;
+    const missedHW = studentHomework.filter(
+      (h) => h.status === "missed",
+    ).length;
+    const completedHW = studentHomework.filter(
+      (h) => h.status === "completed",
+    ).length;
+
+    return {
+      lessonsCount: pastLessons.length,
+      activeHomework: activeHW,
+      missedHomework: missedHW,
+      completedHomework: completedHW,
+      lessonsHistory: filteredLessonsHistory,
+      homeworkHistory: studentHomework,
+    };
   }
 }

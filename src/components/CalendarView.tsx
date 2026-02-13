@@ -44,9 +44,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const [selectedDateEvents, setSelectedDateEvents] = useState<any[]>([]);
   const [showDateDetails, setShowDateDetails] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
+  const [showHWDialog, setShowHWDialog] = useState<any | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
     null,
   );
+  const [hwDetails, setHwDetails] = useState({
+    title: "Домашнее задание",
+    description: "",
+  });
 
   useEffect(() => {
     loadEvents();
@@ -100,12 +105,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
     }
   };
 
-  const convertTo12Hour = (time24: string): string => {
-    const [hours, minutes] = time24.split(":");
-    const hour = parseInt(hours);
-    const ampm = hour >= 12 ? "ПП" : "ДП";
-    const hour12 = hour % 12 || 12;
-    return `${hour12}:${minutes} ${ampm}`;
+  const formatTime = (time24: string): string => {
+    return time24;
   };
 
   const generateRepeatDates = (
@@ -143,7 +144,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
     setSubmitting(true);
 
     try {
-      const time12Hour = convertTo12Hour(newEvent.time);
+      const timeStr = formatTime(newEvent.time);
       const amount = parseFloat(newEvent.amount) || 0;
 
       // Save last used price
@@ -153,7 +154,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         await api.updateEvent(editingEvent.id, {
           title: newEvent.title || newEvent.subject,
           date: newEvent.date,
-          time: time12Hour,
+          time: timeStr,
           subject: newEvent.subject,
           studentId: parseInt(newEvent.studentId),
           color: newEvent.color,
@@ -170,7 +171,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
           api.createEvent({
             title: newEvent.title || newEvent.subject,
             date: date,
-            time: time12Hour,
+            time: timeStr,
             subject: newEvent.subject,
             studentId: parseInt(newEvent.studentId),
             color: newEvent.color,
@@ -318,24 +319,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
   };
 
   const handleEditEvent = (event: any) => {
-    // Convert 12-hour format to 24-hour format
-    let time24 = event.time;
-    if (
-      event.time.includes("AM") ||
-      event.time.includes("PM") ||
-      event.time.includes("ДП") ||
-      event.time.includes("ПП")
-    ) {
-      const [timePart, period] = event.time.split(" ");
-      const [hours, minutes] = timePart.split(":");
-      let hour24 = parseInt(hours);
-      if ((period === "PM" || period === "ПП") && hour24 !== 12) {
-        hour24 += 12;
-      } else if ((period === "AM" || period === "ДП") && hour24 === 12) {
-        hour24 = 0;
-      }
-      time24 = `${String(hour24).padStart(2, "0")}:${minutes}`;
-    }
+    const time24 = event.time;
 
     setEditingEvent({
       ...event,
@@ -366,14 +350,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
     setSubmitting(true);
 
     try {
-      const time12Hour = convertTo12Hour(newEvent.time);
+      const timeStr = formatTime(newEvent.time);
       const amount = parseFloat(newEvent.amount) || 0;
       localStorage.setItem("last_lesson_price", newEvent.amount);
 
       await api.updateEvent(editingEvent.id, {
         title: newEvent.title || newEvent.subject,
         date: newEvent.date,
-        time: time12Hour,
+        time: timeStr,
         subject: newEvent.subject,
         studentId: parseInt(newEvent.studentId),
         color: newEvent.color,
@@ -407,27 +391,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
     // Normalize event date to YYYY-MM-DD
     const datePart = eventDate.split("T")[0];
 
-    let hour24 = 0;
-    let minutes = 0;
-
-    if (
-      eventTime.includes("AM") ||
-      eventTime.includes("PM") ||
-      eventTime.includes("ДП") ||
-      eventTime.includes("ПП")
-    ) {
-      const [timePart, period] = eventTime.split(" ");
-      const [h, m] = timePart.split(":");
-      hour24 = parseInt(h);
-      minutes = parseInt(m);
-      if ((period === "PM" || period === "ПП") && hour24 !== 12) hour24 += 12;
-      else if ((period === "AM" || period === "ДП") && hour24 === 12)
-        hour24 = 0;
-    } else {
-      const [h, m] = eventTime.split(":");
-      hour24 = parseInt(h);
-      minutes = parseInt(m);
-    }
+    const [h, m] = eventTime.split(":");
+    const hour24 = parseInt(h);
+    const minutes = parseInt(m);
 
     const eventDateTime = new Date(
       `${datePart}T${String(hour24).padStart(2, "0")}:${String(
@@ -477,25 +443,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
       // If dates are the same, compare times
       // Convert 12-hour format to 24-hour for comparison
       const parseTime = (timeStr: string): number => {
-        if (
-          timeStr.includes("AM") ||
-          timeStr.includes("PM") ||
-          timeStr.includes("ДП") ||
-          timeStr.includes("ПП")
-        ) {
-          const [timePart, period] = timeStr.split(" ");
-          const [hours, minutes] = timePart.split(":");
-          let hour24 = parseInt(hours);
-          if ((period === "PM" || period === "ПП") && hour24 !== 12) {
-            hour24 += 12;
-          } else if ((period === "AM" || period === "ДП") && hour24 === 12) {
-            hour24 = 0;
-          }
-          return hour24 * 60 + parseInt(minutes);
-        } else {
-          const [hours, minutes] = timeStr.split(":");
-          return parseInt(hours) * 60 + parseInt(minutes);
-        }
+        const [hours, minutes] = timeStr.split(":");
+        return parseInt(hours) * 60 + parseInt(minutes);
       };
 
       return parseTime(a.time) - parseTime(b.time);
@@ -1077,6 +1026,20 @@ export function CalendarView({ userType }: CalendarViewProps) {
                               )}
                             </div>
                           )}
+                          {past && userType === "tutor" && (
+                            <div className="mt-2 pt-2 border-t border-gray-800">
+                              <button
+                                onClick={() => {
+                                  setShowHWDialog(event);
+                                  setShowDateDetails(false);
+                                }}
+                                className="flex items-center gap-1.5 text-xs text-[#1db954] hover:text-[#1ed760] transition-colors font-medium"
+                              >
+                                <BookOpen size={14} />
+                                Задать домашнее задание
+                              </button>
+                            </div>
+                          )}
                         </div>
                         {userType === "tutor" && (
                           <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
@@ -1401,6 +1364,122 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Homework Dialog */}
+      {showHWDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-xl font-semibold">Задать домашнее задание</h2>
+              <button
+                onClick={() => setShowHWDialog(null)}
+                className="text-gray-400 hover:text-white"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="mb-4 p-3 bg-[#282828] rounded-lg text-sm">
+              <div className="text-gray-400">Занятие:</div>
+              <div className="font-medium text-[#1db954]">
+                {showHWDialog.subject} (
+                {new Date(showHWDialog.date).toLocaleDateString("ru-RU")})
+              </div>
+              <div className="text-gray-400 mt-1">Ученик:</div>
+              <div className="font-medium">
+                {showHWDialog.student?.studentAlias ||
+                  showHWDialog.student?.name}
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">
+                  Заголовок задания
+                </label>
+                <input
+                  type="text"
+                  value={hwDetails.title}
+                  onChange={(e) =>
+                    setHwDetails({ ...hwDetails, title: e.target.value })
+                  }
+                  className="w-full bg-[#282828] rounded-lg px-4 py-2 text-white outline-none focus:ring-1 focus:ring-[#1db954] text-sm"
+                  placeholder="Домашнее задание"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm text-gray-400 mb-1.5">
+                  Что нужно сделать
+                </label>
+                <textarea
+                  value={hwDetails.description}
+                  onChange={(e) =>
+                    setHwDetails({ ...hwDetails, description: e.target.value })
+                  }
+                  className="w-full bg-[#282828] rounded-lg px-4 py-2 text-white outline-none focus:ring-1 focus:ring-[#1db954] text-sm min-h-[100px] resize-none"
+                  placeholder="Опишите детали задания..."
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.createHomework({
+                        title: hwDetails.title,
+                        description: hwDetails.description,
+                        subject: showHWDialog.subject,
+                        studentId: showHWDialog.studentId,
+                        lessonId: showHWDialog.id,
+                        dueDate: "next_lesson",
+                        status: "pending",
+                      });
+                      setShowHWDialog(null);
+                      setHwDetails({
+                        title: "Домашнее задание",
+                        description: "",
+                      });
+                      loadEvents();
+                    } catch (error) {
+                      alert("Не удалось создать задание");
+                    }
+                  }}
+                  className="flex-1 py-3 bg-[#1db954] rounded-lg text-white font-medium hover:bg-[#1ed760] transition-colors"
+                >
+                  Задать ДЗ
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      await api.createHomework({
+                        title: "Без домашнего задания",
+                        description:
+                          "Для этого занятия домашнее задание не требуется",
+                        subject: showHWDialog.subject,
+                        studentId: showHWDialog.studentId,
+                        lessonId: showHWDialog.id,
+                        status: "no_homework",
+                      });
+                      setShowHWDialog(null);
+                      loadEvents();
+                    } catch (error) {
+                      alert("Не удалось сохранить статус");
+                    }
+                  }}
+                  className="flex-1 py-3 bg-[#282828] rounded-lg text-white font-medium hover:bg-[#333333] transition-colors"
+                >
+                  Нет ДЗ
+                </button>
+              </div>
+              <p className="text-xs text-gray-500 text-center">
+                Срок сдачи будет автоматически установлен на дату следующего
+                занятия.
+              </p>
+            </div>
           </div>
         </div>
       )}

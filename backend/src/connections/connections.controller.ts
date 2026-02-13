@@ -113,4 +113,12 @@ export class ConnectionsController {
   ) {
     return this.connectionsService.removeStudent(req.user.sub, studentId);
   }
+
+  @Get(":studentId/stats")
+  getStudentStats(
+    @Param("studentId", ParseIntPipe) studentId: number,
+    @Request() req
+  ) {
+    return this.connectionsService.getStudentStats(req.user.sub, studentId);
+  }
 }

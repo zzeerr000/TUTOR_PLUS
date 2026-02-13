@@ -19,21 +19,21 @@ export class FinanceService {
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
     @Inject(forwardRef(() => ConnectionsService))
-    private connectionsService: ConnectionsService
+    private connectionsService: ConnectionsService,
   ) {}
 
   async create(createTransactionDto: any): Promise<Transaction> {
     // Verify connection exists
     const connections = await this.connectionsService.getConnections(
       createTransactionDto.tutorId,
-      "tutor"
+      "tutor",
     );
     const isConnected = connections.some(
-      (c) => c.studentId === createTransactionDto.studentId
+      (c) => c.studentId === createTransactionDto.studentId,
     );
     if (!isConnected) {
       throw new BadRequestException(
-        "Can only create transactions with connected students"
+        "Can only create transactions with connected students",
       );
     }
 
@@ -51,7 +51,7 @@ export class FinanceService {
       // Get connected students
       const connections = await this.connectionsService.getConnections(
         userId,
-        "tutor"
+        "tutor",
       );
       const connectedStudentIds = connections.map((c) => c.studentId);
 
@@ -72,7 +72,7 @@ export class FinanceService {
       // Get connected tutors
       const connections = await this.connectionsService.getConnections(
         userId,
-        "student"
+        "student",
       );
       const connectedTutorIds = connections.map((c) => c.tutorId);
 
@@ -136,10 +136,10 @@ export class FinanceService {
         // Verify connection exists
         const connections = await this.connectionsService.getConnections(
           event.tutorId,
-          "tutor"
+          "tutor",
         );
         const isConnected = connections.some(
-          (c) => c.studentId === event.studentId
+          (c) => c.studentId === event.studentId,
         );
         if (!isConnected) {
           continue;
@@ -169,7 +169,7 @@ export class FinanceService {
 
   async confirmPayment(
     transactionId: number,
-    tutorId: number
+    tutorId: number,
   ): Promise<Transaction> {
     const transaction = await this.transactionsRepository.findOne({
       where: { id: transactionId },
@@ -182,7 +182,7 @@ export class FinanceService {
 
     if (transaction.tutorId !== tutorId) {
       throw new ForbiddenException(
-        "You can only confirm payments for your own transactions"
+        "You can only confirm payments for your own transactions",
       );
     }
 
@@ -192,10 +192,37 @@ export class FinanceService {
     // Update event payment status
     await this.eventsRepository.update(
       { transactionId: transactionId },
-      { paymentPending: false }
+      { paymentPending: false },
     );
 
     return updated;
+  }
+
+  async cancelPayment(transactionId: number, tutorId: number): Promise<void> {
+    const transaction = await this.transactionsRepository.findOne({
+      where: { id: transactionId },
+      relations: ["tutor", "student"],
+    });
+
+    if (!transaction) {
+      throw new BadRequestException("Transaction not found");
+    }
+
+    if (transaction.tutorId !== tutorId) {
+      throw new ForbiddenException("You can only delete your own transactions");
+    }
+
+    if (transaction.status !== "pending") {
+      throw new BadRequestException("Can only delete pending transactions");
+    }
+
+    // Update event payment status before deleting transaction
+    await this.eventsRepository.update(
+      { transactionId: transactionId },
+      { paymentPending: false, transactionId: null },
+    );
+
+    await this.transactionsRepository.delete(transactionId);
   }
 
   async getStats(userId: number, userRole: string) {
@@ -204,7 +231,7 @@ export class FinanceService {
     thisMonth.setDate(1);
 
     const thisMonthTransactions = transactions.filter(
-      (t) => new Date(t.createdAt) >= thisMonth && t.status === "completed"
+      (t) => new Date(t.createdAt) >= thisMonth && t.status === "completed",
     );
     const lastMonth = new Date(thisMonth);
     lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -212,16 +239,16 @@ export class FinanceService {
       (t) =>
         new Date(t.createdAt) >= lastMonth &&
         new Date(t.createdAt) < thisMonth &&
-        t.status === "completed"
+        t.status === "completed",
     );
 
     const thisMonthTotal = thisMonthTransactions.reduce(
       (sum, t) => sum + Number(t.amount),
-      0
+      0,
     );
     const lastMonthTotal = lastMonthTransactions.reduce(
       (sum, t) => sum + Number(t.amount),
-      0
+      0,
     );
     const pending = transactions.filter((t) => t.status === "pending");
     const pendingTotal = pending.reduce((sum, t) => sum + Number(t.amount), 0);

@@ -12,6 +12,8 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.FileEntity = void 0;
 const typeorm_1 = require("typeorm");
 const user_entity_1 = require("../../users/entities/user.entity");
+const folder_entity_1 = require("./folder.entity");
+const homework_entity_1 = require("../../homework/entities/homework.entity");
 let FileEntity = class FileEntity {
 };
 exports.FileEntity = FileEntity;
@@ -49,7 +51,7 @@ __decorate([
 ], FileEntity.prototype, "uploadedById", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User),
-    (0, typeorm_1.JoinColumn)({ name: 'uploadedById' }),
+    (0, typeorm_1.JoinColumn)({ name: "uploadedById" }),
     __metadata("design:type", user_entity_1.User)
 ], FileEntity.prototype, "uploadedBy", void 0);
 __decorate([
@@ -58,14 +60,38 @@ __decorate([
 ], FileEntity.prototype, "assignedToId", void 0);
 __decorate([
     (0, typeorm_1.ManyToOne)(() => user_entity_1.User, { nullable: true }),
-    (0, typeorm_1.JoinColumn)({ name: 'assignedToId' }),
+    (0, typeorm_1.JoinColumn)({ name: "assignedToId" }),
     __metadata("design:type", user_entity_1.User)
 ], FileEntity.prototype, "assignedTo", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], FileEntity.prototype, "folderId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => folder_entity_1.FolderEntity, (folder) => folder.files, {
+        nullable: true,
+        onDelete: "CASCADE",
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "folderId" }),
+    __metadata("design:type", folder_entity_1.FolderEntity)
+], FileEntity.prototype, "folder", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ nullable: true }),
+    __metadata("design:type", Number)
+], FileEntity.prototype, "homeworkId", void 0);
+__decorate([
+    (0, typeorm_1.ManyToOne)(() => homework_entity_1.Homework, (homework) => homework.files, {
+        nullable: true,
+        onDelete: "CASCADE",
+    }),
+    (0, typeorm_1.JoinColumn)({ name: "homeworkId" }),
+    __metadata("design:type", homework_entity_1.Homework)
+], FileEntity.prototype, "homework", void 0);
 __decorate([
     (0, typeorm_1.CreateDateColumn)(),
     __metadata("design:type", Date)
 ], FileEntity.prototype, "createdAt", void 0);
 exports.FileEntity = FileEntity = __decorate([
-    (0, typeorm_1.Entity)('files')
+    (0, typeorm_1.Entity)("files")
 ], FileEntity);
 //# sourceMappingURL=file.entity.js.map

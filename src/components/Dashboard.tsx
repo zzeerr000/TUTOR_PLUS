@@ -49,27 +49,9 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
     const now = new Date();
     const datePart = eventDate.split("T")[0];
 
-    let hour24 = 0;
-    let minutes = 0;
-
-    if (
-      eventTime.includes("AM") ||
-      eventTime.includes("PM") ||
-      eventTime.includes("ДП") ||
-      eventTime.includes("ПП")
-    ) {
-      const [timePart, period] = eventTime.split(" ");
-      const [h, m] = timePart.split(":");
-      hour24 = parseInt(h);
-      minutes = parseInt(m);
-      if ((period === "PM" || period === "ПП") && hour24 !== 12) hour24 += 12;
-      else if ((period === "AM" || period === "ДП") && hour24 === 12)
-        hour24 = 0;
-    } else {
-      const [h, m] = eventTime.split(":");
-      hour24 = parseInt(h);
-      minutes = parseInt(m);
-    }
+    const [h, m] = eventTime.split(":");
+    const hour24 = parseInt(h);
+    const minutes = parseInt(m);
 
     const eventDateTime = new Date(
       `${datePart}T${String(hour24).padStart(2, "0")}:${String(
@@ -82,9 +64,9 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [tasks, events, students, financeStats, progress] =
+      const [homework, events, students, financeStats, progress] =
         await Promise.all([
-          api.getTasks().catch(() => []),
+          api.getHomework().catch(() => []),
           api.getEvents().catch(() => []),
           userType === "tutor"
             ? api.getStudents().catch(() => [])
@@ -106,11 +88,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         return eventDate >= weekStart;
       });
 
-      const pendingTasksCount = tasks.filter(
-        (t: any) => t.status !== "completed",
+      const pendingTasksCount = homework.filter(
+        (t: any) => t.status === "pending" || t.status === "draft",
       ).length;
-      const activeTasksCount = tasks.filter(
-        (t: any) => t.status !== "completed",
+      const activeTasksCount = homework.filter(
+        (t: any) => t.status === "pending",
       ).length;
 
       if (userType === "tutor") {
@@ -138,9 +120,26 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         const progressStats = await api
           .getProgressStats()
           .catch(() => ({ overallProgress: 0, totalHours: 0 }));
+
+        const now = new Date();
+        const futureEvents = events
+          .filter((e: any) => {
+            const eventDate = e.date.split("T")[0];
+            const [h, m] = e.time.split(":");
+            const eventDateTime = new Date(
+              `${eventDate}T${h.padStart(2, "0")}:${m.padStart(2, "0")}:00`,
+            );
+            return eventDateTime >= now;
+          })
+          .sort((a: any, b: any) => {
+            const dateA = new Date(`${a.date.split("T")[0]}T${a.time}`);
+            const dateB = new Date(`${b.date.split("T")[0]}T${b.time}`);
+            return dateA.getTime() - dateB.getTime();
+          });
+
         setStats({
           students: 0,
-          lessonsToday: 0,
+          lessonsToday: todayEvents.length,
           thisMonth: 0,
           pendingTasks: 0,
           activeTasks: activeTasksCount,
@@ -149,16 +148,18 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           studyTime: progressStats.totalHours || 0,
         });
         setUpcomingLessons(
-          events.slice(0, 3).map((e: any) => ({
+          futureEvents.slice(0, 3).map((e: any) => ({
             id: e.id,
             day: new Date(e.date).toLocaleDateString("ru-RU", {
               weekday: "short",
+              day: "numeric",
+              month: "short",
             }),
             time: e.time,
             subject: e.subject || "Занятие",
             tutor: e.tutor?.name || "Репетитор",
             color: e.color || "#1db954",
-            past: isEventPast(e.date, e.time),
+            past: false,
           })),
         );
         setRecentProgress(
@@ -245,12 +246,12 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
               <div className="text-sm text-gray-400">Отслеживание оплат</div>
             </button>
             <button
-              onClick={() => onNavigate("tasks")}
+              onClick={() => onNavigate("homework")}
               className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
             >
               <CheckSquare size={24} className="mb-2 text-[#af2896]" />
-              <div className="mb-1">Задания</div>
-              <div className="text-sm text-gray-400">Управление заданиями</div>
+              <div className="mb-1">Домашние задания</div>
+              <div className="text-sm text-gray-400">Управление ДЗ</div>
             </button>
             <button
               onClick={() => onNavigate("calendar")}

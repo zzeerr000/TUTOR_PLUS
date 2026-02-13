@@ -18,11 +18,15 @@ const typeorm_1 = require("@nestjs/typeorm");
 const typeorm_2 = require("typeorm");
 const connection_entity_1 = require("./entities/connection.entity");
 const users_service_1 = require("../users/users.service");
+const calendar_service_1 = require("../calendar/calendar.service");
+const homework_service_1 = require("../homework/homework.service");
 let ConnectionsService = class ConnectionsService {
-    constructor(connectionsRepository, usersService, dataSource) {
+    constructor(connectionsRepository, usersService, dataSource, calendarService, homeworkService) {
         this.connectionsRepository = connectionsRepository;
         this.usersService = usersService;
         this.dataSource = dataSource;
+        this.calendarService = calendarService;
+        this.homeworkService = homeworkService;
     }
     async createConnectionRequest(requestedById, code) {
         const requester = await this.usersService.findById(requestedById);
@@ -243,13 +247,63 @@ let ConnectionsService = class ConnectionsService {
             await this.usersService.deleteAccount(studentId);
         }
     }
+    async getStudentStats(tutorId, studentId) {
+        const connection = await this.connectionsRepository.findOne({
+            where: { tutorId, studentId, status: connection_entity_1.ConnectionStatus.APPROVED },
+        });
+        if (!connection) {
+            throw new common_1.NotFoundException("Connection not found");
+        }
+        const allEvents = await this.calendarService.findAll(tutorId, "tutor");
+        const studentEvents = allEvents
+            .filter((e) => e.studentId === studentId)
+            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime() ||
+            b.time.localeCompare(a.time));
+        const now = new Date();
+        const pastLessons = studentEvents.filter((e) => {
+            const eventDate = e.date.split("T")[0];
+            const timeParts = e.time.split(":");
+            const h = timeParts[0].padStart(2, "0");
+            const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+            const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
+            return lessonDateTime < now;
+        });
+        const upcomingLessons = studentEvents
+            .filter((e) => {
+            const eventDate = e.date.split("T")[0];
+            const timeParts = e.time.split(":");
+            const h = timeParts[0].padStart(2, "0");
+            const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+            const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
+            return lessonDateTime >= now;
+        })
+            .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime() ||
+            a.time.localeCompare(b.time));
+        const filteredLessonsHistory = [...upcomingLessons, ...pastLessons];
+        const allHomework = await this.homeworkService.findAll(tutorId, "tutor");
+        const studentHomework = allHomework.filter((h) => h.studentId === studentId && h.status !== "draft");
+        const activeHW = studentHomework.filter((h) => h.status === "pending").length;
+        const missedHW = studentHomework.filter((h) => h.status === "missed").length;
+        const completedHW = studentHomework.filter((h) => h.status === "completed").length;
+        return {
+            lessonsCount: pastLessons.length,
+            activeHomework: activeHW,
+            missedHomework: missedHW,
+            completedHomework: completedHW,
+            lessonsHistory: filteredLessonsHistory,
+            homeworkHistory: studentHomework,
+        };
+    }
 };
 exports.ConnectionsService = ConnectionsService;
 exports.ConnectionsService = ConnectionsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(connection_entity_1.Connection)),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => calendar_service_1.CalendarService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         users_service_1.UsersService,
-        typeorm_2.DataSource])
+        typeorm_2.DataSource,
+        calendar_service_1.CalendarService,
+        homework_service_1.HomeworkService])
 ], ConnectionsService);
 //# sourceMappingURL=connections.service.js.map

@@ -73,6 +73,10 @@ __decorate([
     (0, typeorm_1.Column)({ type: 'int', default: 60 }),
     __metadata("design:type", Number)
 ], Event.prototype, "duration", void 0);
+__decorate([
+    (0, typeorm_1.Column)({ type: 'text', nullable: true }),
+    __metadata("design:type", String)
+], Event.prototype, "notes", void 0);
 exports.Event = Event = __decorate([
     (0, typeorm_1.Entity)('events')
 ], Event);

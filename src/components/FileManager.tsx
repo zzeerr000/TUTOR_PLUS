@@ -8,6 +8,12 @@ import {
   Upload,
   X,
   File,
+  Folder,
+  ChevronRight,
+  Plus,
+  ArrowLeft,
+  MoreVertical,
+  Move,
 } from "lucide-react";
 import { api } from "../services/api";
 
@@ -20,7 +26,18 @@ export function FileManager({ userType }: FileManagerProps) {
     "all" | "documents" | "videos" | "images"
   >("all");
   const [showUploadModal, setShowUploadModal] = useState(false);
+  const [showFolderModal, setShowFolderModal] = useState(false);
+  const [showMoveModal, setShowMoveModal] = useState<{
+    fileId: number;
+    name: string;
+  } | null>(null);
+  const [newFolderName, setNewFolderName] = useState("");
   const [files, setFiles] = useState<any[]>([]);
+  const [folders, setFolders] = useState<any[]>([]);
+  const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
+  const [breadcrumbs, setBreadcrumbs] = useState<
+    { id: number | null; name: string }[]
+  >([{ id: null, name: "Материалы" }]);
   const [students, setStudents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
@@ -43,14 +60,14 @@ export function FileManager({ userType }: FileManagerProps) {
     if (userType === "tutor") {
       loadStudents();
     }
-  }, [userType]);
+  }, [userType, currentFolderId]);
 
   const loadFiles = async () => {
     try {
       setLoading(true);
-      const data = await api.getFiles();
+      const data = await api.getFiles(currentFolderId);
       setFiles(
-        data.map((f: any) => ({
+        data.files.map((f: any) => ({
           ...f,
           icon:
             f.type === "document"
@@ -64,11 +81,60 @@ export function FileManager({ userType }: FileManagerProps) {
           }),
         })),
       );
+      setFolders(data.folders);
       loadStorageStats();
     } catch (error) {
       console.error("Failed to load files:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleCreateFolder = async () => {
+    if (!newFolderName.trim()) return;
+    try {
+      await api.createFolder(newFolderName, currentFolderId);
+      setNewFolderName("");
+      setShowFolderModal(false);
+      loadFiles();
+    } catch (error) {
+      console.error("Failed to create folder:", error);
+    }
+  };
+
+  const handleDeleteFolder = async (id: number) => {
+    if (
+      window.confirm(
+        "Вы уверены, что хотите удалить эту папку и все её содержимое?",
+      )
+    ) {
+      try {
+        await api.deleteFolder(id);
+        loadFiles();
+      } catch (error) {
+        console.error("Failed to delete folder:", error);
+      }
+    }
+  };
+
+  const handleNavigate = (folder: { id: number | null; name: string }) => {
+    setCurrentFolderId(folder.id);
+    const index = breadcrumbs.findIndex((b) => b.id === folder.id);
+    if (index !== -1) {
+      setBreadcrumbs(breadcrumbs.slice(0, index + 1));
+    } else {
+      setBreadcrumbs([...breadcrumbs, folder]);
+    }
+  };
+
+  const handleMoveFile = async (folderId: number | null) => {
+    if (!showMoveModal) return;
+    try {
+      await api.moveFile(showMoveModal.fileId, folderId);
+      setShowMoveModal(null);
+      loadFiles();
+    } catch (error) {
+      console.error("Failed to move file:", error);
     }
   };
 
@@ -91,6 +157,9 @@ export function FileManager({ userType }: FileManagerProps) {
       formData.append("subject", uploadData.subject);
       if (uploadData.assignedToId) {
         formData.append("assignedToId", uploadData.assignedToId);
+      }
+      if (currentFolderId) {
+        formData.append("folderId", currentFolderId.toString());
       }
 
       await api.uploadFile(formData);
@@ -177,8 +246,40 @@ export function FileManager({ userType }: FileManagerProps) {
 
   return (
     <div className="space-y-4 pb-6">
+      {/* Breadcrumbs */}
+      <div className="flex items-center gap-2 overflow-x-auto text-sm no-scrollbar py-1">
+        {breadcrumbs.map((crumb, index) => (
+          <React.Fragment key={index}>
+            {index > 0 && <ChevronRight size={14} className="text-gray-600 flex-shrink-0" />}
+            <button
+              onClick={() => handleNavigate(crumb)}
+              className={`whitespace-nowrap transition-colors ${
+                index === breadcrumbs.length - 1
+                  ? "text-white font-medium"
+                  : "text-gray-400 hover:text-white"
+              }`}
+            >
+              {crumb.name}
+            </button>
+          </React.Fragment>
+        ))}
+      </div>
+
+      {/* Action Buttons (for tutors) */}
+      {userType === "tutor" && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFolderModal(true)}
+            className="flex-1 bg-[#181818] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-[#282828] transition-colors text-sm"
+          >
+            <Plus size={18} className="text-[#1db954]" />
+            Новая папка
+          </button>
+        </div>
+      )}
+
       {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto">
+      <div className="flex gap-2 overflow-x-auto no-scrollbar">
         {[
           { id: "all", label: "Все файлы" },
           { id: "documents", label: "Документы" },
@@ -220,9 +321,39 @@ export function FileManager({ userType }: FileManagerProps) {
         </div>
       </div>
 
-      {/* File List */}
+      {/* Folder & File List */}
       <div className="space-y-2">
-        {filteredFiles.length === 0 ? (
+        {/* Folders */}
+        {filter === "all" && folders.map((folder) => (
+          <div
+            key={folder.id}
+            className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors group"
+          >
+            <div className="flex items-center gap-3">
+              <div 
+                className="flex-1 flex items-center gap-3 cursor-pointer"
+                onClick={() => handleNavigate({id: folder.id, name: folder.name})}
+              >
+                <div className="w-10 h-10 rounded-lg bg-[#282828] flex items-center justify-center flex-shrink-0">
+                  <Folder size={20} className="text-[#1db954] fill-[#1db954]/20" />
+                </div>
+                <div className="flex-1 min-w-0 font-medium">{folder.name}</div>
+              </div>
+              {userType === "tutor" && (
+                <button
+                  onClick={() => handleDeleteFolder(folder.id)}
+                  className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  title="Удалить папку"
+                >
+                  <X size={16} />
+                </button>
+              )}
+              <ChevronRight size={18} className="text-gray-600" />
+            </div>
+          </div>
+        ))}
+
+        {filteredFiles.length === 0 && folders.length === 0 ? (
           <div className="text-center text-gray-400 py-8">
             Нет доступных файлов
           </div>
@@ -273,13 +404,22 @@ export function FileManager({ userType }: FileManagerProps) {
                       <Download size={16} />
                     </button>
                     {userType === "tutor" && (
-                      <button
-                        onClick={() => handleDelete(file.id)}
-                        className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors"
-                        title="Удалить"
-                      >
-                        <X size={16} />
-                      </button>
+                      <>
+                        <button
+                          onClick={() => setShowMoveModal({fileId: file.id, name: file.name})}
+                          className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
+                          title="Переместить"
+                        >
+                          <Move size={16} />
+                        </button>
+                        <button
+                          onClick={() => handleDelete(file.id)}
+                          className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors"
+                          title="Удалить"
+                        >
+                          <X size={16} />
+                        </button>
+                      </>
                     )}
                   </div>
                 </div>
@@ -296,6 +436,76 @@ export function FileManager({ userType }: FileManagerProps) {
           })
         )}
       </div>
+
+      {/* New Folder Modal */}
+      {showFolderModal && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="bg-[#181818] rounded-lg max-w-md w-full p-6">
+            <h3 className="text-xl mb-4">Создать папку</h3>
+            <input
+              type="text"
+              value={newFolderName}
+              onChange={(e) => setNewFolderName(e.target.value)}
+              placeholder="Имя папки"
+              className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] mb-6"
+              autoFocus
+            />
+            <div className="flex gap-3">
+              <button
+                onClick={() => setShowFolderModal(false)}
+                className="flex-1 bg-[#282828] rounded-lg py-3 hover:bg-[#333333]"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={handleCreateFolder}
+                className="flex-1 bg-[#1db954] rounded-lg py-3 hover:bg-[#1ed760]"
+              >
+                Создать
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Move File Modal */}
+      {showMoveModal && (
+        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+          <div className="bg-[#181818] rounded-lg max-w-md w-full p-6 flex flex-col max-h-[80vh]">
+            <h3 className="text-xl mb-2">Переместить файл</h3>
+            <p className="text-sm text-gray-400 mb-4 truncate">{showMoveModal.name}</p>
+            
+            <div className="flex-1 overflow-y-auto space-y-2 mb-6">
+              <button
+                onClick={() => handleMoveFile(null)}
+                className="w-full text-left bg-[#282828] p-3 rounded-lg hover:bg-[#333333] transition-colors flex items-center gap-3"
+              >
+                <Folder size={18} className="text-gray-400" />
+                <span>Корень (Материалы)</span>
+              </button>
+              {/* Note: This only shows top-level folders for simplicity in this mobile-first view, 
+                  but we could make it recursive if needed */}
+              {folders.map(f => (
+                <button
+                  key={f.id}
+                  onClick={() => handleMoveFile(f.id)}
+                  className="w-full text-left bg-[#282828] p-3 rounded-lg hover:bg-[#333333] transition-colors flex items-center gap-3"
+                >
+                  <Folder size={18} className="text-[#1db954]" />
+                  <span>{f.name}</span>
+                </button>
+              ))}
+            </div>
+
+            <button
+              onClick={() => setShowMoveModal(null)}
+              className="w-full bg-[#282828] rounded-lg py-3 hover:bg-[#333333]"
+            >
+              Отмена
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Upload Button (for tutors) */}
       {userType === "tutor" && (

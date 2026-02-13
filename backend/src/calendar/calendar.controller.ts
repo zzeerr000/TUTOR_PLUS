@@ -98,9 +98,9 @@ export class CalendarController {
     if (recurring === "true") {
       await this.calendarService.removeRecurring(+id);
       return { message: "Recurring events deleted successfully" };
-    } else {
-      await this.calendarService.remove(+id);
-      return { message: "Event deleted successfully" };
     }
+
+    await this.calendarService.remove(+id);
+    return { message: "Event deleted successfully" };
   }
 }

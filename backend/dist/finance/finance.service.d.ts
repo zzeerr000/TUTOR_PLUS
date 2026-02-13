@@ -11,6 +11,7 @@ export declare class FinanceService {
     findAll(userId: number, userRole: string): Promise<Transaction[]>;
     checkAndCreateTransactionsForPastEvents(): Promise<void>;
     confirmPayment(transactionId: number, tutorId: number): Promise<Transaction>;
+    cancelPayment(transactionId: number, tutorId: number): Promise<void>;
     getStats(userId: number, userRole: string): Promise<{
         thisMonth: number;
         lastMonth: number;

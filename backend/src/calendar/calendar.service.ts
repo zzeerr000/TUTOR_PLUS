@@ -1,25 +1,36 @@
-import { Injectable, BadRequestException, Inject, forwardRef } from '@nestjs/common';
-import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
-import { Event } from './entities/event.entity';
-import { ConnectionsService } from '../connections/connections.service';
-import { FinanceService } from '../finance/finance.service';
+import {
+  Injectable,
+  BadRequestException,
+  Inject,
+  forwardRef,
+} from "@nestjs/common";
+import { InjectRepository } from "@nestjs/typeorm";
+import { Repository } from "typeorm";
+import { Event } from "./entities/event.entity";
+import { ConnectionsService } from "../connections/connections.service";
+import { FinanceService } from "../finance/finance.service";
 
 @Injectable()
 export class CalendarService {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
+    @Inject(forwardRef(() => ConnectionsService))
     private connectionsService: ConnectionsService,
     @Inject(forwardRef(() => FinanceService))
     private financeService: FinanceService,
   ) {}
 
   async verifyConnection(tutorId: number, studentId: number): Promise<void> {
-    const connections = await this.connectionsService.getConnections(tutorId, 'tutor');
-    const isConnected = connections.some(c => c.studentId === studentId);
+    const connections = await this.connectionsService.getConnections(
+      tutorId,
+      "tutor",
+    );
+    const isConnected = connections.some((c) => c.studentId === studentId);
     if (!isConnected) {
-      throw new BadRequestException('Tutor and student must be connected to schedule lessons');
+      throw new BadRequestException(
+        "Tutor and student must be connected to schedule lessons",
+      );
     }
   }
 
@@ -27,68 +38,77 @@ export class CalendarService {
     const event = this.eventsRepository.create(createEventDto);
     const saved = await this.eventsRepository.save(event);
     const savedEvent = Array.isArray(saved) ? saved[0] : saved;
-    
+
     // Don't create transaction immediately - only after lesson ends
     // Transaction will be created when checking for past events
-    
+
     return savedEvent;
   }
 
-
   async findAll(userId: number, userRole: string) {
     // Get connected users
-    const connections = await this.connectionsService.getConnections(userId, userRole);
-    const connectedUserIds = connections.map(c => 
-      userRole === 'tutor' ? c.studentId : c.tutorId
+    const connections = await this.connectionsService.getConnections(
+      userId,
+      userRole,
+    );
+    const connectedUserIds = connections.map((c) =>
+      userRole === "tutor" ? c.studentId : c.tutorId,
     );
 
     if (connectedUserIds.length === 0) {
       return [];
     }
 
-    if (userRole === 'tutor') {
+    if (userRole === "tutor") {
       return this.eventsRepository
-        .createQueryBuilder('event')
-        .leftJoinAndSelect('event.student', 'student')
-        .where('event.tutorId = :tutorId', { tutorId: userId })
-        .andWhere('event.studentId IN (:...studentIds)', { studentIds: connectedUserIds })
-        .orderBy('event.date', 'ASC')
-        .addOrderBy('event.time', 'ASC')
+        .createQueryBuilder("event")
+        .leftJoinAndSelect("event.student", "student")
+        .where("event.tutorId = :tutorId", { tutorId: userId })
+        .andWhere("event.studentId IN (:...studentIds)", {
+          studentIds: connectedUserIds,
+        })
+        .orderBy("event.date", "ASC")
+        .addOrderBy("event.time", "ASC")
         .getMany();
     } else {
       return this.eventsRepository
-        .createQueryBuilder('event')
-        .leftJoinAndSelect('event.tutor', 'tutor')
-        .where('event.studentId = :studentId', { studentId: userId })
-        .andWhere('event.tutorId IN (:...tutorIds)', { tutorIds: connectedUserIds })
-        .orderBy('event.date', 'ASC')
-        .addOrderBy('event.time', 'ASC')
+        .createQueryBuilder("event")
+        .leftJoinAndSelect("event.tutor", "tutor")
+        .where("event.studentId = :studentId", { studentId: userId })
+        .andWhere("event.tutorId IN (:...tutorIds)", {
+          tutorIds: connectedUserIds,
+        })
+        .orderBy("event.date", "ASC")
+        .addOrderBy("event.time", "ASC")
         .getMany();
     }
   }
 
   async findOne(id: number): Promise<Event | null> {
-    return this.eventsRepository.findOne({ 
+    return this.eventsRepository.findOne({
       where: { id },
-      relations: ['student', 'tutor'],
+      relations: ["student", "tutor"],
     });
   }
 
-  async updatePaymentStatus(transactionId: number, status: boolean): Promise<void> {
+  async updatePaymentStatus(
+    transactionId: number,
+    status: boolean,
+  ): Promise<void> {
     await this.eventsRepository.update(
       { transactionId },
-      { paymentPending: status }
+      { paymentPending: status },
     );
   }
 
   async update(id: number, updateEventDto: any): Promise<Event> {
     await this.eventsRepository.update(id, updateEventDto);
-    const updated = await this.eventsRepository.findOne({ 
+    const updated = await this.eventsRepository.findOne({
       where: { id },
-      relations: ['student', 'tutor'],
+      relations: ["student", "tutor"],
     });
     if (!updated) {
-      throw new Error('Event not found');
+      throw new Error("Event not found");
     }
     return updated;
   }
@@ -106,7 +126,7 @@ export class CalendarService {
     if (!event) return;
 
     const { studentId, time, date, tutorId } = event;
-    
+
     // Get day of week for the source event
     const sourceDate = new Date(date);
     const dayOfWeek = sourceDate.getDay();
@@ -122,11 +142,11 @@ export class CalendarService {
       where: {
         studentId,
         time,
-        tutorId
-      }
+        tutorId,
+      },
     });
 
-    const eventsToDelete = allEvents.filter(e => {
+    const eventsToDelete = allEvents.filter((e) => {
       const eDate = new Date(e.date);
       return eDate.getDay() === dayOfWeek && e.date >= date;
     });
@@ -142,4 +162,3 @@ export class CalendarService {
     }
   }
 }
-

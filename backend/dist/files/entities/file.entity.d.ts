@@ -1,4 +1,6 @@
-import { User } from '../../users/entities/user.entity';
+import { User } from "../../users/entities/user.entity";
+import { FolderEntity } from "./folder.entity";
+import { Homework } from "../../homework/entities/homework.entity";
 export declare class FileEntity {
     id: number;
     name: string;
@@ -11,5 +13,9 @@ export declare class FileEntity {
     uploadedBy: User;
     assignedToId: number;
     assignedTo: User;
+    folderId: number;
+    folder: FolderEntity;
+    homeworkId: number;
+    homework: Homework;
     createdAt: Date;
 }

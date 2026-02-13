@@ -26,10 +26,10 @@ let CalendarService = class CalendarService {
         this.financeService = financeService;
     }
     async verifyConnection(tutorId, studentId) {
-        const connections = await this.connectionsService.getConnections(tutorId, 'tutor');
-        const isConnected = connections.some(c => c.studentId === studentId);
+        const connections = await this.connectionsService.getConnections(tutorId, "tutor");
+        const isConnected = connections.some((c) => c.studentId === studentId);
         if (!isConnected) {
-            throw new common_1.BadRequestException('Tutor and student must be connected to schedule lessons');
+            throw new common_1.BadRequestException("Tutor and student must be connected to schedule lessons");
         }
     }
     async create(createEventDto) {
@@ -40,35 +40,39 @@ let CalendarService = class CalendarService {
     }
     async findAll(userId, userRole) {
         const connections = await this.connectionsService.getConnections(userId, userRole);
-        const connectedUserIds = connections.map(c => userRole === 'tutor' ? c.studentId : c.tutorId);
+        const connectedUserIds = connections.map((c) => userRole === "tutor" ? c.studentId : c.tutorId);
         if (connectedUserIds.length === 0) {
             return [];
         }
-        if (userRole === 'tutor') {
+        if (userRole === "tutor") {
             return this.eventsRepository
-                .createQueryBuilder('event')
-                .leftJoinAndSelect('event.student', 'student')
-                .where('event.tutorId = :tutorId', { tutorId: userId })
-                .andWhere('event.studentId IN (:...studentIds)', { studentIds: connectedUserIds })
-                .orderBy('event.date', 'ASC')
-                .addOrderBy('event.time', 'ASC')
+                .createQueryBuilder("event")
+                .leftJoinAndSelect("event.student", "student")
+                .where("event.tutorId = :tutorId", { tutorId: userId })
+                .andWhere("event.studentId IN (:...studentIds)", {
+                studentIds: connectedUserIds,
+            })
+                .orderBy("event.date", "ASC")
+                .addOrderBy("event.time", "ASC")
                 .getMany();
         }
         else {
             return this.eventsRepository
-                .createQueryBuilder('event')
-                .leftJoinAndSelect('event.tutor', 'tutor')
-                .where('event.studentId = :studentId', { studentId: userId })
-                .andWhere('event.tutorId IN (:...tutorIds)', { tutorIds: connectedUserIds })
-                .orderBy('event.date', 'ASC')
-                .addOrderBy('event.time', 'ASC')
+                .createQueryBuilder("event")
+                .leftJoinAndSelect("event.tutor", "tutor")
+                .where("event.studentId = :studentId", { studentId: userId })
+                .andWhere("event.tutorId IN (:...tutorIds)", {
+                tutorIds: connectedUserIds,
+            })
+                .orderBy("event.date", "ASC")
+                .addOrderBy("event.time", "ASC")
                 .getMany();
         }
     }
     async findOne(id) {
         return this.eventsRepository.findOne({
             where: { id },
-            relations: ['student', 'tutor'],
+            relations: ["student", "tutor"],
         });
     }
     async updatePaymentStatus(transactionId, status) {
@@ -78,10 +82,10 @@ let CalendarService = class CalendarService {
         await this.eventsRepository.update(id, updateEventDto);
         const updated = await this.eventsRepository.findOne({
             where: { id },
-            relations: ['student', 'tutor'],
+            relations: ["student", "tutor"],
         });
         if (!updated) {
-            throw new Error('Event not found');
+            throw new Error("Event not found");
         }
         return updated;
     }
@@ -103,10 +107,10 @@ let CalendarService = class CalendarService {
             where: {
                 studentId,
                 time,
-                tutorId
-            }
+                tutorId,
+            },
         });
-        const eventsToDelete = allEvents.filter(e => {
+        const eventsToDelete = allEvents.filter((e) => {
             const eDate = new Date(e.date);
             return eDate.getDay() === dayOfWeek && e.date >= date;
         });
@@ -124,6 +128,7 @@ exports.CalendarService = CalendarService;
 exports.CalendarService = CalendarService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(event_entity_1.Event)),
+    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
     __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => finance_service_1.FinanceService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         connections_service_1.ConnectionsService,

@@ -14,4 +14,5 @@ export declare class Event {
     transactionId: number;
     amount: number;
     duration: number;
+    notes: string;
 }
