@@ -210,9 +210,7 @@ export function Finance({ userType }: FinanceProps) {
       ]);
 
       setRecentTransactions(
-        formattedTransactions
-          .filter((t: any) => t.status !== "canceled")
-          .slice(0, 5),
+        formattedTransactions.filter((t: any) => t.status === "pending"),
       );
 
       setUpcomingPayments(
@@ -345,11 +343,11 @@ export function Finance({ userType }: FinanceProps) {
 
       {/* Recent Transactions */}
       <div>
-        <h3 className="text-lg mb-3 text-foreground">Последние транзакции</h3>
+        <h3 className="text-lg mb-3 text-foreground">Ожидание оплаты</h3>
         <div className="space-y-2">
           {recentTransactions.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              Транзакций пока нет
+              Нет неоплаченных занятий
             </div>
           ) : (
             recentTransactions.map((transaction) => (

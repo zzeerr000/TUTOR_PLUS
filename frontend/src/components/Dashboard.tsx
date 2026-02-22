@@ -30,7 +30,6 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   });
   const [todaySchedule, setTodaySchedule] = useState<any[]>([]);
   const [upcomingLessons, setUpcomingLessons] = useState<any[]>([]);
-  const [recentProgress, setRecentProgress] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState(api.getCurrencySymbol());
 
@@ -64,20 +63,18 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   const loadData = async () => {
     try {
       setLoading(true);
-      const [homework, events, students, financeStats, progress] =
-        await Promise.all([
-          api.getHomework().catch(() => []),
-          api.getEvents().catch(() => []),
-          userType === "tutor"
-            ? api.getStudents().catch(() => [])
-            : Promise.resolve([]),
-          userType === "tutor"
-            ? api
-                .getFinanceStats()
-                .catch(() => ({ thisMonth: 0, pendingCount: 0 }))
-            : Promise.resolve({}),
-          api.getProgress().catch(() => []),
-        ]);
+      const [homework, events, students, financeStats] = await Promise.all([
+        api.getHomework().catch(() => []),
+        api.getEvents().catch(() => []),
+        userType === "tutor"
+          ? api.getStudents().catch(() => [])
+          : Promise.resolve([]),
+        userType === "tutor"
+          ? api
+              .getFinanceStats()
+              .catch(() => ({ thisMonth: 0, pendingCount: 0 }))
+          : Promise.resolve({}),
+      ]);
 
       const today = new Date().toISOString().split("T")[0];
       const todayEvents = events.filter((e: any) => e.date === today);
@@ -163,26 +160,17 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           studyTime: progressStats.totalHours || 0,
         });
         setUpcomingLessons(
-          futureEvents.slice(0, 3).map((e: any) => ({
-            id: e.id,
-            day: new Date(e.date).toLocaleDateString("ru-RU", {
-              weekday: "short",
-              day: "numeric",
-              month: "short",
-            }),
-            time: e.time,
-            subject: e.subject || "Занятие",
-            tutor: e.tutor?.name || "Репетитор",
-            color: e.color || "#1db954",
-            past: false,
-          })),
-        );
-        setRecentProgress(
-          progress.slice(0, 3).map((p: any) => ({
-            subject: p.subject,
-            progress: Math.round(Number(p.progress)),
-            color: "#1db954",
-          })),
+          todayEvents
+            .sort((a: any, b: any) => a.time.localeCompare(b.time))
+            .map((e: any) => ({
+              id: e.id,
+              day: "Сегодня",
+              time: e.time,
+              subject: e.subject || "Занятие",
+              tutor: e.tutor?.name || "Репетитор",
+              color: e.color || "#1db954",
+              past: isEventPast(e.date, e.time),
+            })),
         );
       }
     } catch (error) {
@@ -365,11 +353,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
 
       {/* Upcoming Lessons */}
       <div>
-        <h2 className="text-xl mb-3 font-semibold">Ближайшие занятия</h2>
+        <h2 className="text-xl mb-3 font-semibold">Занятия сегодня</h2>
         <div className="space-y-2">
           {upcomingLessons.length === 0 ? (
             <div className="text-center text-muted-foreground py-8">
-              Нет ближайших занятий
+              На сегодня занятий нет
             </div>
           ) : (
             upcomingLessons.map((lesson, idx) => (
@@ -408,41 +396,6 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                   <div className="text-sm text-muted-foreground">
                     {lesson.tutor}
                   </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Recent Progress */}
-      <div>
-        <h2 className="text-xl mb-3 font-semibold">Последний прогресс</h2>
-        <div className="space-y-3">
-          {recentProgress.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
-              Нет данных о прогрессе
-            </div>
-          ) : (
-            recentProgress.map((item, idx) => (
-              <div
-                key={idx}
-                className="bg-card border border-border rounded-lg p-4"
-              >
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{item.subject}</span>
-                  <span className="text-sm text-muted-foreground">
-                    {item.progress}%
-                  </span>
-                </div>
-                <div className="w-full bg-muted rounded-full h-2">
-                  <div
-                    className="h-2 rounded-full transition-all"
-                    style={{
-                      width: `${item.progress}%`,
-                      backgroundColor: item.color,
-                    }}
-                  />
                 </div>
               </div>
             ))

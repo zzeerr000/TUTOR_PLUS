@@ -68,6 +68,36 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
         <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1"></label>
+              <div className="grid grid-cols-2 gap-4">
+                <button
+                  type="button"
+                  onClick={() => setRole("tutor")}
+                  className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
+                    role === "tutor"
+                      ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
+                      : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <GraduationCap size={24} />
+                  Репетитор
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setRole("student")}
+                  className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
+                    role === "student"
+                      ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
+                      : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
+                  }`}
+                >
+                  <BookOpen size={24} />
+                  Ученик
+                </button>
+              </div>
+            </div>
+
             {!isLogin && (
               <div>
                 <label className="block text-sm font-medium text-muted-foreground mb-1">
@@ -129,40 +159,6 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 />
               </div>
             </div>
-
-            {!isLogin && (
-              <div>
-                <label className="block text-sm font-medium text-muted-foreground mb-1">
-                  Я...
-                </label>
-                <div className="grid grid-cols-2 gap-4">
-                  <button
-                    type="button"
-                    onClick={() => setRole("tutor")}
-                    className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
-                      role === "tutor"
-                        ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
-                        : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    <GraduationCap size={24} />
-                    Репетитор
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setRole("student")}
-                    className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
-                      role === "student"
-                        ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
-                        : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
-                    }`}
-                  >
-                    <BookOpen size={24} />
-                    Ученик
-                  </button>
-                </div>
-              </div>
-            )}
 
             {error && (
               <div className="bg-destructive/10 border border-destructive rounded-lg p-3 text-destructive text-sm font-medium">
