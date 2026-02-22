@@ -51,7 +51,7 @@ export function Tasks({ userType }: TasksProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка задач...</div>
+        <div className="text-muted-foreground">Загрузка задач...</div>
       </div>
     );
   }
@@ -85,7 +85,7 @@ export function Tasks({ userType }: TasksProps) {
             className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
               filter === f
                 ? 'bg-[#1db954] text-white'
-                : 'bg-[#181818] text-gray-400 hover:text-white'
+                : 'bg-card text-muted-foreground hover:text-foreground border border-border'
             }`}
           >
             {getFilterLabel(f)}
@@ -96,30 +96,30 @@ export function Tasks({ userType }: TasksProps) {
       {/* Task List */}
       <div className="space-y-2">
         {filteredTasks.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-muted-foreground py-8">
             Задач не найдено
           </div>
         ) : (
           filteredTasks.map((task) => (
             <div
               key={task.id}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors"
+              className="bg-card rounded-lg p-4 hover:bg-muted/50 transition-colors border border-border"
             >
               <div className="flex items-start gap-3">
                 <button
                   className={`mt-1 flex-shrink-0 w-6 h-6 rounded-full border-2 flex items-center justify-center ${
                     task.completed
                       ? 'bg-[#1db954] border-[#1db954]'
-                      : 'border-gray-600 hover:border-gray-400'
+                      : 'border-muted-foreground hover:border-foreground'
                   }`}
                 >
-                  {task.completed && <Check size={16} />}
+                  {task.completed && <Check size={16} className="text-white" />}
                 </button>
                 <div className="flex-1 min-w-0">
-                  <div className={`mb-1 ${task.completed ? 'line-through text-gray-500' : ''}`}>
+                  <div className={`mb-1 text-foreground ${task.completed ? 'line-through text-muted-foreground' : ''}`}>
                     {task.title}
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     {task.dueDate && (
                       <>
                         <Clock size={14} />

@@ -239,24 +239,24 @@ export function FileManager({ userType }: FileManagerProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка файлов...</div>
+        <div className="text-muted-foreground">Загрузка файлов...</div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <div className="space-y-4 pb-20">
       {/* Breadcrumbs */}
       <div className="flex items-center gap-2 overflow-x-auto text-sm no-scrollbar py-1">
         {breadcrumbs.map((crumb, index) => (
           <React.Fragment key={index}>
-            {index > 0 && <ChevronRight size={14} className="text-gray-600 flex-shrink-0" />}
+            {index > 0 && <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />}
             <button
               onClick={() => handleNavigate(crumb)}
               className={`whitespace-nowrap transition-colors ${
                 index === breadcrumbs.length - 1
-                  ? "text-white font-medium"
-                  : "text-gray-400 hover:text-white"
+                  ? "text-foreground font-medium"
+                  : "text-muted-foreground hover:text-foreground"
               }`}
             >
               {crumb.name}
@@ -270,7 +270,7 @@ export function FileManager({ userType }: FileManagerProps) {
         <div className="flex gap-2">
           <button
             onClick={() => setShowFolderModal(true)}
-            className="flex-1 bg-[#181818] rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-[#282828] transition-colors text-sm"
+            className="flex-1 bg-card border border-border rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-muted/50 transition-colors text-sm text-foreground"
           >
             <Plus size={18} className="text-[#1db954]" />
             Новая папка
@@ -292,7 +292,7 @@ export function FileManager({ userType }: FileManagerProps) {
             className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
               filter === f.id
                 ? "bg-[#1db954] text-white"
-                : "bg-[#181818] text-gray-400 hover:text-white"
+                : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
             }`}
           >
             {f.label}
@@ -301,7 +301,7 @@ export function FileManager({ userType }: FileManagerProps) {
       </div>
 
       {/* Storage Info */}
-      <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
+      <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 text-white">
         <div className="flex items-center justify-between mb-2">
           <span>Использовано памяти</span>
           <span>
@@ -327,34 +327,34 @@ export function FileManager({ userType }: FileManagerProps) {
         {filter === "all" && folders.map((folder) => (
           <div
             key={folder.id}
-            className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors group"
+            className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors group"
           >
             <div className="flex items-center gap-3">
               <div 
                 className="flex-1 flex items-center gap-3 cursor-pointer"
                 onClick={() => handleNavigate({id: folder.id, name: folder.name})}
               >
-                <div className="w-10 h-10 rounded-lg bg-[#282828] flex items-center justify-center flex-shrink-0">
+                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                   <Folder size={20} className="text-[#1db954] fill-[#1db954]/20" />
                 </div>
-                <div className="flex-1 min-w-0 font-medium">{folder.name}</div>
+                <div className="flex-1 min-w-0 font-medium text-foreground">{folder.name}</div>
               </div>
               {userType === "tutor" && (
                 <button
                   onClick={() => handleDeleteFolder(folder.id)}
-                  className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors opacity-0 group-hover:opacity-100"
+                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors opacity-0 group-hover:opacity-100"
                   title="Удалить папку"
                 >
                   <X size={16} />
                 </button>
               )}
-              <ChevronRight size={18} className="text-gray-600" />
+              <ChevronRight size={18} className="text-muted-foreground" />
             </div>
           </div>
         ))}
 
         {filteredFiles.length === 0 && folders.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-muted-foreground py-8">
             Нет доступных файлов
           </div>
         ) : (
@@ -363,15 +363,15 @@ export function FileManager({ userType }: FileManagerProps) {
             return (
               <div
                 key={file.id}
-                className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors"
+                className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-[#282828] flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
                     <Icon size={20} className="text-[#1db954]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="mb-1 truncate">{file.name}</div>
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="mb-1 truncate text-foreground">{file.name}</div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{file.size}</span>
                       <span>•</span>
                       <span>{file.date}</span>
@@ -398,7 +398,7 @@ export function FileManager({ userType }: FileManagerProps) {
                   <div className="flex gap-2 flex-shrink-0">
                     <button
                       onClick={() => handleDownload(file)}
-                      className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
+                      className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground"
                       title="Скачать"
                     >
                       <Download size={16} />
@@ -407,14 +407,14 @@ export function FileManager({ userType }: FileManagerProps) {
                       <>
                         <button
                           onClick={() => setShowMoveModal({fileId: file.id, name: file.name})}
-                          className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
+                          className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground"
                           title="Переместить"
                         >
                           <Move size={16} />
                         </button>
                         <button
                           onClick={() => handleDelete(file.id)}
-                          className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-red-500/20 text-red-500 transition-colors"
+                          className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors"
                           title="Удалить"
                         >
                           <X size={16} />
@@ -424,7 +424,7 @@ export function FileManager({ userType }: FileManagerProps) {
                   </div>
                 </div>
                 {file.assignedTo && (
-                  <div className="mt-2 text-xs text-gray-500 flex items-center gap-1">
+                  <div className="mt-2 text-xs text-muted-foreground flex items-center gap-1">
                     <span>Назначено:</span>
                     <span className="text-[#1db954]">
                       {file.assignedTo.name}
@@ -440,26 +440,26 @@ export function FileManager({ userType }: FileManagerProps) {
       {/* New Folder Modal */}
       {showFolderModal && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-[#181818] rounded-lg max-w-md w-full p-6">
-            <h3 className="text-xl mb-4">Создать папку</h3>
+          <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 shadow-lg">
+            <h3 className="text-xl mb-4 text-foreground">Создать папку</h3>
             <input
               type="text"
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Имя папки"
-              className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] mb-6"
+              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954] mb-6 placeholder:text-muted-foreground"
               autoFocus
             />
             <div className="flex gap-3">
               <button
                 onClick={() => setShowFolderModal(false)}
-                className="flex-1 bg-[#282828] rounded-lg py-3 hover:bg-[#333333]"
+                className="flex-1 bg-muted rounded-lg py-3 text-foreground hover:bg-accent transition-colors"
               >
                 Отмена
               </button>
               <button
                 onClick={handleCreateFolder}
-                className="flex-1 bg-[#1db954] rounded-lg py-3 hover:bg-[#1ed760]"
+                className="flex-1 bg-[#1db954] text-white rounded-lg py-3 hover:bg-[#1ed760] transition-colors"
               >
                 Создать
               </button>
@@ -471,16 +471,16 @@ export function FileManager({ userType }: FileManagerProps) {
       {/* Move File Modal */}
       {showMoveModal && (
         <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
-          <div className="bg-[#181818] rounded-lg max-w-md w-full p-6 flex flex-col max-h-[80vh]">
-            <h3 className="text-xl mb-2">Переместить файл</h3>
-            <p className="text-sm text-gray-400 mb-4 truncate">{showMoveModal.name}</p>
+          <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 flex flex-col max-h-[80vh] shadow-lg">
+            <h3 className="text-xl mb-2 text-foreground">Переместить файл</h3>
+            <p className="text-sm text-muted-foreground mb-4 truncate">{showMoveModal.name}</p>
             
             <div className="flex-1 overflow-y-auto space-y-2 mb-6">
               <button
                 onClick={() => handleMoveFile(null)}
-                className="w-full text-left bg-[#282828] p-3 rounded-lg hover:bg-[#333333] transition-colors flex items-center gap-3"
+                className="w-full text-left bg-muted p-3 rounded-lg hover:bg-accent transition-colors flex items-center gap-3 text-foreground"
               >
-                <Folder size={18} className="text-gray-400" />
+                <Folder size={18} className="text-muted-foreground" />
                 <span>Корень (Материалы)</span>
               </button>
               {/* Note: This only shows top-level folders for simplicity in this mobile-first view, 
@@ -489,7 +489,7 @@ export function FileManager({ userType }: FileManagerProps) {
                 <button
                   key={f.id}
                   onClick={() => handleMoveFile(f.id)}
-                  className="w-full text-left bg-[#282828] p-3 rounded-lg hover:bg-[#333333] transition-colors flex items-center gap-3"
+                  className="w-full text-left bg-muted p-3 rounded-lg hover:bg-accent transition-colors flex items-center gap-3 text-foreground"
                 >
                   <Folder size={18} className="text-[#1db954]" />
                   <span>{f.name}</span>
@@ -499,7 +499,7 @@ export function FileManager({ userType }: FileManagerProps) {
 
             <button
               onClick={() => setShowMoveModal(null)}
-              className="w-full bg-[#282828] rounded-lg py-3 hover:bg-[#333333]"
+              className="w-full bg-muted rounded-lg py-3 text-foreground hover:bg-accent transition-colors"
             >
               Отмена
             </button>
@@ -520,7 +520,7 @@ export function FileManager({ userType }: FileManagerProps) {
                 assignedToId: "",
               });
             }}
-            className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors"
+            className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] text-white rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors"
           >
             <Upload size={24} />
           </button>
@@ -528,12 +528,12 @@ export function FileManager({ userType }: FileManagerProps) {
           {/* Upload Modal */}
           {showUploadModal && (
             <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
-              <div className="bg-[#181818] rounded-lg max-w-md w-full p-6">
+              <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl">Загрузить материал</h3>
+                  <h3 className="text-xl text-foreground">Загрузить материал</h3>
                   <button
                     onClick={() => setShowUploadModal(false)}
-                    className="w-8 h-8 rounded-full bg-[#282828] flex items-center justify-center hover:bg-[#333333]"
+                    className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground transition-colors"
                   >
                     <X size={20} />
                   </button>
@@ -548,7 +548,7 @@ export function FileManager({ userType }: FileManagerProps) {
                     className={`border-2 border-dashed rounded-lg p-8 text-center transition-colors cursor-pointer ${
                       selectedFile
                         ? "border-[#1db954] bg-[#1db954]/5"
-                        : "border-gray-700 hover:border-[#1db954]"
+                        : "border-border hover:border-[#1db954]"
                     }`}
                   >
                     <input
@@ -560,7 +560,7 @@ export function FileManager({ userType }: FileManagerProps) {
                     <File
                       size={48}
                       className={`mx-auto mb-4 ${
-                        selectedFile ? "text-[#1db954]" : "text-gray-400"
+                        selectedFile ? "text-[#1db954]" : "text-muted-foreground"
                       }`}
                     />
                     {selectedFile ? (
@@ -568,16 +568,16 @@ export function FileManager({ userType }: FileManagerProps) {
                         <p className="text-[#1db954] font-medium mb-1">
                           {selectedFile.name}
                         </p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           {(selectedFile.size / 1024 / 1024).toFixed(2)} МБ
                         </p>
                       </div>
                     ) : (
                       <>
-                        <p className="mb-2">
+                        <p className="mb-2 text-foreground">
                           Нажмите для загрузки или перетащите файл
                         </p>
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           PDF, DOC, MP4, PNG, JPG (макс. 100МБ)
                         </p>
                       </>
@@ -586,7 +586,7 @@ export function FileManager({ userType }: FileManagerProps) {
 
                   {/* Form Fields */}
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">
+                    <label className="block text-sm text-muted-foreground mb-2">
                       Отображаемое имя файла
                     </label>
                     <input
@@ -596,12 +596,12 @@ export function FileManager({ userType }: FileManagerProps) {
                         setUploadData({ ...uploadData, name: e.target.value })
                       }
                       placeholder="Введите имя файла"
-                      className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">
+                    <label className="block text-sm text-muted-foreground mb-2">
                       Предмет
                     </label>
                     <select
@@ -612,7 +612,7 @@ export function FileManager({ userType }: FileManagerProps) {
                           subject: e.target.value,
                         })
                       }
-                      className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     >
                       <option>Математика</option>
                       <option>Физика</option>
@@ -622,7 +622,7 @@ export function FileManager({ userType }: FileManagerProps) {
                   </div>
 
                   <div>
-                    <label className="block text-sm text-gray-400 mb-2">
+                    <label className="block text-sm text-muted-foreground mb-2">
                       Назначить ученикам
                     </label>
                     <select
@@ -633,7 +633,7 @@ export function FileManager({ userType }: FileManagerProps) {
                           assignedToId: e.target.value,
                         })
                       }
-                      className="w-full bg-[#282828] rounded-lg px-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     >
                       <option value="">Всем ученикам</option>
                       {students.map((student) => (
@@ -649,14 +649,14 @@ export function FileManager({ userType }: FileManagerProps) {
                     <button
                       onClick={() => setShowUploadModal(false)}
                       disabled={uploading}
-                      className="flex-1 bg-[#282828] rounded-lg py-3 hover:bg-[#333333] transition-colors disabled:opacity-50"
+                      className="flex-1 bg-muted rounded-lg py-3 text-foreground hover:bg-accent transition-colors disabled:opacity-50"
                     >
                       Отмена
                     </button>
                     <button
                       onClick={handleUpload}
                       disabled={!selectedFile || uploading}
-                      className="flex-1 bg-[#1db954] rounded-lg py-3 hover:bg-[#1ed760] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+                      className="flex-1 bg-[#1db954] text-white rounded-lg py-3 hover:bg-[#1ed760] transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
                     >
                       {uploading ? (
                         <>

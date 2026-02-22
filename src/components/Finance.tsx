@@ -209,7 +209,11 @@ export function Finance({ userType }: FinanceProps) {
         },
       ]);
 
-      setRecentTransactions(formattedTransactions.slice(0, 5));
+      setRecentTransactions(
+        formattedTransactions
+          .filter((t: any) => t.status !== "canceled")
+          .slice(0, 5),
+      );
 
       setUpcomingPayments(
         transactions
@@ -235,7 +239,9 @@ export function Finance({ userType }: FinanceProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка финансовых данных...</div>
+        <div className="text-muted-foreground">
+          Загрузка финансовых данных...
+        </div>
       </div>
     );
   }
@@ -243,23 +249,23 @@ export function Finance({ userType }: FinanceProps) {
   return (
     <div className="space-y-6 pb-6">
       {/* Circle Stats Block */}
-      <div className="bg-[#181818] rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg border border-[#282828]">
+      <div className="bg-card rounded-2xl p-8 flex flex-col items-center justify-center shadow-lg border border-border">
         {/* Month Navigation Header */}
-        <div className="flex items-center gap-6 mb-8 bg-[#232323] px-6 py-3 rounded-full border border-[#282828] shadow-inner">
+        <div className="flex items-center gap-6 mb-8 bg-muted px-6 py-3 rounded-full border border-border shadow-inner">
           <button
             onClick={handlePrevMonth}
-            className="p-2 hover:bg-[#282828] rounded-full text-gray-400 hover:text-[#1db954] transition-all hover:scale-110 active:scale-95 shadow-sm"
+            className="p-2 hover:bg-background rounded-full text-muted-foreground hover:text-[#1db954] transition-all hover:scale-110 active:scale-95 shadow-sm"
           >
             <ChevronLeft size={24} />
           </button>
 
           <div className="flex flex-col items-center min-w-[140px]">
-            <span className="text-gray-400 text-[10px] uppercase tracking-[0.2em] font-bold mb-0.5">
+            <span className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold mb-0.5">
               Период
             </span>
-            <div className="text-white text-lg font-bold uppercase tracking-wider flex items-center gap-2">
+            <div className="text-foreground text-lg font-bold uppercase tracking-wider flex items-center gap-2">
               {currentMonthName}
-              <span className="text-gray-500 font-medium">
+              <span className="text-muted-foreground font-medium">
                 {selectedDate.getFullYear()}
               </span>
             </div>
@@ -270,8 +276,8 @@ export function Finance({ userType }: FinanceProps) {
             disabled={isCurrentMonth}
             className={`p-2 rounded-full transition-all shadow-sm ${
               isCurrentMonth
-                ? "text-gray-700 opacity-30"
-                : "text-gray-400 hover:bg-[#282828] hover:text-[#1db954] hover:scale-110 active:scale-95"
+                ? "text-muted-foreground/30"
+                : "text-muted-foreground hover:bg-background hover:text-[#1db954] hover:scale-110 active:scale-95"
             }`}
           >
             <ChevronRight size={24} />
@@ -289,7 +295,7 @@ export function Finance({ userType }: FinanceProps) {
               outerRadius={90}
               stroke="none"
               dataKey="value"
-              fill="#232323"
+              className="fill-muted"
               isAnimationActive={false}
             />
             {/* Data Pie */}
@@ -323,10 +329,10 @@ export function Finance({ userType }: FinanceProps) {
 
           {/* Center Text: Total Income */}
           <div className="absolute inset-0 flex flex-col items-center justify-center z-20">
-            <div className="text-gray-500 text-[10px] uppercase tracking-widest font-bold mb-1">
+            <div className="text-muted-foreground text-[10px] uppercase tracking-widest font-bold mb-1">
               Доход
             </div>
-            <div className="text-3xl font-black text-white flex items-baseline gap-0.5">
+            <div className="text-3xl font-black text-foreground flex items-baseline gap-0.5">
               <span className="text-lg font-bold text-[#1db954]">
                 {currency}
               </span>
@@ -337,99 +343,26 @@ export function Finance({ userType }: FinanceProps) {
         </div>
       </div>
 
-      {/* Monthly Transactions History */}
-      <div>
-        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
-          История за месяц
-          <span className="text-xs font-normal text-gray-500 bg-[#282828] px-2 py-0.5 rounded-full capitalize">
-            {currentMonthName}
-          </span>
-        </h3>
-        <div className="space-y-2">
-          {monthlyTransactions.length === 0 ? (
-            <div className="text-center text-gray-400 py-8 bg-[#181818] rounded-xl border border-dashed border-[#282828]">
-              В этом месяце еще не было транзакций
-            </div>
-          ) : (
-            monthlyTransactions.map((transaction) => (
-              <div
-                key={transaction.id}
-                className="bg-[#181818] rounded-xl p-4 hover:bg-[#282828] transition-all border border-[#232323]"
-              >
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-4">
-                    <div
-                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
-                        transaction.status === "completed"
-                          ? "bg-[#1db954]/10 text-[#1db954]"
-                          : transaction.status === "canceled"
-                            ? "bg-red-500/10 text-red-500"
-                            : "bg-yellow-500/10 text-yellow-500"
-                      }`}
-                    >
-                      {transaction.status === "completed" ? (
-                        <Check size={20} />
-                      ) : transaction.status === "canceled" ? (
-                        <X size={20} />
-                      ) : (
-                        <Calendar size={20} />
-                      )}
-                    </div>
-                    <div>
-                      <div className="font-medium text-white">
-                        {transaction.student}
-                      </div>
-                      <div className="text-xs text-gray-400">
-                        {transaction.date} • {transaction.subject}
-                      </div>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <div
-                      className={`font-semibold ${
-                        transaction.status === "completed"
-                          ? "text-[#1db954]"
-                          : transaction.status === "canceled"
-                            ? "text-red-500"
-                            : "text-yellow-500"
-                      }`}
-                    >
-                      {currency}
-                      {transaction.amount}
-                    </div>
-                    <div className="text-[10px] uppercase tracking-wider text-gray-500 mt-0.5">
-                      {transaction.status === "completed"
-                        ? "Зачислено"
-                        : transaction.status === "canceled"
-                          ? "Отменено"
-                          : "Ожидается"}
-                    </div>
-                  </div>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
       {/* Recent Transactions */}
       <div>
-        <h3 className="text-lg mb-3">Последние транзакции</h3>
+        <h3 className="text-lg mb-3 text-foreground">Последние транзакции</h3>
         <div className="space-y-2">
           {recentTransactions.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Транзакций пока нет
             </div>
           ) : (
             recentTransactions.map((transaction) => (
               <div
                 key={transaction.id}
-                className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors"
+                className="bg-card rounded-lg p-4 hover:bg-muted transition-colors border border-border"
               >
                 <div className="flex items-center justify-between">
                   <div className="flex-1">
-                    <div className="mb-1">{transaction.student}</div>
-                    <div className="flex items-center gap-2 text-sm text-gray-400">
+                    <div className="mb-1 text-foreground">
+                      {transaction.student}
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <Calendar size={14} />
                       <span>{transaction.date}</span>
                       <span>•</span>
@@ -441,7 +374,7 @@ export function Finance({ userType }: FinanceProps) {
                       <div
                         className={`mb-1 ${
                           transaction.status === "canceled"
-                            ? "text-red-500"
+                            ? "text-destructive"
                             : "text-[#1db954]"
                         }`}
                       >
@@ -453,7 +386,7 @@ export function Finance({ userType }: FinanceProps) {
                           transaction.status === "completed"
                             ? "bg-[#1db954]/20 text-[#1db954]"
                             : transaction.status === "canceled"
-                              ? "bg-red-500/20 text-red-500"
+                              ? "bg-destructive/20 text-destructive"
                               : "bg-yellow-500/20 text-yellow-500"
                         }`}
                       >
@@ -469,7 +402,7 @@ export function Finance({ userType }: FinanceProps) {
                         <div className="flex gap-2">
                           <button
                             onClick={() => handleCancelPayment(transaction.id)}
-                            className="p-2 bg-red-500/10 text-red-500 rounded-lg hover:bg-red-500 hover:text-white transition-all"
+                            className="p-2 bg-destructive/10 text-destructive rounded-lg hover:bg-destructive hover:text-destructive-foreground transition-all"
                             title="Отменить занятие"
                           >
                             <X size={18} />
@@ -491,30 +424,73 @@ export function Finance({ userType }: FinanceProps) {
         </div>
       </div>
 
-      {/* Upcoming Payments */}
+      {/* Monthly Transactions History */}
       <div>
-        <h3 className="text-lg mb-3">Предстоящие платежи</h3>
+        <h3 className="text-lg font-semibold mb-4 flex items-center gap-2 text-foreground">
+          История за месяц
+          <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full capitalize">
+            {currentMonthName}
+          </span>
+        </h3>
         <div className="space-y-2">
-          {upcomingPayments.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
-              Нет предстоящих платежей
+          {monthlyTransactions.length === 0 ? (
+            <div className="text-center text-muted-foreground py-8 bg-card rounded-xl border border-dashed border-border">
+              В этом месяце еще не было транзакций
             </div>
           ) : (
-            upcomingPayments.map((payment, idx) => (
+            monthlyTransactions.map((transaction) => (
               <div
-                key={idx}
-                className="bg-[#181818] rounded-lg p-4 border-l-4 border-yellow-500"
+                key={transaction.id}
+                className="bg-card rounded-xl p-4 hover:bg-muted transition-all border border-border"
               >
                 <div className="flex items-center justify-between">
-                  <div>
-                    <div className="mb-1">{payment.student}</div>
-                    <div className="text-sm text-gray-400">
-                      Срок: {payment.dueDate} • {payment.subject}
+                  <div className="flex items-center gap-4">
+                    <div
+                      className={`w-10 h-10 rounded-full flex items-center justify-center ${
+                        transaction.status === "completed"
+                          ? "bg-[#1db954]/10 text-[#1db954]"
+                          : transaction.status === "canceled"
+                            ? "bg-destructive/10 text-destructive"
+                            : "bg-yellow-500/10 text-yellow-500"
+                      }`}
+                    >
+                      {transaction.status === "completed" ? (
+                        <Check size={20} />
+                      ) : transaction.status === "canceled" ? (
+                        <X size={20} />
+                      ) : (
+                        <Calendar size={20} />
+                      )}
+                    </div>
+                    <div>
+                      <div className="font-medium text-foreground">
+                        {transaction.student}
+                      </div>
+                      <div className="text-xs text-muted-foreground">
+                        {transaction.date} • {transaction.subject}
+                      </div>
                     </div>
                   </div>
-                  <div className="text-yellow-500">
-                    {currency}
-                    {payment.amount}
+                  <div className="text-right">
+                    <div
+                      className={`font-semibold ${
+                        transaction.status === "completed"
+                          ? "text-[#1db954]"
+                          : transaction.status === "canceled"
+                            ? "text-destructive"
+                            : "text-yellow-500"
+                      }`}
+                    >
+                      {currency}
+                      {transaction.amount}
+                    </div>
+                    <div className="text-[10px] uppercase tracking-wider text-muted-foreground mt-0.5">
+                      {transaction.status === "completed"
+                        ? "Зачислено"
+                        : transaction.status === "canceled"
+                          ? "Отменено"
+                          : "Ожидается"}
+                    </div>
                   </div>
                 </div>
               </div>

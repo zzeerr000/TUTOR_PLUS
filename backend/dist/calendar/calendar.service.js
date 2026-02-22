@@ -123,6 +123,41 @@ let CalendarService = class CalendarService {
             await this.eventsRepository.remove(eventsToDelete);
         }
     }
+    async updateRecurring(id, updateEventDto) {
+        const originalEvent = await this.eventsRepository.findOne({ where: { id } });
+        if (!originalEvent)
+            throw new Error("Event not found");
+        const { studentId, time: oldTime, date: oldDateStr, tutorId } = originalEvent;
+        const oldDate = new Date(oldDateStr);
+        const oldDayOfWeek = oldDate.getDay();
+        const allEvents = await this.eventsRepository.find({
+            where: { studentId, time: oldTime, tutorId },
+        });
+        const eventsToUpdate = allEvents.filter((e) => {
+            const eDate = new Date(e.date);
+            return eDate.getDay() === oldDayOfWeek && e.date >= oldDateStr;
+        });
+        let dateShiftDays = 0;
+        if (updateEventDto.date && updateEventDto.date !== oldDateStr) {
+            const newDate = new Date(updateEventDto.date);
+            const diffTime = newDate.getTime() - oldDate.getTime();
+            dateShiftDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
+        }
+        const baseUpdates = { ...updateEventDto };
+        delete baseUpdates.date;
+        delete baseUpdates.id;
+        for (const event of eventsToUpdate) {
+            const updates = { ...baseUpdates };
+            if (dateShiftDays !== 0) {
+                const currentEventDate = new Date(event.date);
+                currentEventDate.setDate(currentEventDate.getDate() + dateShiftDays);
+                updates.date = currentEventDate.toISOString().split("T")[0];
+            }
+            else if (updateEventDto.date) {
+            }
+            await this.eventsRepository.update(event.id, updates);
+        }
+    }
 };
 exports.CalendarService = CalendarService;
 exports.CalendarService = CalendarService = __decorate([

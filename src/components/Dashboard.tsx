@@ -82,17 +82,32 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       const today = new Date().toISOString().split("T")[0];
       const todayEvents = events.filter((e: any) => e.date === today);
       const thisWeekEvents = events.filter((e: any) => {
-        const eventDate = new Date(e.date);
-        const weekStart = new Date();
-        weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-        return eventDate >= weekStart;
+        const now = new Date();
+        const currentDay = now.getDay();
+        const diffToMonday = currentDay === 0 ? 6 : currentDay - 1;
+
+        const weekStart = new Date(now);
+        weekStart.setDate(now.getDate() - diffToMonday);
+        weekStart.setHours(0, 0, 0, 0);
+
+        const weekEnd = new Date(weekStart);
+        weekEnd.setDate(weekStart.getDate() + 6);
+        weekEnd.setHours(23, 59, 59, 999);
+
+        const [year, month, day] = e.date.split("-").map(Number);
+        const eventDate = new Date(year, month - 1, day);
+
+        return eventDate >= weekStart && eventDate <= weekEnd;
       });
 
       const pendingTasksCount = homework.filter(
-        (t: any) => t.status === "pending" || t.status === "draft",
+        (t: any) =>
+          t.status === "pending" ||
+          t.status === "draft" ||
+          t.status === "submitted",
       ).length;
       const activeTasksCount = homework.filter(
-        (t: any) => t.status === "pending",
+        (t: any) => t.status === "pending" || t.status === "submitted",
       ).length;
 
       if (userType === "tutor") {
@@ -190,7 +205,9 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка панели управления...</div>
+        <div className="text-muted-foreground">
+          Загрузка панели управления...
+        </div>
       </div>
     );
   }
@@ -200,17 +217,26 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       <div className="space-y-6 pb-6">
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
-          <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
+          <div
+            onClick={() => onNavigate("students")}
+            className="bg-gradient-to-br from-[#369128] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          >
             <Users size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.students}</div>
             <div className="text-sm opacity-90">Активные студенты</div>
           </div>
-          <div className="bg-gradient-to-br from-[#1ed760] to-[#1db954] rounded-lg p-4">
+          <div
+            onClick={() => onNavigate("calendar")}
+            className="bg-gradient-to-br from-[#a02b54] to-[#c60f4f] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          >
             <Calendar size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.lessonsToday}</div>
             <div className="text-sm opacity-90">Занятий сегодня</div>
           </div>
-          <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
+          <div
+            onClick={() => onNavigate("finance")}
+            className="bg-gradient-to-br from-[#45238f] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          >
             <DollarSign size={24} className="mb-2" />
             <div className="text-2xl mb-1">
               {currency}
@@ -218,65 +244,29 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
             </div>
             <div className="text-sm opacity-90">В этом месяце</div>
           </div>
-          <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
+          <div
+            onClick={() => onNavigate("homework")}
+            className="bg-gradient-to-br from-[#9e2a89] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          >
             <CheckSquare size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.pendingTasks}</div>
             <div className="text-sm opacity-90">Ожидающие задачи</div>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div>
-          <h2 className="text-xl mb-3">Быстрые действия</h2>
-          <div className="grid grid-cols-2 gap-3">
-            <button
-              onClick={() => onNavigate("materials")}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-            >
-              <FolderOpen size={24} className="mb-2 text-[#1db954]" />
-              <div className="mb-1">Материалы</div>
-              <div className="text-sm text-gray-400">Загрузка и управление</div>
-            </button>
-            <button
-              onClick={() => onNavigate("finance")}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-            >
-              <DollarSign size={24} className="mb-2 text-[#2e77d0]" />
-              <div className="mb-1">Финансы</div>
-              <div className="text-sm text-gray-400">Отслеживание оплат</div>
-            </button>
-            <button
-              onClick={() => onNavigate("homework")}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-            >
-              <CheckSquare size={24} className="mb-2 text-[#af2896]" />
-              <div className="mb-1">Домашние задания</div>
-              <div className="text-sm text-gray-400">Управление ДЗ</div>
-            </button>
-            <button
-              onClick={() => onNavigate("calendar")}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-            >
-              <Calendar size={24} className="mb-2 text-[#e8115b]" />
-              <div className="mb-1">Расписание</div>
-              <div className="text-sm text-gray-400">Все занятия</div>
-            </button>
-          </div>
-        </div>
-
         {/* Today's Schedule */}
         <div>
-          <h2 className="text-xl mb-3">Расписание на сегодня</h2>
+          <h2 className="text-xl mb-3 font-semibold">Расписание на сегодня</h2>
           <div className="space-y-2">
             {todaySchedule.length === 0 ? (
-              <div className="text-center text-gray-400 py-8">
+              <div className="text-center text-muted-foreground py-8">
                 На сегодня занятий нет
               </div>
             ) : (
               todaySchedule.map((lesson, idx) => (
                 <div
                   key={idx}
-                  className={`bg-[#181818] rounded-lg p-4 flex items-center gap-3 hover:bg-[#282828] transition-colors ${
+                  className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
                     lesson.past ? "opacity-60" : ""
                   }`}
                 >
@@ -287,13 +277,13 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                   <div className="flex-1">
                     <div className="flex items-center justify-between mb-1">
                       <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-gray-400" />
-                        <span className="text-sm text-gray-400">
+                        <Clock size={14} className="text-muted-foreground" />
+                        <span className="text-sm text-muted-foreground">
                           {lesson.time}
                         </span>
                       </div>
                       {lesson.past ? (
-                        <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
+                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
                           Завершено
                         </span>
                       ) : (
@@ -303,13 +293,13 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                       )}
                     </div>
                     <div
-                      className={
-                        lesson.past ? "text-gray-400 line-through" : ""
-                      }
+                      className={`font-medium ${
+                        lesson.past ? "text-muted-foreground line-through" : ""
+                      }`}
                     >
                       {lesson.student}
                     </div>
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       {lesson.subject}
                     </div>
                   </div>
@@ -319,7 +309,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                         e.stopPropagation();
                         handleDeleteLesson(lesson.id);
                       }}
-                      className="text-gray-400 hover:text-red-500 transition-colors p-2"
+                      className="text-muted-foreground hover:text-destructive transition-colors p-2"
                       title="Удалить занятие"
                     >
                       <Trash2 size={16} />
@@ -339,64 +329,53 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
     <div className="space-y-6 pb-6">
       {/* Quick Stats */}
       <div className="grid grid-cols-2 gap-3">
-        <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4">
+        <div
+          onClick={() => onNavigate("tasks")}
+          className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+        >
           <CheckSquare size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.activeTasks}</div>
           <div className="text-sm opacity-90">Активные задачи</div>
         </div>
-        <div className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4">
+        <div
+          onClick={() => onNavigate("calendar")}
+          className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+        >
           <Calendar size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.lessonsThisWeek}</div>
           <div className="text-sm opacity-90">Занятий на неделе</div>
         </div>
-        <div className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4">
+        <div
+          onClick={() => onNavigate("progress")}
+          className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+        >
           <TrendingUp size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.avgProgress}%</div>
           <div className="text-sm opacity-90">Средний прогресс</div>
         </div>
-        <div className="bg-gradient-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4">
+        <div
+          onClick={() => onNavigate("progress")}
+          className="bg-gradient-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+        >
           <Clock size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.studyTime}ч</div>
           <div className="text-sm opacity-90">Время обучения</div>
         </div>
       </div>
 
-      {/* Quick Actions */}
-      <div>
-        <h2 className="text-xl mb-3">Быстрые действия</h2>
-        <div className="grid grid-cols-2 gap-3">
-          <button
-            onClick={() => onNavigate("materials")}
-            className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-          >
-            <FolderOpen size={24} className="mb-2 text-[#1db954]" />
-            <div className="mb-1">Материалы</div>
-            <div className="text-sm text-gray-400">Учебные материалы</div>
-          </button>
-          <button
-            onClick={() => onNavigate("tasks")}
-            className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors text-left"
-          >
-            <CheckSquare size={24} className="mb-2 text-[#2e77d0]" />
-            <div className="mb-1">Задания</div>
-            <div className="text-sm text-gray-400">Ваши задания</div>
-          </button>
-        </div>
-      </div>
-
       {/* Upcoming Lessons */}
       <div>
-        <h2 className="text-xl mb-3">Ближайшие занятия</h2>
+        <h2 className="text-xl mb-3 font-semibold">Ближайшие занятия</h2>
         <div className="space-y-2">
           {upcomingLessons.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Нет ближайших занятий
             </div>
           ) : (
             upcomingLessons.map((lesson, idx) => (
               <div
                 key={idx}
-                className={`bg-[#181818] rounded-lg p-4 flex items-center gap-3 hover:bg-[#282828] transition-colors ${
+                className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
                   lesson.past ? "opacity-60" : ""
                 }`}
               >
@@ -406,11 +385,11 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                 />
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <div className="text-sm text-gray-400">
+                    <div className="text-sm text-muted-foreground">
                       {lesson.day} • {lesson.time}
                     </div>
                     {lesson.past ? (
-                      <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
+                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
                         Завершено
                       </span>
                     ) : (
@@ -420,11 +399,15 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                     )}
                   </div>
                   <div
-                    className={lesson.past ? "text-gray-400 line-through" : ""}
+                    className={`font-medium ${
+                      lesson.past ? "text-muted-foreground line-through" : ""
+                    }`}
                   >
                     {lesson.subject}
                   </div>
-                  <div className="text-sm text-gray-400">{lesson.tutor}</div>
+                  <div className="text-sm text-muted-foreground">
+                    {lesson.tutor}
+                  </div>
                 </div>
               </div>
             ))
@@ -434,22 +417,25 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
 
       {/* Recent Progress */}
       <div>
-        <h2 className="text-xl mb-3">Последний прогресс</h2>
+        <h2 className="text-xl mb-3 font-semibold">Последний прогресс</h2>
         <div className="space-y-3">
           {recentProgress.length === 0 ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Нет данных о прогрессе
             </div>
           ) : (
             recentProgress.map((item, idx) => (
-              <div key={idx} className="bg-[#181818] rounded-lg p-4">
+              <div
+                key={idx}
+                className="bg-card border border-border rounded-lg p-4"
+              >
                 <div className="flex items-center justify-between mb-2">
-                  <span>{item.subject}</span>
-                  <span className="text-sm text-gray-400">
+                  <span className="font-medium">{item.subject}</span>
+                  <span className="text-sm text-muted-foreground">
                     {item.progress}%
                   </span>
                 </div>
-                <div className="w-full bg-[#282828] rounded-full h-2">
+                <div className="w-full bg-muted rounded-full h-2">
                   <div
                     className="h-2 rounded-full transition-all"
                     style={{

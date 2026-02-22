@@ -26,6 +26,12 @@ let ProgressController = class ProgressController {
     getStats(req) {
         return this.progressService.getOverallStats(req.user.sub, req.user.role);
     }
+    getSubjectHistory(tutorId, req) {
+        if (req.user.role !== 'student') {
+            throw new common_1.BadRequestException('Only students can view their subject history');
+        }
+        return this.progressService.getSubjectHistory(req.user.sub, tutorId);
+    }
     create(createProgressDto, req) {
         return this.progressService.create({
             ...createProgressDto,
@@ -49,6 +55,14 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ProgressController.prototype, "getStats", null);
+__decorate([
+    (0, common_1.Get)('history/:tutorId'),
+    __param(0, (0, common_1.Param)('tutorId', common_1.ParseIntPipe)),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Number, Object]),
+    __metadata("design:returntype", void 0)
+], ProgressController.prototype, "getSubjectHistory", null);
 __decorate([
     (0, common_1.Post)(),
     __param(0, (0, common_1.Body)()),

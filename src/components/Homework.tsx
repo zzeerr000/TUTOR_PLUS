@@ -25,7 +25,13 @@ interface HomeworkItem {
   description?: string;
   subject: string;
   dueDate?: string;
-  status: "pending" | "completed" | "no_homework" | "missed" | "draft";
+  status:
+    | "pending"
+    | "completed"
+    | "no_homework"
+    | "missed"
+    | "draft"
+    | "submitted";
   studentComment?: string;
   question?: string;
   questionAnswer?: string;
@@ -77,10 +83,12 @@ export function Homework({ userType }: HomeworkProps) {
     try {
       setLoading(true);
       const data = await api.getHomework();
-      // Filter out completed homework from the main list
-      const activeHomework = data.filter(
-        (h: HomeworkItem) => h.status !== "completed",
-      );
+      // Filter out completed and "no homework" cards from the main list
+      const activeHomework = data.filter((h: HomeworkItem) => {
+        if (h.status === "completed") return false;
+        if (h.status === "no_homework") return false;
+        return true;
+      });
       setHomework(activeHomework);
     } catch (error) {
       console.error("Failed to load homework:", error);
@@ -257,14 +265,14 @@ export function Homework({ userType }: HomeworkProps) {
       case "no_homework":
         return {
           label: "Без ДЗ",
-          color: "text-gray-400",
-          bg: "bg-gray-400/10",
+          color: "text-muted-foreground",
+          bg: "bg-muted",
         };
       case "missed":
         return {
           label: "Пропущено",
-          color: "text-[#e8115b]",
-          bg: "bg-[#e8115b]/10",
+          color: "text-destructive",
+          bg: "bg-destructive/10",
         };
       case "draft":
         return {
@@ -272,15 +280,27 @@ export function Homework({ userType }: HomeworkProps) {
           color: "text-[#2e77d0]",
           bg: "bg-[#2e77d0]/10",
         };
+      case "submitted":
+        return {
+          label: "На проверке",
+          color: "text-blue-400",
+          bg: "bg-blue-400/10",
+        };
       default:
-        return { label: status, color: "text-gray-400", bg: "bg-gray-400/10" };
+        return {
+          label: status,
+          color: "text-muted-foreground",
+          bg: "bg-muted",
+        };
     }
   };
 
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка домашнего задания...</div>
+        <div className="text-muted-foreground">
+          Загрузка домашнего задания...
+        </div>
       </div>
     );
   }
@@ -322,12 +342,14 @@ export function Homework({ userType }: HomeworkProps) {
   return (
     <div className="space-y-4 pb-20">
       <div className="flex items-center justify-between mb-2">
-        <h2 className="text-xl font-bold">Домашнее задание</h2>
+        <h2 className="text-xl font-bold text-foreground">Домашнее задание</h2>
       </div>
 
       <div className="space-y-3">
         {homework.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">Заданий пока нет</div>
+          <div className="text-center text-muted-foreground py-8">
+            Заданий пока нет
+          </div>
         ) : (
           homework.map((item) => {
             const status = getStatusInfo(item.status);
@@ -338,9 +360,9 @@ export function Homework({ userType }: HomeworkProps) {
             return (
               <div
                 key={item.id}
-                className={`bg-[#181818] rounded-lg overflow-hidden border ${
-                  hasNotification ? "border-[#1db954]" : "border-transparent"
-                } hover:border-gray-700 transition-colors`}
+                className={`bg-card rounded-lg overflow-hidden border ${
+                  hasNotification ? "border-[#1db954]" : "border-border"
+                } hover:border-muted-foreground/20 transition-colors`}
               >
                 <div
                   className="p-4 cursor-pointer"
@@ -357,11 +379,11 @@ export function Homework({ userType }: HomeworkProps) {
                         {hasNotification && (
                           <span className="w-2 h-2 bg-[#1db954] rounded-full animate-pulse" />
                         )}
-                        <span className="text-sm text-gray-400">
+                        <span className="text-sm text-muted-foreground">
                           {item.subject}
                         </span>
                       </div>
-                      <h3 className="font-medium truncate">
+                      <h3 className="font-medium truncate text-foreground">
                         {item.status === "draft"
                           ? `Занятие от ${
                               item.lesson
@@ -374,7 +396,7 @@ export function Homework({ userType }: HomeworkProps) {
                             }`
                           : item.title}
                       </h3>
-                      <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                      <div className="flex flex-wrap items-center gap-x-4 gap-y-2 mt-2 text-xs text-muted-foreground">
                         <div className="flex items-center gap-1">
                           <Clock size={12} />
                           <span>
@@ -384,8 +406,13 @@ export function Homework({ userType }: HomeworkProps) {
                           </span>
                         </div>
                         {userType === "tutor" ? (
-                          <div className="truncate">
-                            Ученик: {item.student?.name}
+                          <div className="flex items-center gap-1.5 bg-muted px-2 py-0.5 rounded-full border border-border">
+                            <span className="text-muted-foreground">
+                              Ученик:
+                            </span>
+                            <span className="text-foreground font-semibold">
+                              {item.student?.name}
+                            </span>
                           </div>
                         ) : (
                           <div className="truncate">
@@ -395,18 +422,21 @@ export function Homework({ userType }: HomeworkProps) {
                       </div>
                     </div>
                     {isExpanded ? (
-                      <ChevronUp size={20} className="text-gray-500" />
+                      <ChevronUp size={20} className="text-muted-foreground" />
                     ) : (
-                      <ChevronDown size={20} className="text-gray-500" />
+                      <ChevronDown
+                        size={20}
+                        className="text-muted-foreground"
+                      />
                     )}
                   </div>
                 </div>
 
                 {isExpanded && (
-                  <div className="px-4 pb-4 pt-2 border-t border-gray-800 space-y-4">
+                  <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
                     {item.status === "draft" && userType === "tutor" ? (
                       <div className="space-y-3">
-                        <p className="text-sm text-gray-400">
+                        <p className="text-sm text-muted-foreground">
                           Укажите домашнее задание для этого занятия:
                         </p>
                         <div className="flex gap-2">
@@ -423,7 +453,7 @@ export function Homework({ userType }: HomeworkProps) {
                               });
                               setShowAddModal(true);
                             }}
-                            className="flex-1 py-2 bg-[#1db954] rounded-md text-sm font-medium"
+                            className="flex-1 py-2 bg-[#1db954] rounded-md text-sm font-medium text-white"
                           >
                             Написать ДЗ
                           </button>
@@ -431,7 +461,7 @@ export function Homework({ userType }: HomeworkProps) {
                             onClick={() =>
                               handleUpdateStatus(item.id, "no_homework")
                             }
-                            className="flex-1 py-2 bg-[#282828] rounded-md text-sm font-medium hover:bg-[#3e3e3e]"
+                            className="flex-1 py-2 bg-muted rounded-md text-sm font-medium hover:bg-muted/80 text-foreground"
                           >
                             Нет ДЗ
                           </button>
@@ -440,7 +470,7 @@ export function Homework({ userType }: HomeworkProps) {
                     ) : (
                       <>
                         {item.description && (
-                          <div className="text-sm text-gray-300 whitespace-pre-wrap">
+                          <div className="text-sm text-foreground/80 whitespace-pre-wrap">
                             {item.description}
                           </div>
                         )}
@@ -448,7 +478,7 @@ export function Homework({ userType }: HomeworkProps) {
                         {/* Files Section */}
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                               Файлы
                             </h4>
                             {userType === "student" &&
@@ -470,14 +500,14 @@ export function Homework({ userType }: HomeworkProps) {
                               {item.files.map((file: any) => (
                                 <div
                                   key={file.id}
-                                  className="flex items-center justify-between p-2 bg-[#282828] rounded-md group"
+                                  className="flex items-center justify-between p-2 bg-muted rounded-md group"
                                 >
                                   <div className="flex items-center gap-2 min-w-0">
                                     <FileText
                                       size={16}
                                       className="text-[#1db954] flex-shrink-0"
                                     />
-                                    <span className="text-sm truncate">
+                                    <span className="text-sm truncate text-foreground">
                                       {file.name}
                                     </span>
                                   </div>
@@ -485,7 +515,7 @@ export function Homework({ userType }: HomeworkProps) {
                                     onClick={() =>
                                       api.downloadFile(file.id, file.name)
                                     }
-                                    className="text-xs text-gray-400 hover:text-white"
+                                    className="text-xs text-muted-foreground hover:text-foreground"
                                   >
                                     Скачать
                                   </button>
@@ -493,7 +523,7 @@ export function Homework({ userType }: HomeworkProps) {
                               ))}
                             </div>
                           ) : (
-                            <div className="text-xs text-gray-600 italic">
+                            <div className="text-xs text-muted-foreground italic">
                               Файлов нет
                             </div>
                           )}
@@ -503,11 +533,11 @@ export function Homework({ userType }: HomeworkProps) {
                         <div className="space-y-4">
                           {/* Student Comment */}
                           <div className="space-y-1">
-                            <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                               Комментарий ученика
                             </h4>
                             {item.studentComment ? (
-                              <div className="text-sm p-3 bg-[#282828] rounded-md italic text-gray-300">
+                              <div className="text-sm p-3 bg-muted rounded-md italic text-foreground/80">
                                 {item.studentComment}
                               </div>
                             ) : (
@@ -521,11 +551,11 @@ export function Homework({ userType }: HomeworkProps) {
                                       setCommentText(e.target.value)
                                     }
                                     placeholder="Добавить комментарий..."
-                                    className="flex-1 bg-[#282828] border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954]"
+                                    className="flex-1 bg-muted border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
                                   />
                                   <button
                                     onClick={() => handleAddComment(item.id)}
-                                    className="p-1.5 bg-[#1db954] rounded-md"
+                                    className="p-1.5 bg-[#1db954] rounded-md text-white"
                                   >
                                     <Send size={16} />
                                   </button>
@@ -545,14 +575,14 @@ export function Homework({ userType }: HomeworkProps) {
 
                             {item.question ? (
                               <div className="space-y-3">
-                                <div className="text-sm text-gray-300">
-                                  <span className="text-gray-500 mr-2">
+                                <div className="text-sm text-foreground/80">
+                                  <span className="text-muted-foreground mr-2">
                                     Вопрос:
                                   </span>
                                   {item.question}
                                 </div>
                                 {item.questionAnswer ? (
-                                  <div className="text-sm text-gray-300 pl-4 border-l-2 border-[#1db954]">
+                                  <div className="text-sm text-foreground/80 pl-4 border-l-2 border-[#1db954]">
                                     <span className="text-[#1db954] font-medium mr-2">
                                       Ответ:
                                     </span>
@@ -568,11 +598,11 @@ export function Homework({ userType }: HomeworkProps) {
                                           setAnswerText(e.target.value)
                                         }
                                         placeholder="Ответить на вопрос..."
-                                        className="flex-1 bg-[#282828] border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954]"
+                                        className="flex-1 bg-muted border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
                                       />
                                       <button
                                         onClick={() => handleAddAnswer(item.id)}
-                                        className="p-1.5 bg-[#1db954] rounded-md"
+                                        className="p-1.5 bg-[#1db954] rounded-md text-white"
                                       >
                                         <Send size={16} />
                                       </button>
@@ -591,11 +621,11 @@ export function Homework({ userType }: HomeworkProps) {
                                       setQuestionText(e.target.value)
                                     }
                                     placeholder="Задать вопрос..."
-                                    className="flex-1 bg-[#282828] border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954]"
+                                    className="flex-1 bg-muted border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
                                   />
                                   <button
                                     onClick={() => handleAddQuestion(item.id)}
-                                    className="p-1.5 bg-[#1db954] rounded-md"
+                                    className="p-1.5 bg-[#1db954] rounded-md text-white"
                                   >
                                     <Send size={16} />
                                   </button>
@@ -605,37 +635,63 @@ export function Homework({ userType }: HomeworkProps) {
                           </div>
 
                           {/* Action Buttons */}
-                          {userType === "student" &&
-                            (item.status === "pending" ||
-                              item.status === "missed") && (
-                              <button
-                                onClick={() =>
-                                  handleUpdateStatus(item.id, "completed")
-                                }
-                                className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors"
-                              >
-                                {item.status === "missed"
-                                  ? "Выполнить просроченное ДЗ"
-                                  : "Отметить как выполненное"}
-                              </button>
-                            )}
+                          {userType === "student" && (
+                            <div className="flex flex-col gap-2">
+                              {(item.status === "pending" ||
+                                item.status === "missed") && (
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(item.id, "submitted")
+                                  }
+                                  className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
+                                >
+                                  <Check size={16} />
+                                  {item.status === "missed"
+                                    ? "Выполнить просроченное ДЗ"
+                                    : "Отправить на проверку"}
+                                </button>
+                              )}
+                            </div>
+                          )}
 
                           {userType === "tutor" && (
                             <div className="flex flex-col gap-2">
-                              {item.status === "pending" && (
+                              {(item.status === "pending" ||
+                                item.status === "missed") && (
                                 <button
                                   onClick={() =>
                                     handleUpdateStatus(item.id, "completed")
                                   }
-                                  className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2"
+                                  className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
                                 >
                                   <Check size={16} />
                                   Отметить как выполненное
                                 </button>
                               )}
+                              {item.status === "submitted" && (
+                                <div className="flex gap-2">
+                                  <button
+                                    onClick={() =>
+                                      handleUpdateStatus(item.id, "completed")
+                                    }
+                                    className="flex-1 py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
+                                  >
+                                    <Check size={16} />
+                                    Принять
+                                  </button>
+                                  <button
+                                    onClick={() =>
+                                      handleUpdateStatus(item.id, "pending")
+                                    }
+                                    className="flex-1 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
+                                  >
+                                    Отклонить
+                                  </button>
+                                </div>
+                              )}
                               <button
                                 onClick={() => handleDeleteHW(item.id)}
-                                className="w-full py-2 bg-red-600/10 hover:bg-red-600/20 text-red-500 rounded-md text-sm font-medium transition-colors"
+                                className="w-full py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
                               >
                                 Удалить задание
                               </button>
@@ -655,7 +711,7 @@ export function Homework({ userType }: HomeworkProps) {
       {userType === "tutor" && (
         <button
           onClick={() => setShowAddModal(true)}
-          className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors"
+          className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors text-white"
         >
           <Plus size={24} />
         </button>
@@ -664,17 +720,19 @@ export function Homework({ userType }: HomeworkProps) {
       {/* Add Homework Modal */}
       {showAddModal && (
         <div className="fixed inset-0 bg-black/80 flex items-center justify-center p-4 z-50">
-          <div className="bg-[#181818] rounded-xl w-full max-w-md p-6 relative">
+          <div className="bg-card rounded-xl w-full max-w-md p-6 relative border border-border">
             <button
               onClick={() => setShowAddModal(false)}
-              className="absolute right-4 top-4 text-gray-400 hover:text-white"
+              className="absolute right-4 top-4 text-muted-foreground hover:text-foreground"
             >
               <X size={24} />
             </button>
-            <h3 className="text-xl font-bold mb-4">Новое задание</h3>
+            <h3 className="text-xl font-bold mb-4 text-foreground">
+              Новое задание
+            </h3>
             <form onSubmit={handleCreateHW} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   Предмет
                 </label>
                 <input
@@ -684,12 +742,12 @@ export function Homework({ userType }: HomeworkProps) {
                   onChange={(e) =>
                     setNewHW({ ...newHW, subject: e.target.value })
                   }
-                  className="w-full bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
                   placeholder="Напр. Математика"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   Заголовок
                 </label>
                 <input
@@ -699,12 +757,12 @@ export function Homework({ userType }: HomeworkProps) {
                   onChange={(e) =>
                     setNewHW({ ...newHW, title: e.target.value })
                   }
-                  className="w-full bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
                   placeholder="Что нужно сделать?"
                 />
               </div>
               <div>
-                <label className="block text-sm text-gray-400 mb-1">
+                <label className="block text-sm text-muted-foreground mb-1">
                   Описание
                 </label>
                 <textarea
@@ -712,13 +770,13 @@ export function Homework({ userType }: HomeworkProps) {
                   onChange={(e) =>
                     setNewHW({ ...newHW, description: e.target.value })
                   }
-                  className="w-full bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] min-h-[100px]"
+                  className="w-full bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] min-h-[100px] text-foreground placeholder:text-muted-foreground"
                   placeholder="Подробности задания..."
                 />
               </div>
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted-foreground mb-1">
                     Ученик
                   </label>
                   <select
@@ -727,7 +785,7 @@ export function Homework({ userType }: HomeworkProps) {
                     onChange={(e) =>
                       setNewHW({ ...newHW, studentId: e.target.value })
                     }
-                    className="w-full bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] text-foreground"
                   >
                     <option value="">Выбрать...</option>
                     {students.map((s) => (
@@ -738,7 +796,7 @@ export function Homework({ userType }: HomeworkProps) {
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-1">
+                  <label className="block text-sm text-muted-foreground mb-1">
                     Срок сдачи
                   </label>
                   <select
@@ -746,7 +804,7 @@ export function Homework({ userType }: HomeworkProps) {
                     onChange={(e) =>
                       setNewHW({ ...newHW, dueDate: e.target.value })
                     }
-                    className="w-full bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] text-foreground"
                   >
                     <option value="">Без срока</option>
                     <option value="next_lesson">Следующее занятие</option>
@@ -758,14 +816,14 @@ export function Homework({ userType }: HomeworkProps) {
                       onChange={(e) =>
                         setNewHW({ ...newHW, dueDate: e.target.value })
                       }
-                      className="w-full mt-2 bg-[#282828] border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full mt-2 bg-muted border-none rounded-md px-4 py-2 focus:ring-2 focus:ring-[#1db954] text-foreground"
                     />
                   )}
                 </div>
               </div>
               <button
                 type="submit"
-                className="w-full py-3 bg-[#1db954] hover:bg-[#1ed760] rounded-md font-bold transition-colors"
+                className="w-full py-3 bg-[#1db954] hover:bg-[#1ed760] rounded-md font-bold transition-colors text-white"
               >
                 Создать задание
               </button>

@@ -15,4 +15,5 @@ export declare class CalendarService {
     update(id: number, updateEventDto: any): Promise<Event>;
     remove(id: number): Promise<void>;
     removeRecurring(id: number): Promise<void>;
+    updateRecurring(id: number, updateEventDto: any): Promise<void>;
 }

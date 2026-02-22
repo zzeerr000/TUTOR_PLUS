@@ -12,6 +12,7 @@ import {
   Copy,
   Check,
   Settings as SettingsIcon,
+  Menu as MenuIcon,
 } from "lucide-react";
 import { Dashboard } from "./components/Dashboard";
 import { Homework } from "./components/Homework";
@@ -21,6 +22,7 @@ import { Messenger } from "./components/Messenger";
 import { Finance } from "./components/Finance";
 import { StudentManager } from "./components/StudentManager";
 import { Progress } from "./components/Progress";
+import { Menu } from "./components/Menu";
 import { Auth } from "./components/Auth";
 import { Connections } from "./components/Connections";
 import { Settings } from "./components/Settings";
@@ -39,6 +41,38 @@ export default function App() {
   const [userCode, setUserCode] = useState<string>("");
   const [showCodeMenu, setShowCodeMenu] = useState(false);
   const [codeCopied, setCodeCopied] = useState(false);
+  const [theme, setTheme] = useState<"dark" | "light">(() => {
+    if (typeof window !== "undefined") {
+      const savedTheme = localStorage.getItem("theme");
+      if (savedTheme === "light" || savedTheme === "dark") {
+        return savedTheme;
+      }
+      return "dark"; // Default to dark
+    }
+    return "dark";
+  });
+
+  // Apply theme to document
+  useEffect(() => {
+    const root = window.document.documentElement;
+    root.classList.remove("light", "dark");
+    root.classList.add(theme);
+    localStorage.setItem("theme", theme);
+  }, [theme]);
+
+  const toggleTheme = () => {
+    setTheme((prev) => (prev === "dark" ? "light" : "dark"));
+  };
+
+  // Tabs that should highlight the Menu icon
+  const menuTabs = [
+    "menu",
+    "connections",
+    "materials",
+    "settings",
+    "students",
+    "finance",
+  ];
 
   useEffect(() => {
     // Check if user is already logged in
@@ -108,20 +142,17 @@ export default function App() {
     { id: "dashboard", label: "Главная", icon: Home },
     { id: "calendar", label: "Календарь", icon: Calendar },
     { id: "homework", label: "ДЗ", icon: CheckSquare },
-    { id: "students", label: "Студенты", icon: Users },
-    { id: "connections", label: "Связи", icon: Users },
     { id: "messenger", label: "Чат", icon: MessageCircle },
-    { id: "settings", label: "Настройки", icon: SettingsIcon },
+    { id: "menu", label: "Меню", icon: MenuIcon },
   ];
 
   const studentTabs = [
     { id: "dashboard", label: "Главная", icon: Home },
     { id: "calendar", label: "Календарь", icon: Calendar },
     { id: "homework", label: "ДЗ", icon: CheckSquare },
-    { id: "connections", label: "Связи", icon: Users },
     { id: "progress", label: "Прогресс", icon: TrendingUp },
     { id: "messenger", label: "Чат", icon: MessageCircle },
-    { id: "settings", label: "Настройки", icon: SettingsIcon },
+    { id: "menu", label: "Меню", icon: MenuIcon },
   ];
 
   const tabs = userType === "tutor" ? tutorTabs : studentTabs;
@@ -152,21 +183,25 @@ export default function App() {
             user={user}
             onNameUpdate={handleNameUpdate}
             onAccountDelete={handleAccountDelete}
+            theme={theme}
+            onThemeToggle={toggleTheme}
           />
         );
+      case "menu":
+        return <Menu userType={userType} onNavigate={setActiveTab} />;
       default:
         return <Dashboard userType={userType} onNavigate={setActiveTab} />;
     }
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] text-white pb-20">
+    <div className="min-h-screen bg-background text-foreground pb-20">
       {/* Header */}
-      <div className="sticky top-0 bg-gradient-to-b from-[#1a1a1a] to-[#121212] z-50 px-4 py-6">
+      <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 px-4 py-6 border-b border-border">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <h1 className="text-2xl">TutorHub</h1>
-            <p className="text-xs text-gray-400 mt-1">
+            <h1 className="text-2xl font-bold">Tutor+</h1>
+            <p className="text-xs text-muted-foreground mt-1">
               Добро пожаловать, {user.name}
             </p>
           </div>
@@ -175,7 +210,7 @@ export default function App() {
             <div className="relative">
               <button
                 onClick={() => setShowCodeMenu(!showCodeMenu)}
-                className="px-3 py-1.5 bg-[#282828] hover:bg-[#333333] rounded-full text-sm flex items-center gap-2 transition-colors"
+                className="px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-full text-sm flex items-center gap-2 transition-colors"
               >
                 <span className="text-[#1db954] font-mono">
                   {userCode || "..."}
@@ -188,8 +223,8 @@ export default function App() {
                     className="fixed inset-0 z-10"
                     onClick={() => setShowCodeMenu(false)}
                   />
-                  <div className="absolute right-0 top-full mt-2 bg-[#181818] border border-gray-800 rounded-lg p-4 min-w-[200px] shadow-lg z-20">
-                    <div className="text-xs text-gray-400 mb-2">
+                  <div className="absolute right-0 top-full mt-2 bg-card border border-border rounded-lg p-4 min-w-[200px] shadow-lg z-20">
+                    <div className="text-xs text-muted-foreground mb-2">
                       Ваш код подключения
                     </div>
                     <div className="flex items-center gap-2 mb-3">
@@ -198,7 +233,7 @@ export default function App() {
                       </span>
                       <button
                         onClick={copyCode}
-                        className="p-1.5 bg-[#282828] hover:bg-[#333333] rounded transition-colors"
+                        className="p-1.5 bg-muted hover:bg-muted/80 rounded transition-colors"
                       >
                         {codeCopied ? (
                           <Check size={14} className="text-[#1db954]" />
@@ -207,7 +242,7 @@ export default function App() {
                         )}
                       </button>
                     </div>
-                    <div className="text-xs text-gray-500">
+                    <div className="text-xs text-muted-foreground">
                       Поделитесь этим кодом, чтобы связаться со{" "}
                       {userType === "tutor" ? "студентами" : "репетиторами"}
                     </div>
@@ -217,14 +252,14 @@ export default function App() {
             </div>
             <button
               onClick={handleLogout}
-              className="px-3 py-1.5 bg-[#282828] hover:bg-[#333333] rounded-full text-sm flex items-center gap-2 transition-colors"
+              className="px-3 py-1.5 bg-muted hover:bg-muted/80 rounded-full text-sm flex items-center gap-2 transition-colors"
             >
               <LogOut size={16} />
               Выйти
             </button>
           </div>
         </div>
-        <p className="text-sm text-gray-400">
+        <p className="text-sm text-muted-foreground">
           {userType === "tutor"
             ? "Управляйте своими студентами и занятиями"
             : "Отслеживайте свой путь обучения"}
@@ -235,11 +270,16 @@ export default function App() {
       <div className="px-8 pt-8">{renderContent()}</div>
 
       {/* Bottom Navigation */}
-      <div className="fixed bottom-0 left-0 right-0 bg-[#181818] border-t border-gray-800 z-50">
-        <div className="flex justify-around items-center h-16 max-w-md mx-auto">
+      <div className="fixed bottom-0 left-0 right-0 bg-card border-t border-border pb-safe z-50">
+        <div className="flex items-center justify-center h-16 max-w-lg mx-auto">
           {tabs.map((tab) => {
             const Icon = tab.icon;
-            const isActive = activeTab === tab.id;
+            // Highlight Menu tab if active tab is one of the nested menu items
+            const isActive =
+              tab.id === "menu"
+                ? menuTabs.includes(activeTab)
+                : activeTab === tab.id;
+
             return (
               <button
                 key={tab.id}
@@ -251,14 +291,14 @@ export default function App() {
                   className={`mb-1 ${
                     isActive
                       ? "text-[#1db954]"
-                      : "text-gray-400 group-hover:text-white"
+                      : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 />
                 <span
-                  className={`text-xs ${
+                  className={`text-[10px] whitespace-nowrap ${
                     isActive
                       ? "text-[#1db954]"
-                      : "text-gray-400 group-hover:text-white"
+                      : "text-muted-foreground group-hover:text-foreground"
                   }`}
                 >
                   {tab.label}

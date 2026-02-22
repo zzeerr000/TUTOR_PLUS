@@ -10,7 +10,7 @@ interface AuthProps {
       name: string;
       role: "tutor" | "student";
     },
-    token: string
+    token: string,
   ) => void;
 }
 
@@ -46,7 +46,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         err.message.includes("NetworkError")
       ) {
         setError(
-          "Не удается подключиться к серверу. Убедитесь, что бэкенд запущен на http://localhost:3000"
+          "Не удается подключиться к серверу. Убедитесь, что бэкенд запущен на http://localhost:3000",
         );
       } else {
         setError(err.message || "Что-то пошло не так");
@@ -57,199 +57,115 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   };
 
   return (
-    <div className="min-h-screen bg-[#121212] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-background flex items-center justify-center px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <h1 className="text-4xl font-bold mb-2 text-white">TutorHub</h1>
-          <p className="text-gray-400">
+          <h1 className="text-4xl font-bold mb-2 text-foreground">TutorHub</h1>
+          <p className="text-muted-foreground">
             {isLogin ? "С возвращением!" : "Создайте аккаунт"}
           </p>
         </div>
 
-        <div className="bg-[#181818] rounded-lg p-6 border border-gray-800">
+        <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             {!isLogin && (
-              <>
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">
-                    Полное имя
-                  </label>
-                  <div className="relative">
-                    <User
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                      size={20}
-                    />
-                    <input
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required={!isLogin}
-                      className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                      placeholder="Иван Иванов"
-                    />
-                  </div>
+              <div>
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  Имя
+                </label>
+                <div className="relative">
+                  <User
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                    size={20}
+                  />
+                  <input
+                    type="text"
+                    required
+                    className="w-full pl-10 pr-3 py-2 bg-muted border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-[#1db954] focus:border-transparent transition-colors"
+                    placeholder="Иван Иванов"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                  />
                 </div>
-
-                <div>
-                  <label className="block text-sm text-gray-400 mb-2">
-                    Роль
-                  </label>
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => setRole("tutor")}
-                      className={`p-4 rounded-lg border-2 transition-colors ${
-                        role === "tutor"
-                          ? "border-[#1db954] bg-[#1db954]/10"
-                          : "border-gray-700 bg-[#282828] hover:border-gray-600"
-                      }`}
-                    >
-                      <GraduationCap
-                        size={24}
-                        className={`mx-auto mb-2 ${
-                          role === "tutor" ? "text-[#1db954]" : "text-gray-400"
-                        }`}
-                      />
-                      <div
-                        className={`text-sm font-medium ${
-                          role === "tutor" ? "text-[#1db954]" : "text-gray-400"
-                        }`}
-                      >
-                        Преподаватель
-                      </div>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setRole("student")}
-                      className={`p-4 rounded-lg border-2 transition-colors ${
-                        role === "student"
-                          ? "border-[#1db954] bg-[#1db954]/10"
-                          : "border-gray-700 bg-[#282828] hover:border-gray-600"
-                      }`}
-                    >
-                      <BookOpen
-                        size={24}
-                        className={`mx-auto mb-2 ${
-                          role === "student"
-                            ? "text-[#1db954]"
-                            : "text-gray-400"
-                        }`}
-                      />
-                      <div
-                        className={`text-sm font-medium ${
-                          role === "student"
-                            ? "text-[#1db954]"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        Ученик
-                      </div>
-                    </button>
-                  </div>
-                </div>
-              </>
+              </div>
             )}
 
             <div>
-              <label className="block text-sm text-gray-400 mb-2">Email</label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Email
+              </label>
               <div className="relative">
                 <Mail
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                   size={20}
                 />
                 <input
                   type="email"
+                  required
+                  className="w-full pl-10 pr-3 py-2 bg-muted border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-[#1db954] focus:border-transparent transition-colors"
+                  placeholder="email@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  required
-                  className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                  placeholder="you@example.com"
                 />
               </div>
             </div>
 
-            {/* Role Selection for Login */}
-            {isLogin && (
+            <div>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Пароль
+              </label>
+              <div className="relative">
+                <Lock
+                  className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  size={20}
+                />
+                <input
+                  type="password"
+                  required
+                  className="w-full pl-10 pr-3 py-2 bg-muted border border-input rounded-md text-foreground focus:outline-none focus:ring-2 focus:ring-[#1db954] focus:border-transparent transition-colors"
+                  placeholder="••••••••"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+              </div>
+            </div>
+
+            {!isLogin && (
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
-                  Войти как
+                <label className="block text-sm font-medium text-muted-foreground mb-1">
+                  Я...
                 </label>
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-2 gap-4">
                   <button
                     type="button"
                     onClick={() => setRole("tutor")}
-                    className={`p-4 rounded-lg border-2 transition-colors ${
+                    className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
                       role === "tutor"
-                        ? "border-[#1db954] bg-[#1db954]/10"
-                        : "border-gray-700 bg-[#282828] hover:border-gray-600"
+                        ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
+                        : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
-                    <GraduationCap
-                      size={24}
-                      className={`mx-auto mb-2 ${
-                        role === "tutor" ? "text-[#1db954]" : "text-gray-400"
-                      }`}
-                    />
-                    <div
-                      className={`text-sm font-medium ${
-                        role === "tutor" ? "text-[#1db954]" : "text-gray-400"
-                      }`}
-                    >
-                      Преподаватель
-                    </div>
+                    <GraduationCap size={24} />
+                    Репетитор
                   </button>
                   <button
                     type="button"
                     onClick={() => setRole("student")}
-                    className={`p-4 rounded-lg border-2 transition-colors ${
+                    className={`px-4 py-3 rounded-md border text-sm font-medium transition-colors flex flex-col items-center justify-center gap-2 ${
                       role === "student"
-                        ? "border-[#1db954] bg-[#1db954]/10"
-                        : "border-gray-700 bg-[#282828] hover:border-gray-600"
+                        ? "bg-[#1db954]/10 border-[#1db954] text-[#1db954]"
+                        : "bg-muted border-input text-muted-foreground hover:bg-accent hover:text-accent-foreground"
                     }`}
                   >
-                    <BookOpen
-                      size={24}
-                      className={`mx-auto mb-2 ${
-                        role === "student"
-                          ? "text-[#1db954]"
-                          : "text-gray-400"
-                      }`}
-                    />
-                    <div
-                      className={`text-sm font-medium ${
-                        role === "student" ? "text-[#1db954]" : "text-gray-400"
-                      }`}
-                    >
-                      Ученик
-                    </div>
+                    <BookOpen size={24} />
+                    Ученик
                   </button>
                 </div>
               </div>
             )}
 
-            <div>
-              <label className="block text-sm text-gray-400 mb-2">
-                Пароль
-              </label>
-              <div className="relative">
-                <Lock
-                  className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
-                  size={20}
-                />
-                <input
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  required
-                  minLength={6}
-                  className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
-                  placeholder="••••••••"
-                />
-              </div>
-            </div>
-
             {error && (
-              <div className="bg-red-500/10 border border-red-500 rounded-lg p-4 text-red-500 text-base font-medium">
+              <div className="bg-destructive/10 border border-destructive rounded-lg p-3 text-destructive text-sm font-medium">
                 {error}
               </div>
             )}
@@ -257,9 +173,13 @@ export function Auth({ onAuthSuccess }: AuthProps) {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-[#1db954] rounded-lg py-3 text-white font-medium hover:bg-[#1ed760] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-[#1db954] text-white font-bold py-2 px-4 rounded-md hover:bg-[#1ed760] transition-colors focus:outline-none focus:ring-2 focus:ring-[#1db954] focus:ring-offset-2 focus:ring-offset-background mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Загрузка..." : isLogin ? "Войти" : "Зарегистрироваться"}
+              {loading
+                ? "Загрузка..."
+                : isLogin
+                  ? "Войти"
+                  : "Зарегистрироваться"}
             </button>
           </form>
 
@@ -269,20 +189,11 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                 setIsLogin(!isLogin);
                 setError("");
               }}
-              className="text-sm text-gray-400 hover:underline cursor-pointer transition-all duration-200"
-              style={{
-                color: "rgb(156 163 175)",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.color = "#1db954";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.color = "rgb(156 163 175)";
-              }}
+              className="text-sm text-muted-foreground hover:text-[#1db954] transition-colors"
             >
               {isLogin
-                ? "Нет аккаунта? Зарегистрироваться"
-                : "Уже есть аккаунт? Войти"}
+                ? "Нет аккаунта? Зарегистрируйтесь"
+                : "Уже есть аккаунт? Войдите"}
             </button>
           </div>
         </div>

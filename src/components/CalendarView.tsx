@@ -52,6 +52,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
     title: "Домашнее задание",
     description: "",
   });
+  const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
 
   useEffect(() => {
     loadEvents();
@@ -342,10 +343,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
     setShowDateDetails(false);
   };
 
-  const handleUpdateEvent = async (e: React.FormEvent) => {
-    e.preventDefault();
+  const processUpdate = async (recurring: boolean) => {
     if (!editingEvent) return;
-
     setError("");
     setSubmitting(true);
 
@@ -354,17 +353,22 @@ export function CalendarView({ userType }: CalendarViewProps) {
       const amount = parseFloat(newEvent.amount) || 0;
       localStorage.setItem("last_lesson_price", newEvent.amount);
 
-      await api.updateEvent(editingEvent.id, {
-        title: newEvent.title || newEvent.subject,
-        date: newEvent.date,
-        time: timeStr,
-        subject: newEvent.subject,
-        studentId: parseInt(newEvent.studentId),
-        color: newEvent.color,
-        amount: amount,
-        duration: parseInt(newEvent.duration) || 60,
-      });
+      await api.updateEvent(
+        editingEvent.id,
+        {
+          title: newEvent.title || newEvent.subject,
+          date: newEvent.date,
+          time: timeStr,
+          subject: newEvent.subject,
+          studentId: parseInt(newEvent.studentId),
+          color: newEvent.color,
+          amount: amount,
+          duration: parseInt(newEvent.duration) || 60,
+        },
+        recurring,
+      );
       setShowAddDialog(false);
+      setShowUpdateConfirm(false);
       setEditingEvent(null);
       setNewEvent({
         title: "",
@@ -384,6 +388,38 @@ export function CalendarView({ userType }: CalendarViewProps) {
     } finally {
       setSubmitting(false);
     }
+  };
+
+  const handleUpdateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingEvent) return;
+
+    // Check if recurring
+    const currentDay = new Date(editingEvent.date).getDay();
+    const isRecurring = events.some((e) => {
+      // Skip same event
+      if (e.id === editingEvent.id) return false;
+
+      // Loose equality for IDs to handle string/number mismatch
+      const sameStudent = e.studentId == editingEvent.studentId;
+      const sameTime = e.time === editingEvent.time;
+
+      // Check day of week
+      const day = new Date(e.date).getDay();
+      const sameDay = day === currentDay;
+
+      if (sameStudent && sameTime && sameDay) {
+        return true;
+      }
+      return false;
+    });
+
+    if (isRecurring) {
+      setShowUpdateConfirm(true);
+      return;
+    }
+
+    await processUpdate(false);
   };
 
   const isEventPast = (eventDate: string, eventTime: string) => {
@@ -455,13 +491,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
     <div className="space-y-4 pb-6">
       {/* View Type Selector */}
       <div className="flex items-center justify-between">
-        <div className="flex gap-2 bg-[#181818] rounded-lg p-1">
+        <div className="flex gap-2 bg-card border border-border rounded-lg p-1">
           <button
             onClick={() => setViewType("month")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               viewType === "month"
                 ? "bg-[#1db954] text-white"
-                : "text-gray-400 hover:text-white"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Месяц
@@ -471,7 +507,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               viewType === "week"
                 ? "bg-[#1db954] text-white"
-                : "text-gray-400 hover:text-white"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             Неделя
@@ -481,14 +517,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
               viewType === "day"
                 ? "bg-[#1db954] text-white"
-                : "text-gray-400 hover:text-white"
+                : "text-muted-foreground hover:text-foreground"
             }`}
           >
             День
           </button>
         </div>
         <div className="flex items-center gap-2">
-          <h2 className="text-xl">
+          <h2 className="text-xl font-semibold">
             {viewType === "month"
               ? monthName
               : viewType === "week"
@@ -503,15 +539,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
           <div className="flex gap-2">
             <button
               onClick={viewType === "month" ? prevMonth : prevWeek}
-              className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
-              <ChevronLeft size={20} />
+              <ChevronLeft size={20} className="text-foreground" />
             </button>
             <button
               onClick={viewType === "month" ? nextMonth : nextWeek}
-              className="w-8 h-8 rounded-full bg-[#181818] flex items-center justify-center hover:bg-[#282828]"
+              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
-              <ChevronRight size={20} />
+              <ChevronRight size={20} className="text-foreground" />
             </button>
           </div>
         </div>
@@ -519,11 +555,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
       {/* Calendar Grid */}
       {viewType === "month" && (
-        <div className="bg-[#181818] rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           {/* Day Headers */}
           <div className="grid grid-cols-7 gap-2 mb-2">
             {["Пн", "Вт", "Ср", "Чт", "Пт", "Сб", "Вс"].map((day) => (
-              <div key={day} className="text-center text-xs text-gray-400 py-2">
+              <div
+                key={day}
+                className="text-center text-xs text-muted-foreground py-2"
+              >
                 {day}
               </div>
             ))}
@@ -557,12 +596,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }
                   }}
                   className={`aspect-square rounded-lg p-1 text-center relative ${
-                    isToday ? "bg-[#1db954]" : "bg-[#282828] hover:bg-[#333333]"
+                    isToday ? "bg-[#1db954]" : "bg-muted hover:bg-muted/80"
                   } transition-colors cursor-pointer`}
                 >
                   <div
                     className={`text-sm ${
-                      isToday ? "text-white" : "text-gray-300"
+                      isToday ? "text-white" : "text-muted-foreground"
                     }`}
                   >
                     {day}
@@ -587,7 +626,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
       {/* Week View */}
       {viewType === "week" && (
-        <div className="bg-[#181818] rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <div className="grid grid-cols-7 gap-2">
             {weekDates.map((date, idx) => {
               const dayEvents = getEventsForWeekDate(date);
@@ -603,7 +642,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               return (
                 <div
                   key={idx}
-                  className="border-r border-gray-800 last:border-r-0"
+                  className="border-r border-border last:border-r-0"
                 >
                   <div
                     className={`text-center py-2 mb-2 ${
@@ -611,7 +650,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }`}
                   >
                     <div
-                      className={`text-xs text-gray-400 ${
+                      className={`text-xs text-muted-foreground ${
                         isToday ? "text-white" : ""
                       }`}
                     >
@@ -619,7 +658,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     </div>
                     <div
                       className={`text-lg font-semibold ${
-                        isToday ? "text-white" : "text-gray-300"
+                        isToday ? "text-white" : "text-muted-foreground"
                       }`}
                     >
                       {date.getDate()}
@@ -634,7 +673,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }}
                   >
                     {dayEvents.length === 0 && userType === "tutor" && (
-                      <div className="text-xs text-gray-500 text-center py-2">
+                      <div className="text-xs text-muted-foreground text-center py-2">
                         Нажмите, чтобы добавить
                       </div>
                     )}
@@ -685,7 +724,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
       {/* Day View */}
       {viewType === "day" && (
-        <div className="bg-[#181818] rounded-lg p-4">
+        <div className="bg-card border border-border rounded-lg p-4">
           <div className="space-y-2">
             {Array.from({ length: 24 }).map((_, hour) => {
               const dateStr = `${currentDate.getFullYear()}-${String(
@@ -726,7 +765,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               return (
                 <div
                   key={hour}
-                  className="flex border-b border-gray-800 pb-2 min-h-[60px]"
+                  className="flex border-b border-border pb-2 min-h-[60px]"
                   onClick={() => {
                     if (userType === "tutor") {
                       const timeStr = `${hour.toString().padStart(2, "0")}:00`;
@@ -740,12 +779,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }
                   }}
                 >
-                  <div className="w-20 text-sm text-gray-400">
+                  <div className="w-20 text-sm text-muted-foreground">
                     {hour.toString().padStart(2, "0")}:00
                   </div>
                   <div className="flex-1 space-y-1">
                     {hourEvents.length === 0 && userType === "tutor" && (
-                      <div className="text-xs text-gray-500 py-2">
+                      <div className="text-xs text-muted-foreground py-2">
                         Нажмите, чтобы добавить занятие
                       </div>
                     )}
@@ -799,14 +838,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
         <h3 className="text-lg mb-3">События на этой неделе</h3>
         <div className="space-y-2">
           {loading ? (
-            <div className="text-center text-gray-400 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Загрузка событий...
             </div>
           ) : (
             (() => {
               const weekEvents = getCurrentWeekEvents();
               return weekEvents.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">
+                <div className="text-center text-muted-foreground py-8">
                   На эту неделю событий не запланировано
                 </div>
               ) : (
@@ -815,7 +854,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   return (
                     <div
                       key={event.id}
-                      className={`bg-[#181818] rounded-lg p-4 flex items-center gap-3 hover:bg-[#282828] transition-colors ${
+                      className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
                         past ? "opacity-60" : ""
                       }`}
                     >
@@ -825,20 +864,20 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       />
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-1">
-                          <div className="text-sm text-gray-400">
+                          <div className="text-sm text-muted-foreground">
                             {new Date(event.date).toLocaleDateString("ru-RU", {
                               month: "short",
                               day: "numeric",
                             })}{" "}
                             • {event.time}
                             {event.duration && (
-                              <span className="ml-1 text-gray-500">
+                              <span className="ml-1 text-muted-foreground/80">
                                 ({event.duration} мин)
                               </span>
                             )}
                           </div>
                           {past ? (
-                            <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
+                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
                               Завершено
                             </span>
                           ) : (
@@ -848,7 +887,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           )}
                         </div>
                         <div
-                          className={past ? "text-gray-400 line-through" : ""}
+                          className={
+                            past ? "text-muted-foreground line-through" : ""
+                          }
                         >
                           {event.title}
                         </div>
@@ -856,7 +897,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       {userType === "tutor" && (
                         <button
                           onClick={() => setShowDeleteConfirm(event.id)}
-                          className="text-gray-400 hover:text-red-500 transition-colors"
+                          className="text-muted-foreground hover:text-red-500 transition-colors"
                         >
                           <X size={18} />
                         </button>
@@ -873,7 +914,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {/* Date Details Modal */}
       {showDateDetails && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800 max-h-[90vh] overflow-y-auto">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between mb-4">
               <div>
                 <h2 className="text-xl font-semibold">
@@ -908,7 +949,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     setSelectedDate(null);
                     setSelectedDateEvents([]);
                   }}
-                  className="text-gray-400 hover:text-white"
+                  className="text-muted-foreground hover:text-foreground"
                 >
                   <X size={20} />
                 </button>
@@ -917,7 +958,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
             <div className="space-y-3">
               {selectedDateEvents.length === 0 ? (
-                <div className="text-center text-gray-400 py-8">
+                <div className="text-center text-muted-foreground py-8">
                   На эту дату занятий не запланировано
                   {userType === "tutor" && (
                     <div className="mt-2">
@@ -944,7 +985,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   return (
                     <div
                       key={event.id}
-                      className={`bg-[#282828] rounded-lg p-4 border-l-4 relative group ${
+                      className={`bg-muted/50 rounded-lg p-4 border-l-4 relative group ${
                         past ? "opacity-60" : ""
                       }`}
                       style={{ borderLeftColor: event.color || "#1db954" }}
@@ -954,13 +995,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
                           <div className="flex items-center gap-2 mb-1">
                             <div
                               className={`font-semibold text-lg ${
-                                past ? "line-through text-gray-400" : ""
+                                past ? "line-through text-muted-foreground" : ""
                               }`}
                             >
                               {event.subject || event.title}
                             </div>
                             {past ? (
-                              <span className="text-[10px] bg-gray-700 text-gray-300 px-1.5 py-0.5 rounded uppercase font-bold">
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
                                 Завершено
                               </span>
                             ) : (
@@ -969,18 +1010,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
                               </span>
                             )}
                           </div>
-                          <div className="text-sm text-gray-400 flex items-center gap-2">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2">
                             <Clock size={14} />
                             <span className="font-medium">
                               {event.time}
                               {event.duration && (
-                                <span className="ml-1 text-gray-500 font-normal">
+                                <span className="ml-1 text-muted-foreground/80 font-normal">
                                   ({event.duration} мин)
                                 </span>
                               )}
                             </span>
                           </div>
-                          <div className="text-sm text-gray-400 flex items-center gap-2 mt-1">
+                          <div className="text-sm text-muted-foreground flex items-center gap-2 mt-1">
                             <User size={14} />
                             <span>
                               {userType === "tutor"
@@ -996,7 +1037,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             </div>
                           )}
                           {event.paymentPending && (
-                            <div className="mt-3 pt-3 border-t border-gray-700 flex items-center justify-between">
+                            <div className="mt-3 pt-3 border-t border-border flex items-center justify-between">
                               <span className="text-xs bg-yellow-500/20 text-yellow-500 px-2 py-1 rounded">
                                 Ожидает оплаты
                               </span>
@@ -1027,7 +1068,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             </div>
                           )}
                           {past && userType === "tutor" && (
-                            <div className="mt-2 pt-2 border-t border-gray-800">
+                            <div className="mt-2 pt-2 border-t border-border">
                               <button
                                 onClick={() => {
                                   setShowHWDialog(event);
@@ -1048,7 +1089,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                                 handleEditEvent(event);
                                 setShowDateDetails(false);
                               }}
-                              className="text-gray-400 hover:text-[#1db954] transition-colors"
+                              className="text-muted-foreground hover:text-[#1db954] transition-colors"
                               title="Редактировать"
                             >
                               <Edit size={16} />
@@ -1058,7 +1099,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                                 setShowDeleteConfirm(event.id);
                                 setShowDateDetails(false);
                               }}
-                              className="text-gray-400 hover:text-red-500 transition-colors"
+                              className="text-muted-foreground hover:text-red-500 transition-colors"
                               title="Удалить"
                             >
                               <Trash2 size={16} />
@@ -1091,7 +1132,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {/* Add Lesson Dialog */}
       {showAddDialog && userType === "tutor" && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">
                 {editingEvent
@@ -1114,20 +1155,23 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     duration: "60",
                   });
                 }}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleAddEvent} className="space-y-4">
+            <form
+              onSubmit={editingEvent ? handleUpdateEvent : handleAddEvent}
+              className="space-y-4"
+            >
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Ученик
                 </label>
                 <div className="relative">
                   <User
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={20}
                   />
                   <select
@@ -1154,7 +1198,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       }
                     }}
                     required
-                    className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
+                    className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
                   >
                     <option value="">Выберите ученика</option>
                     {students.map((student) => (
@@ -1167,12 +1211,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Предмет
                 </label>
                 <div className="relative">
                   <BookOpen
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={20}
                   />
                   <input
@@ -1186,7 +1230,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       })
                     }
                     required
-                    className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     placeholder="Математика"
                   />
                 </div>
@@ -1194,7 +1238,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Дата
                   </label>
                   <input
@@ -1205,16 +1249,16 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     }
                     required
                     min={new Date().toISOString().split("T")[0]}
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Время
                   </label>
                   <div className="relative">
                     <Clock
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                       size={20}
                     />
                     <input
@@ -1224,7 +1268,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         setNewEvent({ ...newEvent, time: e.target.value })
                       }
                       required
-                      className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     />
                   </div>
                 </div>
@@ -1232,7 +1276,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Стоимость занятия
                   </label>
                   <input
@@ -1244,17 +1288,17 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     required
                     min="0"
                     step="0.01"
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     placeholder={`${currency} 0`}
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Длительность (мин)
                   </label>
                   <div className="relative">
                     <Clock
-                      className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                      className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                       size={20}
                     />
                     <input
@@ -1265,7 +1309,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       }
                       required
                       min="1"
-                      className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                      className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                       placeholder="60"
                     />
                   </div>
@@ -1274,7 +1318,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
               {!editingEvent && (
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Повторение
                   </label>
                   <div className="relative">
@@ -1289,7 +1333,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                             | "month",
                         })
                       }
-                      className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
+                      className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
                     >
                       <option value="once">Один раз</option>
                       <option value="week">Еженедельно</option>
@@ -1300,7 +1344,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
               )}
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">Цвет</label>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Цвет
+                </label>
                 <div className="flex gap-2">
                   {["#1db954", "#2e77d0", "#af2896", "#e8115b", "#f59e0b"].map(
                     (color) => (
@@ -1310,8 +1356,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         onClick={() => setNewEvent({ ...newEvent, color })}
                         className={`w-10 h-10 rounded-lg border-2 ${
                           newEvent.color === color
-                            ? "border-white"
-                            : "border-gray-600"
+                            ? "border-foreground"
+                            : "border-border"
                         }`}
                         style={{ backgroundColor: color }}
                       />
@@ -1345,7 +1391,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       duration: "60",
                     });
                   }}
-                  className="flex-1 bg-[#282828] rounded-lg py-3 text-white hover:bg-[#333333] transition-colors"
+                  className="flex-1 bg-muted rounded-lg py-3 text-foreground hover:bg-muted/80 transition-colors"
                 >
                   Отмена
                 </button>
@@ -1371,24 +1417,24 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {/* Homework Dialog */}
       {showHWDialog && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Задать домашнее задание</h2>
               <button
                 onClick={() => setShowHWDialog(null)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="mb-4 p-3 bg-[#282828] rounded-lg text-sm">
-              <div className="text-gray-400">Занятие:</div>
+            <div className="mb-4 p-3 bg-muted rounded-lg text-sm">
+              <div className="text-muted-foreground">Занятие:</div>
               <div className="font-medium text-[#1db954]">
                 {showHWDialog.subject} (
                 {new Date(showHWDialog.date).toLocaleDateString("ru-RU")})
               </div>
-              <div className="text-gray-400 mt-1">Ученик:</div>
+              <div className="text-muted-foreground mt-1">Ученик:</div>
               <div className="font-medium">
                 {showHWDialog.student?.studentAlias ||
                   showHWDialog.student?.name}
@@ -1397,7 +1443,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">
+                <label className="block text-sm text-muted-foreground mb-1.5">
                   Заголовок задания
                 </label>
                 <input
@@ -1406,13 +1452,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   onChange={(e) =>
                     setHwDetails({ ...hwDetails, title: e.target.value })
                   }
-                  className="w-full bg-[#282828] rounded-lg px-4 py-2 text-white outline-none focus:ring-1 focus:ring-[#1db954] text-sm"
+                  className="w-full bg-muted rounded-lg px-4 py-2 text-foreground outline-none focus:ring-1 focus:ring-[#1db954] text-sm"
                   placeholder="Домашнее задание"
                 />
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-1.5">
+                <label className="block text-sm text-muted-foreground mb-1.5">
                   Что нужно сделать
                 </label>
                 <textarea
@@ -1420,7 +1466,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   onChange={(e) =>
                     setHwDetails({ ...hwDetails, description: e.target.value })
                   }
-                  className="w-full bg-[#282828] rounded-lg px-4 py-2 text-white outline-none focus:ring-1 focus:ring-[#1db954] text-sm min-h-[100px] resize-none"
+                  className="w-full bg-muted rounded-lg px-4 py-2 text-foreground outline-none focus:ring-1 focus:ring-[#1db954] text-sm min-h-[100px] resize-none"
                   placeholder="Опишите детали задания..."
                 />
               </div>
@@ -1470,12 +1516,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       alert("Не удалось сохранить статус");
                     }
                   }}
-                  className="flex-1 py-3 bg-[#282828] rounded-lg text-white font-medium hover:bg-[#333333] transition-colors"
+                  className="flex-1 py-3 bg-muted rounded-lg text-foreground font-medium hover:bg-muted/80 transition-colors"
                 >
                   Нет ДЗ
                 </button>
               </div>
-              <p className="text-xs text-gray-500 text-center">
+              <p className="text-xs text-muted-foreground text-center">
                 Срок сдачи будет автоматически установлен на дату следующего
                 занятия.
               </p>
@@ -1487,15 +1533,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#181818] rounded-xl p-6 w-full max-w-sm border border-gray-800 shadow-2xl">
+          <div className="bg-card rounded-xl p-6 w-full max-w-sm border border-border shadow-2xl">
             <h3 className="text-xl font-bold mb-2">Удалить занятие</h3>
-            <p className="text-gray-400 mb-6">
+            <p className="text-muted-foreground mb-6">
               Как вы хотите удалить это занятие?
             </p>
             <div className="space-y-3">
               <button
                 onClick={() => handleDeleteEvent(showDeleteConfirm, false)}
-                className="w-full bg-[#282828] text-white py-3 rounded-lg font-medium hover:bg-[#333333] transition-colors"
+                className="w-full bg-muted text-foreground py-3 rounded-lg font-medium hover:bg-muted/80 transition-colors"
               >
                 Удалить только это занятие
               </button>
@@ -1507,7 +1553,38 @@ export function CalendarView({ userType }: CalendarViewProps) {
               </button>
               <button
                 onClick={() => setShowDeleteConfirm(null)}
-                className="w-full text-gray-400 py-2 hover:text-white transition-colors"
+                className="w-full text-muted-foreground py-2 hover:text-foreground transition-colors"
+              >
+                Отмена
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      {/* Update Recurring Confirm Dialog */}
+      {showUpdateConfirm && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+          <div className="bg-card rounded-xl p-6 w-full max-w-sm border border-border shadow-2xl">
+            <h3 className="text-xl font-bold mb-2">Обновить занятие</h3>
+            <p className="text-muted-foreground mb-6">
+              Это повторяющееся занятие. Как вы хотите применить изменения?
+            </p>
+            <div className="space-y-3">
+              <button
+                onClick={() => processUpdate(false)}
+                className="w-full bg-muted text-foreground py-3 rounded-lg font-medium hover:bg-muted/80 transition-colors"
+              >
+                Только это занятие
+              </button>
+              <button
+                onClick={() => processUpdate(true)}
+                className="w-full bg-[#1db954] text-white py-3 rounded-lg font-medium hover:bg-[#1ed760] transition-colors"
+              >
+                Все будущие повторения
+              </button>
+              <button
+                onClick={() => setShowUpdateConfirm(false)}
+                className="w-full text-muted-foreground py-2 hover:text-foreground transition-colors"
               >
                 Отмена
               </button>

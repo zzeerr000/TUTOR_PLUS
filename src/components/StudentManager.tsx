@@ -312,7 +312,7 @@ export function StudentManager() {
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <div className="text-gray-400">Загрузка учеников...</div>
+        <div className="text-muted-foreground">Загрузка учеников...</div>
       </div>
     );
   }
@@ -322,40 +322,40 @@ export function StudentManager() {
       {/* Search */}
       <div className="relative">
         <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
           size={20}
         />
         <input
           type="text"
           placeholder="Поиск учеников..."
-          className="w-full bg-[#181818] rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954]"
+          className="w-full bg-card rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] border border-border text-foreground placeholder:text-muted-foreground"
         />
       </div>
 
       {/* Summary Stats */}
       <div className="grid grid-cols-3 gap-3">
-        <div className="bg-[#181818] rounded-lg p-3 text-center">
+        <div className="bg-card rounded-lg p-3 text-center border border-border">
           <div className="text-2xl text-[#1db954] mb-1">{stats.total}</div>
-          <div className="text-xs text-gray-400">Всего учеников</div>
+          <div className="text-xs text-muted-foreground">Всего учеников</div>
         </div>
-        <div className="bg-[#181818] rounded-lg p-3 text-center">
+        <div className="bg-card rounded-lg p-3 text-center border border-border">
           <div className="text-2xl text-[#2e77d0] mb-1">
             {stats.lessonsToday}
           </div>
-          <div className="text-xs text-gray-400">Занятий сегодня</div>
+          <div className="text-xs text-muted-foreground">Занятий сегодня</div>
         </div>
-        <div className="bg-[#181818] rounded-lg p-3 text-center">
+        <div className="bg-card rounded-lg p-3 text-center border border-border">
           <div className="text-2xl text-[#af2896] mb-1">
             {stats.avgProgress}%
           </div>
-          <div className="text-xs text-gray-400">Средний прогресс</div>
+          <div className="text-xs text-muted-foreground">Средний прогресс</div>
         </div>
       </div>
 
       {/* Student List */}
       <div className="space-y-3">
         {students.length === 0 ? (
-          <div className="text-center text-gray-400 py-8">
+          <div className="text-center text-muted-foreground py-8">
             Ученики не найдены
           </div>
         ) : (
@@ -363,11 +363,11 @@ export function StudentManager() {
             <div
               key={student.id}
               onClick={() => loadStudentDetails(student)}
-              className="bg-[#181818] rounded-lg p-4 hover:bg-[#282828] transition-colors group relative cursor-pointer"
+              className="bg-card rounded-lg p-4 hover:bg-muted/50 transition-colors group relative cursor-pointer border border-border"
             >
               <div className="flex items-start gap-3 mb-3">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center shrink-0"
+                  className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white"
                   style={{ backgroundColor: student.color }}
                 >
                   <span>{student.avatar}</span>
@@ -375,9 +375,11 @@ export function StudentManager() {
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between mb-1">
                     <div className="flex flex-col">
-                      <span className="font-medium">{student.name}</span>
+                      <span className="font-medium text-foreground">
+                        {student.name}
+                      </span>
                       {student.name !== student.originalName && (
-                        <span className="text-xs text-gray-500">
+                        <span className="text-xs text-muted-foreground">
                           {student.originalName}
                         </span>
                       )}
@@ -407,7 +409,7 @@ export function StudentManager() {
                           });
                           setShowEditDialog(true);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-white transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                         title="Переименовать"
                       >
                         <Edit2 size={14} />
@@ -422,7 +424,7 @@ export function StudentManager() {
                             });
                             setShowLinkDialog(true);
                           }}
-                          className="p-1.5 text-gray-400 hover:text-[#1db954] transition-colors"
+                          className="p-1.5 text-muted-foreground hover:text-[#1db954] transition-colors"
                           title="Привязать по коду"
                         >
                           <Link size={14} />
@@ -433,14 +435,14 @@ export function StudentManager() {
                           e.stopPropagation();
                           handleDeleteStudent(student.id, student.name);
                         }}
-                        className="p-1.5 text-gray-400 hover:text-red-500 transition-colors"
+                        className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors"
                         title="Удалить ученика"
                       >
                         <Trash2 size={14} />
                       </button>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-gray-400">
+                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
                     <Clock size={14} />
                     <span>{student.nextLesson}</span>
                   </div>
@@ -449,25 +451,29 @@ export function StudentManager() {
 
               {/* Homework Status */}
               <div className="flex items-center gap-4 mb-3">
-                <div className="flex-1 bg-[#282828] rounded-lg p-2 text-center">
-                  <div className="text-xs text-gray-500 mb-0.5 uppercase font-bold tracking-wider">
+                <div className="flex-1 bg-muted rounded-lg p-2 text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
                     Активные ДЗ
                   </div>
                   <div
                     className={`text-lg font-bold ${
-                      student.activeHW > 0 ? "text-[#ff9500]" : "text-gray-400"
+                      student.activeHW > 0
+                        ? "text-[#ff9500]"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {student.activeHW}
                   </div>
                 </div>
-                <div className="flex-1 bg-[#282828] rounded-lg p-2 text-center">
-                  <div className="text-xs text-gray-500 mb-0.5 uppercase font-bold tracking-wider">
+                <div className="flex-1 bg-muted rounded-lg p-2 text-center">
+                  <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
                     Просрочено
                   </div>
                   <div
                     className={`text-lg font-bold ${
-                      student.missedHW > 0 ? "text-red-500" : "text-gray-400"
+                      student.missedHW > 0
+                        ? "text-red-500"
+                        : "text-muted-foreground"
                     }`}
                   >
                     {student.missedHW}
@@ -477,11 +483,11 @@ export function StudentManager() {
 
               {/* Stats */}
               <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1 text-gray-400">
+                <div className="flex items-center gap-1 text-muted-foreground">
                   <BookOpen size={14} />
                   <span>{student.lessonsCount} занятий проведено</span>
                 </div>
-                <div className="flex items-center gap-1 text-gray-400">
+                <div className="flex items-center gap-1 text-muted-foreground">
                   <CheckCircle size={14} />
                   <span>{student.status}</span>
                 </div>
@@ -494,17 +500,19 @@ export function StudentManager() {
       {/* Add Student Button */}
       <button
         onClick={() => setShowAddDialog(true)}
-        className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors"
+        className="fixed right-4 bottom-20 w-14 h-14 bg-[#1db954] rounded-full flex items-center justify-center shadow-lg hover:bg-[#1ed760] transition-colors text-white"
       >
         <Plus size={24} />
       </button>
 
       {/* Add Student Dialog */}
       {showAddDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Добавить нового ученика</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Добавить нового ученика
+              </h2>
               <button
                 onClick={() => {
                   setShowAddDialog(false);
@@ -517,7 +525,7 @@ export function StudentManager() {
                     defaultDuration: "60",
                   });
                 }}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
@@ -525,12 +533,12 @@ export function StudentManager() {
 
             <form onSubmit={handleAddStudent} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Полное имя
                 </label>
                 <div className="relative">
                   <User
-                    className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+                    className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={20}
                   />
                   <input
@@ -540,7 +548,7 @@ export function StudentManager() {
                       setNewStudent({ ...newStudent, name: e.target.value })
                     }
                     required
-                    className="w-full bg-[#282828] rounded-lg pl-10 pr-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     placeholder="Иван Иванов"
                   />
                 </div>
@@ -548,7 +556,7 @@ export function StudentManager() {
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Предмет по умолчанию
                   </label>
                   <input
@@ -560,12 +568,12 @@ export function StudentManager() {
                         defaultSubject: e.target.value,
                       })
                     }
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     placeholder="Математика, Английский..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Цена за занятие
                   </label>
                   <input
@@ -577,14 +585,14 @@ export function StudentManager() {
                         defaultPrice: e.target.value,
                       })
                     }
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     placeholder={`${currency} 0`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Длительность по умолчанию (мин)
                 </label>
                 <select
@@ -595,7 +603,7 @@ export function StudentManager() {
                       defaultDuration: e.target.value,
                     })
                   }
-                  className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                 >
                   <option value="30">30 минут</option>
                   <option value="45">45 минут</option>
@@ -621,20 +629,22 @@ export function StudentManager() {
 
       {/* Student Details Modal */}
       {selectedStudent && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-100 flex items-center justify-center p-4">
-          <div className="bg-[#121212] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-white/10">
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-background rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl border border-border">
             {/* Modal Header */}
-            <div className="p-6 border-b border-white/10 flex items-center justify-between bg-[#181818] rounded-t-2xl">
+            <div className="p-6 border-b border-border flex items-center justify-between bg-card rounded-t-2xl">
               <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
                   style={{ backgroundColor: selectedStudent.color }}
                 >
                   {selectedStudent.avatar}
                 </div>
                 <div>
-                  <h2 className="text-xl font-bold">{selectedStudent.name}</h2>
-                  <p className="text-gray-400 text-sm">
+                  <h2 className="text-xl font-bold text-foreground">
+                    {selectedStudent.name}
+                  </h2>
+                  <p className="text-muted-foreground text-sm">
                     {selectedStudent.subject} • {selectedStudent.status}
                   </p>
                 </div>
@@ -644,7 +654,7 @@ export function StudentManager() {
                   setSelectedStudent(null);
                   setExpandedItemId(null);
                 }}
-                className="p-2 hover:bg-white/10 rounded-full transition-colors"
+                className="p-2 hover:bg-muted rounded-full transition-colors text-muted-foreground hover:text-foreground"
               >
                 <X size={24} />
               </button>
@@ -655,38 +665,38 @@ export function StudentManager() {
               {loadingStats ? (
                 <div className="flex flex-col items-center justify-center py-20 gap-4">
                   <div className="w-10 h-10 border-4 border-[#1db954] border-t-transparent rounded-full animate-spin" />
-                  <p className="text-gray-400">Загрузка данных...</p>
+                  <p className="text-muted-foreground">Загрузка данных...</p>
                 </div>
               ) : studentStats ? (
                 <div className="space-y-8">
                   {/* Summary Stats */}
                   <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                    <div className="bg-[#181818] p-4 rounded-xl border border-white/5">
-                      <div className="text-gray-400 text-xs uppercase font-bold mb-1">
+                    <div className="bg-card p-4 rounded-xl border border-border">
+                      <div className="text-muted-foreground text-xs uppercase font-bold mb-1">
                         Всего занятий
                       </div>
-                      <div className="text-2xl font-bold">
+                      <div className="text-2xl font-bold text-foreground">
                         {studentStats.lessonsCount}
                       </div>
                     </div>
-                    <div className="bg-[#181818] p-4 rounded-xl border border-white/5">
-                      <div className="text-gray-400 text-xs uppercase font-bold mb-1">
+                    <div className="bg-card p-4 rounded-xl border border-border">
+                      <div className="text-muted-foreground text-xs uppercase font-bold mb-1">
                         Активные ДЗ
                       </div>
                       <div className="text-2xl font-bold text-[#ff9500]">
                         {studentStats.activeHomework}
                       </div>
                     </div>
-                    <div className="bg-[#181818] p-4 rounded-xl border border-white/5">
-                      <div className="text-gray-400 text-xs uppercase font-bold mb-1">
+                    <div className="bg-card p-4 rounded-xl border border-border">
+                      <div className="text-muted-foreground text-xs uppercase font-bold mb-1">
                         Просрочено ДЗ
                       </div>
                       <div className="text-2xl font-bold text-red-500">
                         {studentStats.missedHomework}
                       </div>
                     </div>
-                    <div className="bg-[#181818] p-4 rounded-xl border border-white/5">
-                      <div className="text-gray-400 text-xs uppercase font-bold mb-1">
+                    <div className="bg-card p-4 rounded-xl border border-border">
+                      <div className="text-muted-foreground text-xs uppercase font-bold mb-1">
                         Выполнено ДЗ
                       </div>
                       <div className="text-2xl font-bold text-[#1db954]">
@@ -697,7 +707,7 @@ export function StudentManager() {
 
                   {/* Unified History Feed */}
                   <div>
-                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2">
+                    <h3 className="text-lg font-bold mb-4 flex items-center gap-2 text-foreground">
                       <Clock size={20} className="text-[#1db954]" />
                       История событий
                     </h3>
@@ -726,6 +736,74 @@ export function StudentManager() {
                         // Process lessons
                         if (studentStats.lessonsHistory) {
                           const lessons = [...studentStats.lessonsHistory];
+
+                          // Sort lessons by date ascending
+                          lessons.sort((a, b) => {
+                            const dateA = a.date.split("T")[0];
+                            const timeA = a.time.split(":");
+                            const hA = timeA[0].padStart(2, "0");
+                            const mA = timeA[1]
+                              ? timeA[1].split(" ")[0].padStart(2, "0")
+                              : "00";
+
+                            const dateB = b.date.split("T")[0];
+                            const timeB = b.time.split(":");
+                            const hB = timeB[0].padStart(2, "0");
+                            const mB = timeB[1]
+                              ? timeB[1].split(" ")[0].padStart(2, "0")
+                              : "00";
+
+                            return (
+                              new Date(`${dateA}T${hA}:${mA}:00`).getTime() -
+                              new Date(`${dateB}T${hB}:${mB}:00`).getTime()
+                            );
+                          });
+
+                          // Check for missing homeworks in past lessons
+                          lessons.forEach((lesson, index) => {
+                            const eventDate = lesson.date.split("T")[0];
+                            const timeParts = lesson.time.split(":");
+                            const h = timeParts[0].padStart(2, "0");
+                            const m = timeParts[1]
+                              ? timeParts[1].split(" ")[0].padStart(2, "0")
+                              : "00";
+                            const lessonDateTime = new Date(
+                              `${eventDate}T${h}:${m}:00`,
+                            );
+
+                            if (lessonDateTime >= now) return;
+
+                            if (!homeworkByLessonId.has(lesson.id)) {
+                              const nextLesson = lessons[index + 1];
+                              if (nextLesson) {
+                                const nextEventDate =
+                                  nextLesson.date.split("T")[0];
+                                const nextTimeParts =
+                                  nextLesson.time.split(":");
+                                const nextH = nextTimeParts[0].padStart(2, "0");
+                                const nextM = nextTimeParts[1]
+                                  ? nextTimeParts[1]
+                                      .split(" ")[0]
+                                      .padStart(2, "0")
+                                  : "00";
+                                const nextLessonDateTime = new Date(
+                                  `${nextEventDate}T${nextH}:${nextM}:00`,
+                                );
+
+                                if (nextLessonDateTime <= now) {
+                                  homeworkByLessonId.set(lesson.id, [
+                                    {
+                                      id: `virtual-${lesson.id}`,
+                                      status: "no_homework",
+                                      title: "Домашнее задание не задано",
+                                      createdAt: lesson.date,
+                                    },
+                                  ]);
+                                }
+                              }
+                            }
+                          });
+
                           // Filter for closest future lesson + all past lessons
                           const pastLessons = [];
                           const futureLessons = [];
@@ -797,7 +875,7 @@ export function StudentManager() {
 
                         if (historyItems.length === 0) {
                           return (
-                            <div className="text-center py-10 text-gray-500">
+                            <div className="text-center py-10 text-muted-foreground">
                               История пуста
                             </div>
                           );
@@ -823,7 +901,7 @@ export function StudentManager() {
                             return (
                               <div
                                 key={`lesson-${item.id}`}
-                                className="bg-[#181818] rounded-xl border border-white/5 overflow-hidden transition-all hover:border-white/10"
+                                className="bg-card rounded-xl border border-border overflow-hidden transition-all hover:border-border/80"
                               >
                                 <div
                                   onClick={() =>
@@ -840,10 +918,10 @@ export function StudentManager() {
                                       <Calendar size={18} />
                                     </div>
                                     <div>
-                                      <div className="font-bold">
+                                      <div className="font-bold text-foreground">
                                         {item.title || "Занятие"}
                                       </div>
-                                      <div className="text-sm text-gray-400 flex items-center gap-2">
+                                      <div className="text-sm text-muted-foreground flex items-center gap-2">
                                         <span>
                                           {new Date(
                                             item.date,
@@ -853,10 +931,28 @@ export function StudentManager() {
                                         {item.homework &&
                                           item.homework.length > 0 && (
                                             <>
-                                              <span className="text-gray-600">
+                                              <span className="text-muted-foreground">
                                                 •
                                               </span>
-                                              <span className="flex items-center gap-1 text-[#ff9500] text-xs font-medium">
+                                              <span
+                                                className={`flex items-center gap-1 text-xs font-medium ${
+                                                  item.homework[0].status ===
+                                                  "completed"
+                                                    ? "text-[#1db954]"
+                                                    : item.homework[0]
+                                                          .status ===
+                                                        "submitted"
+                                                      ? "text-blue-400"
+                                                      : item.homework[0]
+                                                            .status === "missed"
+                                                        ? "text-red-500"
+                                                        : item.homework[0]
+                                                              .status ===
+                                                            "no_homework"
+                                                          ? "text-muted-foreground"
+                                                          : "text-[#ff9500]"
+                                                }`}
+                                              >
                                                 <BookOpen size={12} />
                                                 ДЗ
                                               </span>
@@ -869,7 +965,7 @@ export function StudentManager() {
                                     <div
                                       className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${
                                         isPast
-                                          ? "bg-gray-800 text-gray-400"
+                                          ? "bg-muted text-muted-foreground"
                                           : "bg-[#1db954]/20 text-[#1db954]"
                                       }`}
                                     >
@@ -878,31 +974,33 @@ export function StudentManager() {
                                     {isExpanded ? (
                                       <ChevronUp
                                         size={20}
-                                        className="text-gray-500"
+                                        className="text-muted-foreground"
                                       />
                                     ) : (
                                       <ChevronDown
                                         size={20}
-                                        className="text-gray-500"
+                                        className="text-muted-foreground"
                                       />
                                     )}
                                   </div>
                                 </div>
 
                                 {isExpanded && (
-                                  <div className="px-4 pb-4 pt-2 border-t border-white/5 space-y-4">
+                                  <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
                                     <div className="grid grid-cols-2 gap-4 text-sm">
-                                      <div className="bg-[#282828] p-3 rounded-lg">
-                                        <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">
+                                      <div className="bg-muted p-3 rounded-lg">
+                                        <div className="text-muted-foreground text-[10px] uppercase font-bold mb-1">
                                           Длительность
                                         </div>
-                                        <div>{item.duration} мин</div>
+                                        <div className="text-foreground">
+                                          {item.duration} мин
+                                        </div>
                                       </div>
-                                      <div className="bg-[#282828] p-3 rounded-lg">
-                                        <div className="text-gray-500 text-[10px] uppercase font-bold mb-1">
+                                      <div className="bg-muted p-3 rounded-lg">
+                                        <div className="text-muted-foreground text-[10px] uppercase font-bold mb-1">
                                           Статус
                                         </div>
-                                        <div>
+                                        <div className="text-foreground">
                                           {isPast ? "Завершено" : "Ожидается"}
                                         </div>
                                       </div>
@@ -910,7 +1008,7 @@ export function StudentManager() {
 
                                     {/* Lesson Note */}
                                     <div className="space-y-2">
-                                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                                         Заметки к занятию
                                       </h4>
                                       {editingNoteId === item.id ? (
@@ -922,14 +1020,14 @@ export function StudentManager() {
                                               setNoteText(e.target.value)
                                             }
                                             placeholder="Добавьте заметку к занятию..."
-                                            className="w-full bg-[#121212] border border-white/10 rounded-lg p-3 text-sm focus:border-[#1db954] outline-none min-h-25"
+                                            className="w-full bg-background border border-border rounded-lg p-3 text-sm focus:border-[#1db954] outline-none min-h-25 text-foreground placeholder:text-muted-foreground"
                                           />
                                           <div className="flex justify-end gap-2">
                                             <button
                                               onClick={() =>
                                                 setEditingNoteId(null)
                                               }
-                                              className="px-3 py-1.5 text-sm text-gray-400 hover:text-white"
+                                              className="px-3 py-1.5 text-sm text-muted-foreground hover:text-foreground"
                                             >
                                               Отмена
                                             </button>
@@ -945,14 +1043,14 @@ export function StudentManager() {
                                           </div>
                                         </div>
                                       ) : (
-                                        <div className="flex items-start justify-between group/note bg-[#282828] p-3 rounded-lg">
+                                        <div className="flex items-start justify-between group/note bg-muted p-3 rounded-lg">
                                           <div className="flex-1">
                                             {item.notes ? (
-                                              <p className="text-sm text-gray-300 leading-relaxed italic">
+                                              <p className="text-sm text-muted-foreground leading-relaxed italic">
                                                 "{item.notes}"
                                               </p>
                                             ) : (
-                                              <p className="text-sm text-gray-500 italic">
+                                              <p className="text-sm text-muted-foreground italic">
                                                 Нет заметок
                                               </p>
                                             )}
@@ -962,7 +1060,7 @@ export function StudentManager() {
                                               setEditingNoteId(item.id);
                                               setNoteText(item.notes || "");
                                             }}
-                                            className="ml-4 p-1.5 text-gray-500 hover:text-white transition-colors"
+                                            className="ml-4 p-1.5 text-muted-foreground hover:text-foreground transition-colors"
                                             title="Редактировать заметку"
                                           >
                                             <Edit2 size={14} />
@@ -973,39 +1071,67 @@ export function StudentManager() {
                                     {/* Homework Section */}
                                     {item.homework &&
                                       item.homework.length > 0 && (
-                                        <div className="space-y-3 pt-2 border-t border-white/5">
-                                          <h4 className="text-xs font-bold text-[#ff9500] uppercase tracking-wider flex items-center gap-2">
+                                        <div className="space-y-3 pt-2 border-t border-border">
+                                          <h4
+                                            className={`text-xs font-bold uppercase tracking-wider flex items-center gap-2 ${
+                                              item.homework[0].status ===
+                                              "completed"
+                                                ? "text-[#1db954]"
+                                                : item.homework[0].status ===
+                                                    "submitted"
+                                                  ? "text-blue-400"
+                                                  : item.homework[0].status ===
+                                                      "missed"
+                                                    ? "text-red-500"
+                                                    : item.homework[0]
+                                                          .status ===
+                                                        "no_homework"
+                                                      ? "text-muted-foreground"
+                                                      : "text-[#ff9500]"
+                                            }`}
+                                          >
                                             <BookOpen size={14} />
                                             Домашнее задание
                                           </h4>
                                           {item.homework.map((hw: any) => (
                                             <div
                                               key={hw.id}
-                                              className="bg-[#282828] p-3 rounded-lg space-y-3"
+                                              className="bg-muted p-3 rounded-lg space-y-3"
                                             >
                                               <div className="flex items-center justify-between">
-                                                <div className="font-bold text-sm">
+                                                <div className="font-bold text-sm text-foreground">
                                                   {hw.title}
                                                 </div>
                                                 <div
                                                   className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${
                                                     hw.status === "completed"
                                                       ? "bg-[#1db954]/20 text-[#1db954]"
-                                                      : hw.status === "missed"
-                                                        ? "bg-red-500/20 text-red-500"
-                                                        : "bg-[#ff9500]/20 text-[#ff9500]"
+                                                      : hw.status ===
+                                                          "submitted"
+                                                        ? "bg-blue-400/20 text-blue-400"
+                                                        : hw.status === "missed"
+                                                          ? "bg-red-500/20 text-red-500"
+                                                          : hw.status ===
+                                                              "no_homework"
+                                                            ? "bg-muted text-muted-foreground"
+                                                            : "bg-[#ff9500]/20 text-[#ff9500]"
                                                   }`}
                                                 >
                                                   {hw.status === "completed"
                                                     ? "Выполнено"
-                                                    : hw.status === "missed"
-                                                      ? "Просрочено"
-                                                      : "В работе"}
+                                                    : hw.status === "submitted"
+                                                      ? "На проверке"
+                                                      : hw.status === "missed"
+                                                        ? "Просрочено"
+                                                        : hw.status ===
+                                                            "no_homework"
+                                                          ? "Без ДЗ"
+                                                          : "В работе"}
                                                 </div>
                                               </div>
 
                                               {hw.description && (
-                                                <div className="text-sm text-gray-300 whitespace-pre-wrap">
+                                                <div className="text-sm text-muted-foreground whitespace-pre-wrap">
                                                   {hw.description}
                                                 </div>
                                               )}
@@ -1018,14 +1144,14 @@ export function StudentManager() {
                                                       (file: any) => (
                                                         <div
                                                           key={file.id}
-                                                          className="flex items-center justify-between p-2 bg-[#181818] rounded-md group"
+                                                          className="flex items-center justify-between p-2 bg-card rounded-md group border border-border"
                                                         >
                                                           <div className="flex items-center gap-2 min-w-0">
                                                             <FileText
                                                               size={14}
                                                               className="text-[#1db954] shrink-0"
                                                             />
-                                                            <span className="text-xs truncate">
+                                                            <span className="text-xs truncate text-foreground">
                                                               {file.name}
                                                             </span>
                                                           </div>
@@ -1037,7 +1163,7 @@ export function StudentManager() {
                                                                 file.name,
                                                               );
                                                             }}
-                                                            className="text-[10px] text-gray-400 hover:text-white flex items-center gap-1"
+                                                            className="text-[10px] text-muted-foreground hover:text-foreground flex items-center gap-1"
                                                           >
                                                             <Download
                                                               size={12}
@@ -1054,33 +1180,33 @@ export function StudentManager() {
                                               {(hw.studentComment ||
                                                 hw.question ||
                                                 hw.questionAnswer) && (
-                                                <div className="space-y-2 pt-2 border-t border-white/5">
+                                                <div className="space-y-2 pt-2 border-t border-border">
                                                   {hw.studentComment && (
                                                     <div className="space-y-1">
-                                                      <h4 className="text-[10px] font-bold text-gray-500 uppercase">
+                                                      <h4 className="text-[10px] font-bold text-muted-foreground uppercase">
                                                         Комментарий ученика
                                                       </h4>
-                                                      <div className="text-xs p-2 bg-[#181818] rounded-md italic text-gray-400">
+                                                      <div className="text-xs p-2 bg-card rounded-md italic text-muted-foreground border border-border">
                                                         {hw.studentComment}
                                                       </div>
                                                     </div>
                                                   )}
                                                   {hw.question && (
-                                                    <div className="bg-[#181818] p-2 rounded-lg border-l-2 border-[#1db954]">
-                                                      <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+                                                    <div className="bg-card p-2 rounded-lg border-l-2 border-[#1db954] border-y border-r border-border">
+                                                      <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                                         Вопрос ученика
                                                       </div>
-                                                      <p className="text-xs">
+                                                      <p className="text-xs text-foreground">
                                                         {hw.question}
                                                       </p>
                                                     </div>
                                                   )}
                                                   {hw.questionAnswer && (
-                                                    <div className="bg-[#181818] p-2 rounded-lg border-l-2 border-[#2e77d0] ml-2">
-                                                      <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+                                                    <div className="bg-card p-2 rounded-lg border-l-2 border-[#2e77d0] ml-2 border-y border-r border-border">
+                                                      <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                                         Ваш ответ
                                                       </div>
-                                                      <p className="text-xs">
+                                                      <p className="text-xs text-foreground">
                                                         {hw.questionAnswer}
                                                       </p>
                                                     </div>
@@ -1090,32 +1216,71 @@ export function StudentManager() {
 
                                               {/* Tutor Actions */}
                                               {(hw.status === "pending" ||
-                                                hw.status === "missed") && (
-                                                <button
-                                                  onClick={async (e) => {
-                                                    e.stopPropagation();
-                                                    try {
-                                                      await api.updateHomework(
-                                                        hw.id,
-                                                        { status: "completed" },
-                                                      );
-                                                      const stats =
-                                                        await api.getStudentStats(
-                                                          selectedStudent.id,
+                                                hw.status === "missed" ||
+                                                hw.status === "submitted") && (
+                                                <div className="flex gap-2 mt-2">
+                                                  <button
+                                                    onClick={async (e) => {
+                                                      e.stopPropagation();
+                                                      try {
+                                                        await api.updateHomework(
+                                                          hw.id,
+                                                          {
+                                                            status: "completed",
+                                                          },
                                                         );
-                                                      setStudentStats(stats);
-                                                      loadData();
-                                                    } catch (error) {
-                                                      alert(
-                                                        "Не удалось подтвердить выполнение",
-                                                      );
-                                                    }
-                                                  }}
-                                                  className="w-full mt-2 py-1.5 bg-[#1db954]/10 hover:bg-[#1db954]/20 text-[#1db954] text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2"
-                                                >
-                                                  <CheckCircle size={14} />
-                                                  Подтвердить выполнение
-                                                </button>
+                                                        const stats =
+                                                          await api.getStudentStats(
+                                                            selectedStudent.id,
+                                                          );
+                                                        setStudentStats(stats);
+                                                        loadData();
+                                                      } catch (error) {
+                                                        alert(
+                                                          "Не удалось подтвердить выполнение",
+                                                        );
+                                                      }
+                                                    }}
+                                                    className="flex-1 py-1.5 bg-[#1db954]/10 hover:bg-[#1db954]/20 text-[#1db954] text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2"
+                                                  >
+                                                    <CheckCircle size={14} />
+                                                    {hw.status === "submitted"
+                                                      ? "Подтвердить"
+                                                      : "Выполнено"}
+                                                  </button>
+                                                  {hw.status ===
+                                                    "submitted" && (
+                                                    <button
+                                                      onClick={async (e) => {
+                                                        e.stopPropagation();
+                                                        try {
+                                                          await api.updateHomework(
+                                                            hw.id,
+                                                            {
+                                                              status: "pending",
+                                                            },
+                                                          );
+                                                          const stats =
+                                                            await api.getStudentStats(
+                                                              selectedStudent.id,
+                                                            );
+                                                          setStudentStats(
+                                                            stats,
+                                                          );
+                                                          loadData();
+                                                        } catch (error) {
+                                                          alert(
+                                                            "Не удалось отклонить выполнение",
+                                                          );
+                                                        }
+                                                      }}
+                                                      className="flex-1 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-xs font-bold rounded-md transition-colors flex items-center justify-center gap-2"
+                                                    >
+                                                      <X size={14} />
+                                                      Отклонить
+                                                    </button>
+                                                  )}
+                                                </div>
                                               )}
                                             </div>
                                           ))}
@@ -1130,7 +1295,7 @@ export function StudentManager() {
                             return (
                               <div
                                 key={`homework-${item.id}`}
-                                className="bg-[#181818] rounded-xl border border-white/5 overflow-hidden transition-all hover:border-white/10"
+                                className="bg-card rounded-xl border border-border overflow-hidden transition-all hover:border-border/80"
                               >
                                 <div
                                   onClick={() =>
@@ -1143,14 +1308,24 @@ export function StudentManager() {
                                   className="p-4 flex items-center justify-between cursor-pointer"
                                 >
                                   <div className="flex items-center gap-3">
-                                    <div className="p-2 bg-[#ff9500]/10 rounded-lg text-[#ff9500]">
+                                    <div
+                                      className={`p-2 rounded-lg ${
+                                        item.status === "completed"
+                                          ? "bg-[#1db954]/10 text-[#1db954]"
+                                          : item.status === "missed"
+                                            ? "bg-red-500/10 text-red-500"
+                                            : item.status === "no_homework"
+                                              ? "bg-muted text-muted-foreground"
+                                              : "bg-[#ff9500]/10 text-[#ff9500]"
+                                      }`}
+                                    >
                                       <BookOpen size={18} />
                                     </div>
                                     <div>
-                                      <div className="font-bold">
+                                      <div className="font-bold text-foreground">
                                         {item.title}
                                       </div>
-                                      <div className="text-sm text-gray-400">
+                                      <div className="text-sm text-muted-foreground">
                                         Срок:{" "}
                                         {new Date(
                                           item.dueDate,
@@ -1163,42 +1338,50 @@ export function StudentManager() {
                                       className={`text-[10px] px-2 py-0.5 rounded-full uppercase font-bold ${
                                         item.status === "completed"
                                           ? "bg-[#1db954]/20 text-[#1db954]"
-                                          : item.status === "missed"
-                                            ? "bg-red-500/20 text-red-500"
-                                            : "bg-[#ff9500]/20 text-[#ff9500]"
+                                          : item.status === "submitted"
+                                            ? "bg-blue-400/20 text-blue-400"
+                                            : item.status === "missed"
+                                              ? "bg-red-500/20 text-red-500"
+                                              : item.status === "no_homework"
+                                                ? "bg-muted text-muted-foreground"
+                                                : "bg-[#ff9500]/20 text-[#ff9500]"
                                       }`}
                                     >
                                       {item.status === "completed"
                                         ? "Выполнено"
-                                        : item.status === "missed"
-                                          ? "Просрочено"
-                                          : "В работе"}
+                                        : item.status === "submitted"
+                                          ? "На проверке"
+                                          : item.status === "missed"
+                                            ? "Просрочено"
+                                            : item.status === "no_homework"
+                                              ? "Без ДЗ"
+                                              : "В работе"}
                                     </div>
                                     {isExpanded ? (
                                       <ChevronUp
                                         size={20}
-                                        className="text-gray-500"
+                                        className="text-muted-foreground"
                                       />
                                     ) : (
                                       <ChevronDown
                                         size={20}
-                                        className="text-gray-500"
+                                        className="text-muted-foreground"
                                       />
                                     )}
                                   </div>
                                 </div>
 
                                 {isExpanded && (
-                                  <div className="px-4 pb-4 pt-2 border-t border-white/5 space-y-4">
+                                  <div className="px-4 pb-4 pt-2 border-t border-border space-y-4">
                                     {item.description && (
-                                      <div className="text-sm text-gray-300 whitespace-pre-wrap bg-[#282828] p-3 rounded-lg">
+                                      <div className="text-sm text-muted-foreground whitespace-pre-wrap bg-muted p-3 rounded-lg">
                                         {item.description}
                                       </div>
                                     )}
 
                                     {/* Files Section */}
                                     <div className="space-y-2">
-                                      <h4 className="text-xs font-bold text-gray-500 uppercase tracking-wider">
+                                      <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
                                         Файлы
                                       </h4>
                                       {item.files && item.files.length > 0 ? (
@@ -1206,14 +1389,14 @@ export function StudentManager() {
                                           {item.files.map((file: any) => (
                                             <div
                                               key={file.id}
-                                              className="flex items-center justify-between p-2 bg-[#282828] rounded-md group"
+                                              className="flex items-center justify-between p-2 bg-muted rounded-md group"
                                             >
                                               <div className="flex items-center gap-2 min-w-0">
                                                 <FileText
                                                   size={16}
                                                   className="text-[#1db954] shrink-0"
                                                 />
-                                                <span className="text-sm truncate">
+                                                <span className="text-sm truncate text-foreground">
                                                   {file.name}
                                                 </span>
                                               </div>
@@ -1224,7 +1407,7 @@ export function StudentManager() {
                                                     file.name,
                                                   )
                                                 }
-                                                className="text-xs text-gray-400 hover:text-white flex items-center gap-1"
+                                                className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                                               >
                                                 <Download size={14} />
                                                 <span>Скачать</span>
@@ -1233,7 +1416,7 @@ export function StudentManager() {
                                           ))}
                                         </div>
                                       ) : (
-                                        <div className="text-xs text-gray-600 italic">
+                                        <div className="text-xs text-muted-foreground italic">
                                           Файлов нет
                                         </div>
                                       )}
@@ -1243,33 +1426,33 @@ export function StudentManager() {
                                     {(item.studentComment ||
                                       item.question ||
                                       item.questionAnswer) && (
-                                      <div className="space-y-3 pt-2 border-t border-white/5">
+                                      <div className="space-y-3 pt-2 border-t border-border">
                                         {item.studentComment && (
                                           <div className="space-y-1">
-                                            <h4 className="text-[10px] font-bold text-gray-500 uppercase">
+                                            <h4 className="text-[10px] font-bold text-muted-foreground uppercase">
                                               Комментарий ученика
                                             </h4>
-                                            <div className="text-sm p-3 bg-[#282828] rounded-md italic text-gray-300">
+                                            <div className="text-sm p-3 bg-muted rounded-md italic text-muted-foreground">
                                               {item.studentComment}
                                             </div>
                                           </div>
                                         )}
                                         {item.question && (
-                                          <div className="bg-[#282828] p-3 rounded-lg border-l-2 border-[#1db954]">
-                                            <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+                                          <div className="bg-muted p-3 rounded-lg border-l-2 border-[#1db954]">
+                                            <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                               Вопрос ученика
                                             </div>
-                                            <p className="text-sm">
+                                            <p className="text-sm text-foreground">
                                               {item.question}
                                             </p>
                                           </div>
                                         )}
                                         {item.questionAnswer && (
-                                          <div className="bg-[#282828] p-3 rounded-lg border-l-2 border-[#2e77d0] ml-4">
-                                            <div className="text-[10px] text-gray-500 uppercase font-bold mb-1">
+                                          <div className="bg-muted p-3 rounded-lg border-l-2 border-[#2e77d0] ml-4">
+                                            <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                               Ваш ответ
                                             </div>
-                                            <p className="text-sm">
+                                            <p className="text-sm text-foreground">
                                               {item.questionAnswer}
                                             </p>
                                           </div>
@@ -1279,31 +1462,68 @@ export function StudentManager() {
 
                                     {/* Tutor Actions for orphan homework */}
                                     {(item.status === "pending" ||
-                                      item.status === "missed") && (
-                                      <button
-                                        onClick={async (e) => {
-                                          e.stopPropagation();
-                                          try {
-                                            await api.updateHomework(item.id, {
-                                              status: "completed",
-                                            });
-                                            const stats =
-                                              await api.getStudentStats(
-                                                selectedStudent.id,
+                                      item.status === "missed" ||
+                                      item.status === "submitted") && (
+                                      <div className="flex gap-2">
+                                        <button
+                                          onClick={async (e) => {
+                                            e.stopPropagation();
+                                            try {
+                                              await api.updateHomework(
+                                                item.id,
+                                                {
+                                                  status: "completed",
+                                                },
                                               );
-                                            setStudentStats(stats);
-                                            loadData();
-                                          } catch (error) {
-                                            alert(
-                                              "Не удалось подтвердить выполнение",
-                                            );
-                                          }
-                                        }}
-                                        className="w-full py-2 bg-[#1db954]/10 hover:bg-[#1db954]/20 text-[#1db954] text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
-                                      >
-                                        <CheckCircle size={18} />
-                                        Подтвердить выполнение
-                                      </button>
+                                              const stats =
+                                                await api.getStudentStats(
+                                                  selectedStudent.id,
+                                                );
+                                              setStudentStats(stats);
+                                              loadData();
+                                            } catch (error) {
+                                              alert(
+                                                "Не удалось подтвердить выполнение",
+                                              );
+                                            }
+                                          }}
+                                          className="flex-1 py-2 bg-[#1db954]/10 hover:bg-[#1db954]/20 text-[#1db954] text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                        >
+                                          <CheckCircle size={18} />
+                                          {item.status === "submitted"
+                                            ? "Подтвердить"
+                                            : "Выполнено"}
+                                        </button>
+                                        {item.status === "submitted" && (
+                                          <button
+                                            onClick={async (e) => {
+                                              e.stopPropagation();
+                                              try {
+                                                await api.updateHomework(
+                                                  item.id,
+                                                  {
+                                                    status: "pending",
+                                                  },
+                                                );
+                                                const stats =
+                                                  await api.getStudentStats(
+                                                    selectedStudent.id,
+                                                  );
+                                                setStudentStats(stats);
+                                                loadData();
+                                              } catch (error) {
+                                                alert(
+                                                  "Не удалось отклонить выполнение",
+                                                );
+                                              }
+                                            }}
+                                            className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-500 text-sm font-bold rounded-lg transition-colors flex items-center justify-center gap-2"
+                                          >
+                                            <X size={18} />
+                                            Отклонить
+                                          </button>
+                                        )}
+                                      </div>
                                     )}
                                   </div>
                                 )}
@@ -1327,13 +1547,15 @@ export function StudentManager() {
 
       {/* Edit Student Dialog */}
       {showEditDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Переименовать ученика</h2>
+              <h2 className="text-xl font-semibold text-foreground">
+                Переименовать ученика
+              </h2>
               <button
                 onClick={() => setShowEditDialog(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
@@ -1341,7 +1563,7 @@ export function StudentManager() {
 
             <form onSubmit={handleUpdateAlias} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Отображаемое имя
                 </label>
                 <input
@@ -1351,17 +1573,17 @@ export function StudentManager() {
                     setEditData({ ...editData, alias: e.target.value })
                   }
                   required
-                  className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                   placeholder={editData.originalName}
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Исходное имя: {editData.originalName}
                 </p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Предмет по умолчанию
                   </label>
                   <input
@@ -1373,12 +1595,12 @@ export function StudentManager() {
                         defaultSubject: e.target.value,
                       })
                     }
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     placeholder="Математика, Английский..."
                   />
                 </div>
                 <div>
-                  <label className="block text-sm text-gray-400 mb-2">
+                  <label className="block text-sm text-muted-foreground mb-2">
                     Цена за занятие
                   </label>
                   <input
@@ -1390,14 +1612,14 @@ export function StudentManager() {
                         defaultPrice: e.target.value,
                       })
                     }
-                    className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                     placeholder={`${currency} 0`}
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Длительность по умолчанию (мин)
                 </label>
                 <select
@@ -1408,7 +1630,7 @@ export function StudentManager() {
                       defaultDuration: e.target.value,
                     })
                   }
-                  className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                 >
                   <option value="30">30 минут</option>
                   <option value="45">45 минут</option>
@@ -1434,15 +1656,15 @@ export function StudentManager() {
 
       {/* Link Dialog */}
       {showLinkDialog && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
-          <div className="bg-[#181818] rounded-lg p-6 w-full max-w-md border border-gray-800">
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border shadow-xl">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">
+              <h2 className="text-xl font-semibold text-foreground">
                 Привязать по коду ученика
               </h2>
               <button
                 onClick={() => setShowLinkDialog(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-muted-foreground hover:text-foreground"
               >
                 <X size={20} />
               </button>
@@ -1450,7 +1672,7 @@ export function StudentManager() {
 
             <form onSubmit={handleLinkStudent} className="space-y-4">
               <div>
-                <label className="block text-sm text-gray-400 mb-2">
+                <label className="block text-sm text-muted-foreground mb-2">
                   Код ученика
                 </label>
                 <input
@@ -1463,10 +1685,10 @@ export function StudentManager() {
                     })
                   }
                   required
-                  className="w-full bg-[#282828] rounded-lg px-4 py-3 text-white outline-none focus:ring-2 focus:ring-[#1db954]"
+                  className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
                   placeholder="Введите 6-значный код"
                 />
-                <p className="text-xs text-gray-500 mt-2">
+                <p className="text-xs text-muted-foreground mt-2">
                   Свяжите этот профиль с реальным аккаунтом ученика. Вся история
                   будет сохранена.
                 </p>

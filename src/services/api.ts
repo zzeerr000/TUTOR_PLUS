@@ -177,11 +177,14 @@ export const api = {
     });
   },
 
-  async updateEvent(id: number, data: any) {
-    return this.request(`/calendar/${id}`, {
-      method: "PUT",
-      body: JSON.stringify(data),
-    });
+  async updateEvent(id: number, data: any, recurring: boolean = false) {
+    return this.request(
+      `/calendar/${id}${recurring ? "?recurring=true" : ""}`,
+      {
+        method: "PUT",
+        body: JSON.stringify(data),
+      },
+    );
   },
 
   async confirmPayment(transactionId: number) {
@@ -252,6 +255,10 @@ export const api = {
 
   async getProgressStats() {
     return this.request("/progress/stats");
+  },
+
+  async getSubjectHistory(tutorId: number) {
+    return this.request(`/progress/history/${tutorId}`);
   },
 
   // Users
