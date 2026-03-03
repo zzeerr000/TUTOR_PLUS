@@ -19,10 +19,12 @@ const typeorm_2 = require("typeorm");
 const transaction_entity_1 = require("./entities/transaction.entity");
 const event_entity_1 = require("../calendar/entities/event.entity");
 const connections_service_1 = require("../connections/connections.service");
+const homework_entity_1 = require("../homework/entities/homework.entity");
 let FinanceService = class FinanceService {
-    constructor(transactionsRepository, eventsRepository, connectionsService) {
+    constructor(transactionsRepository, eventsRepository, homeworkRepository, connectionsService) {
         this.transactionsRepository = transactionsRepository;
         this.eventsRepository = eventsRepository;
+        this.homeworkRepository = homeworkRepository;
         this.connectionsService = connectionsService;
     }
     async create(createTransactionDto) {
@@ -75,6 +77,7 @@ let FinanceService = class FinanceService {
         const events = await this.eventsRepository.find({
             where: {
                 transactionId: (0, typeorm_2.IsNull)(),
+                paymentIgnored: false,
             },
             relations: ["student", "tutor"],
         });
@@ -101,9 +104,7 @@ let FinanceService = class FinanceService {
                 minute = parseInt(minutes);
             }
             eventDate.setHours(hour24, minute, 0, 0);
-            const eventEndTime = new Date(eventDate);
-            eventEndTime.setHours(eventEndTime.getHours() + 1);
-            if (eventEndTime < now && !event.transactionId) {
+            if (eventDate <= now && !event.transactionId && !event.paymentIgnored) {
                 const connections = await this.connectionsService.getConnections(event.tutorId, "tutor");
                 const isConnected = connections.some((c) => c.studentId === event.studentId);
                 if (!isConnected) {
@@ -123,7 +124,7 @@ let FinanceService = class FinanceService {
                     await this.eventsRepository.save(event);
                 }
                 catch (error) {
-                    console.error("Failed to create transaction for past event:", error);
+                    console.error("Failed to create transaction for started event:", error);
                 }
             }
         }
@@ -141,7 +142,7 @@ let FinanceService = class FinanceService {
         }
         transaction.status = "completed";
         const updated = await this.transactionsRepository.save(transaction);
-        await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false });
+        await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false, paymentIgnored: false });
         return updated;
     }
     async cancelPayment(transactionId, tutorId) {
@@ -158,7 +159,14 @@ let FinanceService = class FinanceService {
         if (transaction.status !== "pending") {
             throw new common_1.BadRequestException("Can only delete pending transactions");
         }
-        await this.eventsRepository.update({ transactionId: transactionId }, { paymentPending: false, transactionId: null });
+        const events = await this.eventsRepository.find({
+            where: { transactionId: transactionId },
+        });
+        if (events.length > 0) {
+            const lessonIds = events.map(e => e.id);
+            await this.homeworkRepository.delete({ lessonId: (0, typeorm_2.In)(lessonIds) });
+        }
+        await this.eventsRepository.delete({ transactionId: transactionId });
         await this.transactionsRepository.delete(transactionId);
     }
     async getStats(userId, userRole) {
@@ -213,8 +221,10 @@ exports.FinanceService = FinanceService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(transaction_entity_1.Transaction)),
     __param(1, (0, typeorm_1.InjectRepository)(event_entity_1.Event)),
-    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
+    __param(2, (0, typeorm_1.InjectRepository)(homework_entity_1.Homework)),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         typeorm_2.Repository,
         connections_service_1.ConnectionsService])
 ], FinanceService);

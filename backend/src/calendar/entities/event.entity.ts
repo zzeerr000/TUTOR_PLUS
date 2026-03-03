@@ -1,7 +1,14 @@
-import { Entity, Column, PrimaryGeneratedColumn, ManyToOne, JoinColumn } from 'typeorm';
-import { User } from '../../users/entities/user.entity';
+import {
+  Entity,
+  Column,
+  PrimaryGeneratedColumn,
+  ManyToOne,
+  JoinColumn,
+} from "typeorm";
+import { User } from "../../users/entities/user.entity";
+import { Subject } from "../../subjects/entities/subject.entity";
 
-@Entity('events')
+@Entity("events")
 export class Event {
   @PrimaryGeneratedColumn()
   id: number;
@@ -22,32 +29,41 @@ export class Event {
   tutorId: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'tutorId' })
+  @JoinColumn({ name: "tutorId" })
   tutor: User;
 
   @Column()
   studentId: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: 'studentId' })
+  @JoinColumn({ name: "studentId" })
   student: User;
 
   @Column({ nullable: true })
   subject: string;
 
+  @Column({ nullable: true })
+  subjectId: number;
+
+  @ManyToOne(() => Subject, { nullable: true })
+  @JoinColumn({ name: "subjectId" })
+  subjectEntity: Subject;
+
   @Column({ default: false })
   paymentPending: boolean;
+
+  @Column({ default: false })
+  paymentIgnored: boolean;
 
   @Column({ nullable: true })
   transactionId: number;
 
-  @Column({ type: 'decimal', precision: 10, scale: 2, default: 0 })
+  @Column({ type: "decimal", precision: 10, scale: 2, default: 0 })
   amount: number;
 
-  @Column({ type: 'int', default: 60 })
+  @Column({ type: "int", default: 60 })
   duration: number; // in minutes
 
-  @Column({ type: 'text', nullable: true })
+  @Column({ type: "text", nullable: true })
   notes: string;
 }
-

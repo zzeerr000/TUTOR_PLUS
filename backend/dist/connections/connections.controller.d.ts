@@ -7,6 +7,9 @@ export declare class ConnectionsController {
     }, req: any): Promise<import("./entities/connection.entity").Connection>;
     getPendingRequests(req: any): Promise<import("./entities/connection.entity").Connection[]>;
     getConnections(req: any): Promise<import("./entities/connection.entity").Connection[]>;
+    updateSubjects(id: number, body: {
+        subjectIds: number[];
+    }, req: any): Promise<import("./entities/connection.entity").Connection>;
     approveConnection(id: number, body: {
         existingStudentId?: number;
     }, req: any): Promise<import("./entities/connection.entity").Connection>;
@@ -15,6 +18,7 @@ export declare class ConnectionsController {
         defaultSubject?: string;
         defaultPrice?: number;
         defaultDuration?: number;
+        subjectIds?: number[];
     }, req: any): Promise<import("./entities/connection.entity").Connection>;
     linkVirtualStudent(body: {
         virtualStudentId: number;
@@ -25,8 +29,10 @@ export declare class ConnectionsController {
         defaultSubject?: string;
         defaultPrice?: number;
         defaultDuration?: number;
+        subjectIds?: number[];
     }, req: any): Promise<import("./entities/connection.entity").Connection>;
     rejectConnection(id: number, req: any): Promise<void>;
+    deleteConnection(id: number, req: any, deleteData?: boolean): Promise<void>;
     removeStudent(studentId: number, req: any): Promise<void>;
     getStudentStats(studentId: number, req: any): Promise<{
         lessonsCount: number;

@@ -10,5 +10,6 @@ export declare class User {
     role: UserRole;
     code: string;
     isVirtual: boolean;
+    avatarUrl: string;
     createdAt: Date;
 }
