@@ -20,6 +20,7 @@ export declare class UsersController {
         role: import("./entities/user.entity").UserRole;
         code: string;
         isVirtual: boolean;
+        avatarUrl: string;
         createdAt: Date;
     }[]>;
     createStudent(createStudentDto: {
@@ -30,6 +31,8 @@ export declare class UsersController {
     updateName(body: {
         name: string;
     }, req: any): Promise<import("./entities/user.entity").User>;
+    uploadAvatar(file: Express.Multer.File, req: any): Promise<import("./entities/user.entity").User>;
+    removeAvatar(req: any): Promise<import("./entities/user.entity").User>;
     deleteAccount(req: any): Promise<{
         message: string;
     }>;

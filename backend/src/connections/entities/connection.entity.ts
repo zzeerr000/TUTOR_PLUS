@@ -3,10 +3,13 @@ import {
   Column,
   PrimaryGeneratedColumn,
   ManyToOne,
+  ManyToMany,
+  JoinTable,
   JoinColumn,
   CreateDateColumn,
 } from "typeorm";
 import { User } from "../../users/entities/user.entity";
+import { Subject } from "../../subjects/entities/subject.entity";
 
 export enum ConnectionStatus {
   PENDING = "pending",
@@ -48,6 +51,10 @@ export class Connection {
 
   @Column({ nullable: true })
   defaultSubject: string;
+
+  @ManyToMany(() => Subject)
+  @JoinTable()
+  subjects: Subject[];
 
   @Column({ type: "decimal", precision: 10, scale: 2, nullable: true })
   defaultPrice: number;

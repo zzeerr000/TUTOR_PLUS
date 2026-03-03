@@ -134,6 +134,18 @@ export class UsersService {
     return this.usersRepository.save(user);
   }
 
+  async updateAvatar(userId: number, avatarUrl: string | null): Promise<User> {
+    console.log('Updating avatar for user:', userId, 'to:', avatarUrl);
+    const user = await this.findById(userId);
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+    user.avatarUrl = avatarUrl;
+    const updatedUser = await this.usersRepository.save(user);
+    console.log('User updated with avatar:', updatedUser.avatarUrl);
+    return updatedUser;
+  }
+
   async deleteAccount(userId: number): Promise<void> {
     const user = await this.findById(userId);
     if (!user) {

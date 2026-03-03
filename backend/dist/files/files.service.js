@@ -73,7 +73,7 @@ let FilesService = class FilesService {
             type: type,
             size: formatBytes(file.size),
             path: filePath,
-            subject: data.subject || "Other",
+            subjectId: data.subjectId ? parseInt(data.subjectId) : null,
             uploadedById: uploadedById,
             assignedToId: assignedToId,
             folderId: folderId,
@@ -120,21 +120,36 @@ let FilesService = class FilesService {
         }
         return file;
     }
-    async findAll(userId, userRole, folderId = null) {
+    async findAll(userId, userRole, folderId = null, filterSubjectId = null) {
         if (userRole === "tutor") {
+            const folderWhere = {
+                uploadedById: userId,
+                parentId: folderId,
+            };
+            if (filterSubjectId) {
+                folderWhere.subjectId = filterSubjectId;
+            }
             const folders = await this.foldersRepository.find({
-                where: { uploadedById: userId, parentId: folderId },
+                where: folderWhere,
+                relations: ["subject", "uploadedBy"],
                 order: { name: "ASC" },
             });
-            const files = await this.filesRepository
+            const filesQuery = this.filesRepository
                 .createQueryBuilder("file")
                 .leftJoinAndSelect("file.uploadedBy", "uploadedBy")
                 .leftJoinAndSelect("file.assignedTo", "assignedTo")
+                .leftJoinAndSelect("file.subject", "subject")
                 .where("file.uploadedById = :userId", { userId })
                 .andWhere(folderId ? "file.folderId = :folderId" : "file.folderId IS NULL", { folderId })
-                .orderBy("file.createdAt", "DESC")
-                .getMany();
-            return { files, folders };
+                .orderBy("file.createdAt", "DESC");
+            if (filterSubjectId) {
+                filesQuery.andWhere("file.subjectId = :filterSubjectId", {
+                    filterSubjectId,
+                });
+            }
+            const files = await filesQuery.getMany();
+            const foldersWithCounts = await this.addCounts(folders);
+            return { files, folders: foldersWithCounts };
         }
         else {
             const connections = await this.connectionsService.getConnections(userId, "student");
@@ -142,38 +157,81 @@ let FilesService = class FilesService {
             if (connectedTutorIds.length === 0) {
                 return { files: [], folders: [] };
             }
-            const folders = await this.foldersRepository.find({
-                where: {
+            let allowedSubjectIds = connections
+                .flatMap((c) => c.subjects || [])
+                .map((s) => s.id);
+            if (filterSubjectId) {
+                if (allowedSubjectIds.length > 0 &&
+                    !allowedSubjectIds.includes(filterSubjectId)) {
+                    return { files: [], folders: [] };
+                }
+                allowedSubjectIds = [filterSubjectId];
+            }
+            const whereConditions = [];
+            if (!filterSubjectId) {
+                whereConditions.push({
                     uploadedById: (0, typeorm_2.In)(connectedTutorIds),
                     parentId: folderId,
-                },
+                    subjectId: (0, typeorm_2.IsNull)(),
+                });
+            }
+            if (allowedSubjectIds.length > 0) {
+                whereConditions.push({
+                    uploadedById: (0, typeorm_2.In)(connectedTutorIds),
+                    parentId: folderId,
+                    subjectId: (0, typeorm_2.In)(allowedSubjectIds),
+                });
+            }
+            else if (filterSubjectId) {
+            }
+            const folders = await this.foldersRepository.find({
+                where: whereConditions,
+                relations: ["subject", "uploadedBy"],
                 order: { name: "ASC" },
             });
-            const files = await this.filesRepository
+            const filesQuery = this.filesRepository
                 .createQueryBuilder("file")
                 .leftJoinAndSelect("file.uploadedBy", "uploadedBy")
                 .leftJoinAndSelect("file.assignedTo", "assignedTo")
+                .leftJoinAndSelect("file.subject", "subject")
                 .where("(file.assignedToId = :userId OR (file.assignedToId IS NULL AND file.uploadedById IN (:...tutorIds)))", { userId, tutorIds: connectedTutorIds })
                 .andWhere(folderId ? "file.folderId = :folderId" : "file.folderId IS NULL", { folderId })
-                .orderBy("file.createdAt", "DESC")
-                .getMany();
+                .orderBy("file.createdAt", "DESC");
+            filesQuery.andWhere(new typeorm_2.Brackets((qb) => {
+                if (!filterSubjectId) {
+                    qb.where("file.subjectId IS NULL");
+                }
+                else {
+                    qb.where("1=0");
+                }
+                if (allowedSubjectIds.length > 0) {
+                    qb.orWhere("file.subjectId IN (:...allowedSubjectIds)", {
+                        allowedSubjectIds,
+                    });
+                }
+            }));
+            const files = await filesQuery.getMany();
             return { files, folders };
         }
     }
-    async createFolder(name, uploadedById, parentId = null) {
+    async createFolder(name, uploadedById, parentId = null, subjectId = null) {
         const folder = this.foldersRepository.create({
             name,
             uploadedById,
             parentId,
+            subjectId,
         });
         return this.foldersRepository.save(folder);
     }
-    async removeFolder(id, userId) {
+    async removeFolder(id, userId, allowSubjectFolderDeletion = false) {
         const folder = await this.foldersRepository.findOne({
             where: { id, uploadedById: userId },
         });
         if (!folder) {
             throw new common_1.NotFoundException("Folder not found or you do not have permission");
+        }
+        if (folder.subjectId && !folder.parentId && !allowSubjectFolderDeletion) {
+            throw new common_1.ForbiddenException("Нельзя удалить корневую папку предмета. Удалите предмет, чтобы удалить папку.");
         }
         await this.deleteFolderContents(id);
         await this.foldersRepository.delete(id);
@@ -192,6 +250,17 @@ let FilesService = class FilesService {
             await this.deleteFolderContents(sub.id);
         }
     }
+    async addCounts(folders) {
+        return Promise.all(folders.map(async (folder) => {
+            const subfoldersCount = await this.foldersRepository.count({
+                where: { parentId: folder.id },
+            });
+            const filesCount = await this.filesRepository.count({
+                where: { folderId: folder.id },
+            });
+            return { ...folder, subfoldersCount, filesCount };
+        }));
+    }
     async moveFile(fileId, folderId, userId) {
         const file = await this.filesRepository.findOne({
             where: { id: fileId, uploadedById: userId },
@@ -209,8 +278,23 @@ let FilesService = class FilesService {
         }
         await this.filesRepository.delete(id);
     }
+    async updateFolderSubject(folderId, subjectId) {
+        await this.foldersRepository.update(folderId, { subjectId });
+    }
+    async updateFolderName(folderId, name) {
+        await this.foldersRepository.update(folderId, { name });
+    }
     async getStorageStats(userId, userRole) {
-        const { files } = await this.findAll(userId, userRole);
+        let files = [];
+        if (userRole === "tutor") {
+            files = await this.filesRepository.find({
+                where: { uploadedById: userId },
+            });
+        }
+        else {
+            const res = await this.findAll(userId, userRole);
+            files = res.files;
+        }
         let totalBytes = 0;
         files.forEach((file) => {
             const sizeStr = file.size || "0 B";

@@ -10,6 +10,7 @@ import { CalendarModule } from "./calendar/calendar.module";
 import { ProgressModule } from "./progress/progress.module";
 import { ConnectionsModule } from "./connections/connections.module";
 import { HomeworkModule } from "./homework/homework.module";
+import { SubjectsModule } from "./subjects/subjects.module";
 import { AppController } from "./app.controller";
 import { User } from "./users/entities/user.entity";
 import { Task } from "./tasks/entities/task.entity";
@@ -21,6 +22,7 @@ import { Event } from "./calendar/entities/event.entity";
 import { Progress } from "./progress/entities/progress.entity";
 import { Connection } from "./connections/entities/connection.entity";
 import { Homework } from "./homework/entities/homework.entity";
+import { Subject } from "./subjects/entities/subject.entity";
 
 @Module({
   imports: [
@@ -38,6 +40,7 @@ import { Homework } from "./homework/entities/homework.entity";
         Progress,
         Connection,
         Homework,
+        Subject,
       ],
       synchronize: true,
     }),
@@ -51,6 +54,7 @@ import { Homework } from "./homework/entities/homework.entity";
     ProgressModule,
     ConnectionsModule,
     HomeworkModule,
+    SubjectsModule,
   ],
   controllers: [AppController],
 })

@@ -7,6 +7,7 @@ export declare class CalendarService {
     private connectionsService;
     private financeService;
     constructor(eventsRepository: Repository<Event>, connectionsService: ConnectionsService, financeService: FinanceService);
+    deleteEventsBetweenUsers(tutorId: number, studentId: number): Promise<void>;
     verifyConnection(tutorId: number, studentId: number): Promise<void>;
     create(createEventDto: any): Promise<Event>;
     findAll(userId: number, userRole: string): Promise<Event[]>;
@@ -15,4 +16,5 @@ export declare class CalendarService {
     update(id: number, updateEventDto: any): Promise<Event>;
     remove(id: number): Promise<void>;
     removeRecurring(id: number): Promise<void>;
+    updateRecurring(id: number, updateEventDto: any): Promise<void>;
 }

@@ -2,11 +2,13 @@ import { Repository } from "typeorm";
 import { Transaction } from "./entities/transaction.entity";
 import { Event } from "../calendar/entities/event.entity";
 import { ConnectionsService } from "../connections/connections.service";
+import { Homework } from "../homework/entities/homework.entity";
 export declare class FinanceService {
     private transactionsRepository;
     private eventsRepository;
+    private homeworkRepository;
     private connectionsService;
-    constructor(transactionsRepository: Repository<Transaction>, eventsRepository: Repository<Event>, connectionsService: ConnectionsService);
+    constructor(transactionsRepository: Repository<Transaction>, eventsRepository: Repository<Event>, homeworkRepository: Repository<Homework>, connectionsService: ConnectionsService);
     create(createTransactionDto: any): Promise<Transaction>;
     findAll(userId: number, userRole: string): Promise<Transaction[]>;
     checkAndCreateTransactionsForPastEvents(): Promise<void>;
