@@ -116,6 +116,17 @@ let UsersService = class UsersService {
         user.name = name;
         return this.usersRepository.save(user);
     }
+    async updateAvatar(userId, avatarUrl) {
+        console.log('Updating avatar for user:', userId, 'to:', avatarUrl);
+        const user = await this.findById(userId);
+        if (!user) {
+            throw new common_1.NotFoundException('User not found');
+        }
+        user.avatarUrl = avatarUrl;
+        const updatedUser = await this.usersRepository.save(user);
+        console.log('User updated with avatar:', updatedUser.avatarUrl);
+        return updatedUser;
+    }
     async deleteAccount(userId) {
         const user = await this.findById(userId);
         if (!user) {
