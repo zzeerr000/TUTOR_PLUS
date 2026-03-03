@@ -1,7 +1,10 @@
-import { Controller, Get, Post, Put, Delete, Body, UseGuards, Request, ForbiddenException, Inject, forwardRef, Param, ParseIntPipe } from '@nestjs/common';
+import { Controller, Get, Post, Put, Delete, Body, UseGuards, Request, ForbiddenException, Inject, forwardRef, Param, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConnectionsService } from '../connections/connections.service';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { diskStorage } from 'multer';
+import { extname } from 'path';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -50,9 +53,48 @@ export class UsersController {
     return this.usersService.updateName(req.user.sub, body.name);
   }
 
+  @Post('profile/avatar')
+  @UseInterceptors(
+    FileInterceptor('avatar', {
+      storage: diskStorage({
+        destination: './uploads/avatars',
+        filename: (req, file, cb) => {
+          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+          const ext = extname(file.originalname);
+          const userId = (req.user as any).sub;
+          cb(null, `${userId}-${uniqueSuffix}${ext}`);
+        },
+      }),
+      fileFilter: (req, file, cb) => {
+        const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+        if (!allowedTypes.includes(file.mimetype)) {
+          return cb(new Error('Only image files are allowed'), false);
+        }
+        cb(null, true);
+      },
+      limits: {
+        fileSize: 5 * 1024 * 1024, // 5MB
+      },
+    }),
+  )
+  async uploadAvatar(@UploadedFile() file: Express.Multer.File, @Request() req) {
+    if (!file) {
+      throw new Error('No file uploaded');
+    }
+    const avatarUrl = `/uploads/avatars/${file.filename}`;
+    console.log('Avatar uploaded:', avatarUrl, 'for user:', (req.user as any).sub);
+    return this.usersService.updateAvatar((req.user as any).sub, avatarUrl);
+  }
+
+  @Delete('profile/avatar')
+  async removeAvatar(@Request() req) {
+    console.log('Avatar removed for user:', (req.user as any).sub);
+    return this.usersService.updateAvatar((req.user as any).sub, null);
+  }
+
   @Delete('profile')
   async deleteAccount(@Request() req) {
-    await this.usersService.deleteAccount(req.user.sub);
+    await this.usersService.deleteAccount((req.user as any).sub);
     return { message: 'Account deleted successfully' };
   }
 }

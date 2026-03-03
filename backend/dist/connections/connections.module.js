@@ -13,6 +13,9 @@ const connections_controller_1 = require("./connections.controller");
 const connections_service_1 = require("./connections.service");
 const connection_entity_1 = require("./entities/connection.entity");
 const users_module_1 = require("../users/users.module");
+const calendar_module_1 = require("../calendar/calendar.module");
+const homework_module_1 = require("../homework/homework.module");
+const subjects_module_1 = require("../subjects/subjects.module");
 let ConnectionsModule = class ConnectionsModule {
 };
 exports.ConnectionsModule = ConnectionsModule;
@@ -21,6 +24,9 @@ exports.ConnectionsModule = ConnectionsModule = __decorate([
         imports: [
             typeorm_1.TypeOrmModule.forFeature([connection_entity_1.Connection]),
             (0, common_1.forwardRef)(() => users_module_1.UsersModule),
+            (0, common_1.forwardRef)(() => calendar_module_1.CalendarModule),
+            (0, common_1.forwardRef)(() => subjects_module_1.SubjectsModule),
+            homework_module_1.HomeworkModule,
         ],
         controllers: [connections_controller_1.ConnectionsController],
         providers: [connections_service_1.ConnectionsService],

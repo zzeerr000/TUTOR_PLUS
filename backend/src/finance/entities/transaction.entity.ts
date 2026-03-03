@@ -10,7 +10,7 @@ export class Transaction {
   amount: number;
 
   @Column()
-  status: string; // completed, pending
+  status: string; // completed, pending, canceled
 
   @Column({ nullable: true })
   subject: string;

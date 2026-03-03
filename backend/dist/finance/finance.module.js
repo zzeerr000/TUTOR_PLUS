@@ -13,6 +13,7 @@ const finance_service_1 = require("./finance.service");
 const finance_controller_1 = require("./finance.controller");
 const transaction_entity_1 = require("./entities/transaction.entity");
 const event_entity_1 = require("../calendar/entities/event.entity");
+const homework_entity_1 = require("../homework/entities/homework.entity");
 const connections_module_1 = require("../connections/connections.module");
 let FinanceModule = class FinanceModule {
 };
@@ -20,7 +21,7 @@ exports.FinanceModule = FinanceModule;
 exports.FinanceModule = FinanceModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([transaction_entity_1.Transaction, event_entity_1.Event]),
+            typeorm_1.TypeOrmModule.forFeature([transaction_entity_1.Transaction, event_entity_1.Event, homework_entity_1.Homework]),
             (0, common_1.forwardRef)(() => connections_module_1.ConnectionsModule),
         ],
         controllers: [finance_controller_1.FinanceController],

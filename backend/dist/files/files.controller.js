@@ -21,8 +21,20 @@ let FilesController = class FilesController {
     constructor(filesService) {
         this.filesService = filesService;
     }
-    findAll(req) {
-        return this.filesService.findAll(req.user.sub, req.user.role);
+    findAll(req, folderId, subjectId) {
+        return this.filesService.findAll(req.user.sub, req.user.role, folderId ? +folderId : null, subjectId ? +subjectId : null);
+    }
+    findInFolder(req, folderId, subjectId) {
+        return this.filesService.findAll(req.user.sub, req.user.role, +folderId, subjectId ? +subjectId : null);
+    }
+    createFolder(body, req) {
+        return this.filesService.createFolder(body.name, req.user.sub, body.parentId, body.subjectId);
+    }
+    removeFolder(id, req) {
+        return this.filesService.removeFolder(+id, req.user.sub);
+    }
+    moveFile(id, body, req) {
+        return this.filesService.moveFile(+id, body.folderId, req.user.sub);
     }
     uploadFile(file, body, req) {
         return this.filesService.uploadFile(file, {
@@ -45,10 +57,46 @@ exports.FilesController = FilesController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Query)("folderId")),
+    __param(2, (0, common_1.Query)("subjectId")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object]),
+    __metadata("design:paramtypes", [Object, String, String]),
     __metadata("design:returntype", void 0)
 ], FilesController.prototype, "findAll", null);
+__decorate([
+    (0, common_1.Get)("folder/:folderId"),
+    __param(0, (0, common_1.Request)()),
+    __param(1, (0, common_1.Param)("folderId")),
+    __param(2, (0, common_1.Query)("subjectId")),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:returntype", void 0)
+], FilesController.prototype, "findInFolder", null);
+__decorate([
+    (0, common_1.Post)("folders"),
+    __param(0, (0, common_1.Body)()),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [Object, Object]),
+    __metadata("design:returntype", void 0)
+], FilesController.prototype, "createFolder", null);
+__decorate([
+    (0, common_1.Delete)("folders/:id"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object]),
+    __metadata("design:returntype", void 0)
+], FilesController.prototype, "removeFolder", null);
+__decorate([
+    (0, common_1.Post)(":id/move"),
+    __param(0, (0, common_1.Param)("id")),
+    __param(1, (0, common_1.Body)()),
+    __param(2, (0, common_1.Request)()),
+    __metadata("design:type", Function),
+    __metadata("design:paramtypes", [String, Object, Object]),
+    __metadata("design:returntype", void 0)
+], FilesController.prototype, "moveFile", null);
 __decorate([
     (0, common_1.Post)("upload"),
     (0, common_1.UseInterceptors)((0, platform_express_1.FileInterceptor)("file")),

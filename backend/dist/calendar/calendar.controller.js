@@ -35,13 +35,21 @@ let CalendarController = class CalendarController {
             studentId,
         });
     }
-    async update(id, updateEventDto, req) {
+    async update(id, updateEventDto, recurring, req) {
         const tutorId = req.user.role === "tutor" ? req.user.sub : updateEventDto.tutorId;
         const studentId = req.user.role === "student" ? req.user.sub : updateEventDto.studentId;
         await this.calendarService.verifyConnection(tutorId, studentId);
         const event = await this.calendarService.findOne(id);
         if (event && event.tutorId !== req.user.sub && req.user.role === "tutor") {
             throw new common_1.ForbiddenException("You can only edit your own lessons");
+        }
+        if (recurring === "true") {
+            await this.calendarService.updateRecurring(id, {
+                ...updateEventDto,
+                tutorId,
+                studentId,
+            });
+            return { message: "Recurring events updated successfully" };
         }
         return this.calendarService.update(id, {
             ...updateEventDto,
@@ -64,10 +72,8 @@ let CalendarController = class CalendarController {
             await this.calendarService.removeRecurring(+id);
             return { message: "Recurring events deleted successfully" };
         }
-        else {
-            await this.calendarService.remove(+id);
-            return { message: "Event deleted successfully" };
-        }
+        await this.calendarService.remove(+id);
+        return { message: "Event deleted successfully" };
     }
 };
 exports.CalendarController = CalendarController;
@@ -90,9 +96,10 @@ __decorate([
     (0, common_1.Put)(":id"),
     __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
     __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Request)()),
+    __param(2, (0, common_1.Query)("recurring")),
+    __param(3, (0, common_1.Request)()),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object, Object]),
+    __metadata("design:paramtypes", [Number, Object, String, Object]),
     __metadata("design:returntype", Promise)
 ], CalendarController.prototype, "update", null);
 __decorate([

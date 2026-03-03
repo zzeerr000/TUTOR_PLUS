@@ -12,6 +12,8 @@ const typeorm_1 = require("@nestjs/typeorm");
 const files_service_1 = require("./files.service");
 const files_controller_1 = require("./files.controller");
 const file_entity_1 = require("./entities/file.entity");
+const folder_entity_1 = require("./entities/folder.entity");
+const homework_entity_1 = require("../homework/entities/homework.entity");
 const connections_module_1 = require("../connections/connections.module");
 let FilesModule = class FilesModule {
 };
@@ -19,7 +21,7 @@ exports.FilesModule = FilesModule;
 exports.FilesModule = FilesModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([file_entity_1.FileEntity]),
+            typeorm_1.TypeOrmModule.forFeature([file_entity_1.FileEntity, folder_entity_1.FolderEntity, homework_entity_1.Homework]),
             (0, common_1.forwardRef)(() => connections_module_1.ConnectionsModule),
         ],
         controllers: [files_controller_1.FilesController],

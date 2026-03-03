@@ -6,10 +6,11 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, IsNull } from "typeorm";
+import { Repository, IsNull, In } from "typeorm";
 import { Transaction } from "./entities/transaction.entity";
 import { Event } from "../calendar/entities/event.entity";
 import { ConnectionsService } from "../connections/connections.service";
+import { Homework } from "../homework/entities/homework.entity";
 
 @Injectable()
 export class FinanceService {
@@ -18,22 +19,24 @@ export class FinanceService {
     private transactionsRepository: Repository<Transaction>,
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
+    @InjectRepository(Homework)
+    private homeworkRepository: Repository<Homework>,
     @Inject(forwardRef(() => ConnectionsService))
-    private connectionsService: ConnectionsService
+    private connectionsService: ConnectionsService,
   ) {}
 
   async create(createTransactionDto: any): Promise<Transaction> {
     // Verify connection exists
     const connections = await this.connectionsService.getConnections(
       createTransactionDto.tutorId,
-      "tutor"
+      "tutor",
     );
     const isConnected = connections.some(
-      (c) => c.studentId === createTransactionDto.studentId
+      (c) => c.studentId === createTransactionDto.studentId,
     );
     if (!isConnected) {
       throw new BadRequestException(
-        "Can only create transactions with connected students"
+        "Can only create transactions with connected students",
       );
     }
 
@@ -51,7 +54,7 @@ export class FinanceService {
       // Get connected students
       const connections = await this.connectionsService.getConnections(
         userId,
-        "tutor"
+        "tutor",
       );
       const connectedStudentIds = connections.map((c) => c.studentId);
 
@@ -72,7 +75,7 @@ export class FinanceService {
       // Get connected tutors
       const connections = await this.connectionsService.getConnections(
         userId,
-        "student"
+        "student",
       );
       const connectedTutorIds = connections.map((c) => c.tutorId);
 
@@ -93,11 +96,12 @@ export class FinanceService {
   }
 
   async checkAndCreateTransactionsForPastEvents(): Promise<void> {
-    // Get all events without transactions that have passed
+    // Get all events without transactions that have started (including ongoing)
     const now = new Date();
     const events = await this.eventsRepository.find({
       where: {
         transactionId: IsNull(),
+        paymentIgnored: false,
       },
       relations: ["student", "tutor"],
     });
@@ -128,24 +132,21 @@ export class FinanceService {
 
       eventDate.setHours(hour24, minute, 0, 0);
 
-      // Check if event has passed (assuming 1 hour duration)
-      const eventEndTime = new Date(eventDate);
-      eventEndTime.setHours(eventEndTime.getHours() + 1);
-
-      if (eventEndTime < now && !event.transactionId) {
+      // Check if event has started (create transaction at start time, not after end)
+      if (eventDate <= now && !event.transactionId && !event.paymentIgnored) {
         // Verify connection exists
         const connections = await this.connectionsService.getConnections(
           event.tutorId,
-          "tutor"
+          "tutor",
         );
         const isConnected = connections.some(
-          (c) => c.studentId === event.studentId
+          (c) => c.studentId === event.studentId,
         );
         if (!isConnected) {
           continue;
         }
 
-        // Create pending transaction for this past event
+        // Create pending transaction for this started event
         try {
           const transaction = await this.create({
             amount: event.amount || 0, // Use event amount
@@ -161,7 +162,7 @@ export class FinanceService {
           event.paymentPending = true;
           await this.eventsRepository.save(event);
         } catch (error) {
-          console.error("Failed to create transaction for past event:", error);
+          console.error("Failed to create transaction for started event:", error);
         }
       }
     }
@@ -169,7 +170,7 @@ export class FinanceService {
 
   async confirmPayment(
     transactionId: number,
-    tutorId: number
+    tutorId: number,
   ): Promise<Transaction> {
     const transaction = await this.transactionsRepository.findOne({
       where: { id: transactionId },
@@ -182,7 +183,7 @@ export class FinanceService {
 
     if (transaction.tutorId !== tutorId) {
       throw new ForbiddenException(
-        "You can only confirm payments for your own transactions"
+        "You can only confirm payments for your own transactions",
       );
     }
 
@@ -192,10 +193,45 @@ export class FinanceService {
     // Update event payment status
     await this.eventsRepository.update(
       { transactionId: transactionId },
-      { paymentPending: false }
+      { paymentPending: false, paymentIgnored: false },
     );
 
     return updated;
+  }
+
+  async cancelPayment(transactionId: number, tutorId: number): Promise<void> {
+    const transaction = await this.transactionsRepository.findOne({
+      where: { id: transactionId },
+      relations: ["tutor", "student"],
+    });
+
+    if (!transaction) {
+      throw new BadRequestException("Transaction not found");
+    }
+
+    if (transaction.tutorId !== tutorId) {
+      throw new ForbiddenException("You can only delete your own transactions");
+    }
+
+    if (transaction.status !== "pending") {
+      throw new BadRequestException("Can only delete pending transactions");
+    }
+
+    // Find the linked event(s) before clearing transactionId
+    const events = await this.eventsRepository.find({
+      where: { transactionId: transactionId },
+    });
+
+    // Delete all homework linked to these events by lessonId
+    if (events.length > 0) {
+      const lessonIds = events.map(e => e.id);
+      await this.homeworkRepository.delete({ lessonId: In(lessonIds) });
+    }
+
+    // Delete the linked events
+    await this.eventsRepository.delete({ transactionId: transactionId });
+
+    await this.transactionsRepository.delete(transactionId);
   }
 
   async getStats(userId: number, userRole: string) {
@@ -204,7 +240,7 @@ export class FinanceService {
     thisMonth.setDate(1);
 
     const thisMonthTransactions = transactions.filter(
-      (t) => new Date(t.createdAt) >= thisMonth && t.status === "completed"
+      (t) => new Date(t.createdAt) >= thisMonth && t.status === "completed",
     );
     const lastMonth = new Date(thisMonth);
     lastMonth.setMonth(lastMonth.getMonth() - 1);
@@ -212,16 +248,16 @@ export class FinanceService {
       (t) =>
         new Date(t.createdAt) >= lastMonth &&
         new Date(t.createdAt) < thisMonth &&
-        t.status === "completed"
+        t.status === "completed",
     );
 
     const thisMonthTotal = thisMonthTransactions.reduce(
       (sum, t) => sum + Number(t.amount),
-      0
+      0,
     );
     const lastMonthTotal = lastMonthTransactions.reduce(
       (sum, t) => sum + Number(t.amount),
-      0
+      0,
     );
     const pending = transactions.filter((t) => t.status === "pending");
     const pendingTotal = pending.reduce((sum, t) => sum + Number(t.amount), 0);
