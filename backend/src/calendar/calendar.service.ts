@@ -21,6 +21,17 @@ export class CalendarService {
     private financeService: FinanceService,
   ) {}
 
+  async deleteEventsBetweenUsers(tutorId: number, studentId: number): Promise<void> {
+    const events = await this.eventsRepository.find({
+      where: {
+        tutorId,
+        studentId,
+      },
+    });
+
+    await this.eventsRepository.remove(events);
+  }
+
   async verifyConnection(tutorId: number, studentId: number): Promise<void> {
     const connections = await this.connectionsService.getConnections(
       tutorId,
@@ -39,10 +50,7 @@ export class CalendarService {
     const saved = await this.eventsRepository.save(event);
     const savedEvent = Array.isArray(saved) ? saved[0] : saved;
 
-    // Don't create transaction immediately - only after lesson ends
-    // Transaction will be created when checking for past events
-
-    return savedEvent;
+    return this.findOne(savedEvent.id) as Promise<Event>;
   }
 
   async findAll(userId: number, userRole: string) {
@@ -63,6 +71,7 @@ export class CalendarService {
       return this.eventsRepository
         .createQueryBuilder("event")
         .leftJoinAndSelect("event.student", "student")
+        .leftJoinAndSelect("event.subjectEntity", "subjectEntity")
         .where("event.tutorId = :tutorId", { tutorId: userId })
         .andWhere("event.studentId IN (:...studentIds)", {
           studentIds: connectedUserIds,
@@ -74,6 +83,7 @@ export class CalendarService {
       return this.eventsRepository
         .createQueryBuilder("event")
         .leftJoinAndSelect("event.tutor", "tutor")
+        .leftJoinAndSelect("event.subjectEntity", "subjectEntity")
         .where("event.studentId = :studentId", { studentId: userId })
         .andWhere("event.tutorId IN (:...tutorIds)", {
           tutorIds: connectedUserIds,
@@ -87,7 +97,7 @@ export class CalendarService {
   async findOne(id: number): Promise<Event | null> {
     return this.eventsRepository.findOne({
       where: { id },
-      relations: ["student", "tutor"],
+      relations: ["student", "tutor", "subjectEntity"],
     });
   }
 
@@ -105,7 +115,7 @@ export class CalendarService {
     await this.eventsRepository.update(id, updateEventDto);
     const updated = await this.eventsRepository.findOne({
       where: { id },
-      relations: ["student", "tutor"],
+      relations: ["student", "tutor", "subjectEntity"],
     });
     if (!updated) {
       throw new Error("Event not found");
@@ -163,10 +173,17 @@ export class CalendarService {
   }
 
   async updateRecurring(id: number, updateEventDto: any): Promise<void> {
-    const originalEvent = await this.eventsRepository.findOne({ where: { id } });
+    const originalEvent = await this.eventsRepository.findOne({
+      where: { id },
+    });
     if (!originalEvent) throw new Error("Event not found");
 
-    const { studentId, time: oldTime, date: oldDateStr, tutorId } = originalEvent;
+    const {
+      studentId,
+      time: oldTime,
+      date: oldDateStr,
+      tutorId,
+    } = originalEvent;
     const oldDate = new Date(oldDateStr);
     const oldDayOfWeek = oldDate.getDay();
 

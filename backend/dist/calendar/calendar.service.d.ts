@@ -7,6 +7,7 @@ export declare class CalendarService {
     private connectionsService;
     private financeService;
     constructor(eventsRepository: Repository<Event>, connectionsService: ConnectionsService, financeService: FinanceService);
+    deleteEventsBetweenUsers(tutorId: number, studentId: number): Promise<void>;
     verifyConnection(tutorId: number, studentId: number): Promise<void>;
     create(createEventDto: any): Promise<Event>;
     findAll(userId: number, userRole: string): Promise<Event[]>;

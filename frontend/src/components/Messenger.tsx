@@ -57,6 +57,7 @@ export function Messenger({ userType }: MessengerProps) {
                 .join("")
                 .toUpperCase()
                 .slice(0, 2),
+              avatarUrl: otherUser.avatarUrl,
               color: colors[index % colors.length],
               isNew: true,
             };
@@ -70,6 +71,13 @@ export function Messenger({ userType }: MessengerProps) {
         (chat: any, index: number) => ({
           ...chat,
           color: chat.color || colors[index % colors.length],
+          avatar: chat.avatar || chat.name
+            .split(" ")
+            .map((n: string) => n[0])
+            .join("")
+            .toUpperCase()
+            .slice(0, 2),
+          avatarUrl: chat.avatarUrl,
         }),
       );
 
@@ -231,10 +239,18 @@ export function Messenger({ userType }: MessengerProps) {
                 >
                   <div className="flex items-center gap-3">
                     <div
-                      className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0"
+                      className="w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 overflow-hidden"
                       style={{ backgroundColor: chat.color || "#1db954" }}
                     >
-                      <span className="text-white">{chat.avatar}</span>
+                      {chat.avatarUrl && chat.avatarUrl.startsWith('/uploads/') ? (
+                        <img 
+                          src={`${api.getBaseUrl()}${chat.avatarUrl}`}
+                          alt={chat.name}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-white">{chat.avatar}</span>
+                      )}
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between mb-1">
@@ -291,10 +307,18 @@ export function Messenger({ userType }: MessengerProps) {
                 <ArrowLeft size={20} />
               </button>
               <div
-                className="w-10 h-10 rounded-full flex items-center justify-center"
+                className="w-10 h-10 rounded-full flex items-center justify-center overflow-hidden"
                 style={{ backgroundColor: currentChat.color || "#1db954" }}
               >
-                <span className="text-sm text-white">{currentChat.avatar}</span>
+                {currentChat.avatarUrl && currentChat.avatarUrl.startsWith('/uploads/') ? (
+                  <img 
+                    src={`${api.getBaseUrl()}${currentChat.avatarUrl}`}
+                    alt={currentChat.name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <span className="text-sm text-white">{currentChat.avatar}</span>
+                )}
               </div>
               <div>
                 <div className="font-medium text-foreground">

@@ -19,7 +19,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [name, setName] = useState("");
-  const [role, setRole] = useState<"tutor" | "student">("student");
+  const [role, setRole] = useState<"tutor" | "student" | null>(null);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
@@ -30,6 +30,9 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
     try {
       let data;
+      if (!role) {
+        throw new Error("Пожалуйста, выберите роль (Репетитор или Ученик)");
+      }
       if (isLogin) {
         data = await api.login(email, password, role);
       } else {
@@ -69,7 +72,9 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         <div className="bg-card rounded-lg p-6 border border-border shadow-sm">
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-muted-foreground mb-1"></label>
+              <label className="block text-sm font-medium text-muted-foreground mb-1">
+                Выберите роль
+              </label>
               <div className="grid grid-cols-2 gap-4">
                 <button
                   type="button"
@@ -96,6 +101,11 @@ export function Auth({ onAuthSuccess }: AuthProps) {
                   Ученик
                 </button>
               </div>
+              {!role && (
+                <p className="text-xs text-red-500 mt-2">
+                  Пожалуйста, выберите роль
+                </p>
+              )}
             </div>
 
             {!isLogin && (
@@ -168,7 +178,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || !role}
               className="w-full bg-[#1db954] text-white font-bold py-2 px-4 rounded-md hover:bg-[#1ed760] transition-colors focus:outline-none focus:ring-2 focus:ring-[#1db954] focus:ring-offset-2 focus:ring-offset-background mt-6 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading
@@ -184,6 +194,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
               onClick={() => {
                 setIsLogin(!isLogin);
                 setError("");
+                setRole(null);
               }}
               className="text-sm text-muted-foreground hover:text-[#1db954] transition-colors"
             >

@@ -7,7 +7,7 @@ import {
   ForbiddenException,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository, In } from "typeorm";
+import { Repository, In, IsNull, Brackets } from "typeorm";
 import { FileEntity } from "./entities/file.entity";
 import { FolderEntity } from "./entities/folder.entity";
 import { Homework } from "../homework/entities/homework.entity";
@@ -86,7 +86,7 @@ export class FilesService {
       type: type,
       size: formatBytes(file.size),
       path: filePath,
-      subject: data.subject || "Other",
+      subjectId: data.subjectId ? parseInt(data.subjectId) : null,
       uploadedById: uploadedById,
       assignedToId: assignedToId,
       folderId: folderId,
@@ -161,28 +161,46 @@ export class FilesService {
     userId: number,
     userRole: string,
     folderId: number | null = null,
-  ): Promise<{ files: FileEntity[]; folders: FolderEntity[] }> {
+    filterSubjectId: number | null = null,
+  ): Promise<{ files: FileEntity[]; folders: any[] }> {
     if (userRole === "tutor") {
+      const folderWhere: any = {
+        uploadedById: userId,
+        parentId: folderId,
+      };
+      if (filterSubjectId) {
+        folderWhere.subjectId = filterSubjectId;
+      }
+
       const folders = await this.foldersRepository.find({
-        where: { uploadedById: userId, parentId: folderId },
+        where: folderWhere,
+        relations: ["subject", "uploadedBy"],
         order: { name: "ASC" },
       });
 
-      const files = await this.filesRepository
+      const filesQuery = this.filesRepository
         .createQueryBuilder("file")
         .leftJoinAndSelect("file.uploadedBy", "uploadedBy")
         .leftJoinAndSelect("file.assignedTo", "assignedTo")
+        .leftJoinAndSelect("file.subject", "subject")
         .where("file.uploadedById = :userId", { userId })
         .andWhere(
           folderId ? "file.folderId = :folderId" : "file.folderId IS NULL",
           { folderId },
         )
-        .orderBy("file.createdAt", "DESC")
-        .getMany();
+        .orderBy("file.createdAt", "DESC");
 
-      return { files, folders };
+      if (filterSubjectId) {
+        filesQuery.andWhere("file.subjectId = :filterSubjectId", {
+          filterSubjectId,
+        });
+      }
+
+      const files = await filesQuery.getMany();
+      const foldersWithCounts = await this.addCounts(folders);
+      return { files, folders: foldersWithCounts };
     } else {
-      // Student sees files assigned to them OR files from connected tutors with no assignment (general materials)
+      // Student logic
       const connections = await this.connectionsService.getConnections(
         userId,
         "student",
@@ -193,20 +211,66 @@ export class FilesService {
         return { files: [], folders: [] };
       }
 
-      // For students, folders are tricky. Let's show all folders from connected tutors at the root,
-      // or filter by parentId if we want navigation.
-      const folders = await this.foldersRepository.find({
-        where: {
+      // Get allowed subject IDs from connections
+      let allowedSubjectIds = connections
+        .flatMap((c) => c.subjects || [])
+        .map((s) => s.id);
+
+      // If a specific subject is requested for filtering
+      if (filterSubjectId) {
+        // Check if the student is allowed to see this subject
+        if (
+          allowedSubjectIds.length > 0 &&
+          !allowedSubjectIds.includes(filterSubjectId)
+        ) {
+          // If the requested subject is not in the allowed list, return nothing
+          // (unless allowedSubjectIds is empty, which might mean "all subjects allowed" depending on logic,
+          // but here empty usually means "no specific subjects assigned so maybe none allowed or all?
+          // The previous logic was: if allowedSubjectIds > 0, filter by them.
+          // So if I request subject X and I only have Y, I get nothing.)
+          return { files: [], folders: [] };
+        }
+        // Narrow down the allowed list to just the requested one
+        allowedSubjectIds = [filterSubjectId];
+      }
+
+      const whereConditions: any[] = [];
+
+      // Condition 1: Public/General folders (no subject)
+      if (!filterSubjectId) {
+        whereConditions.push({
           uploadedById: In(connectedTutorIds),
           parentId: folderId,
-        },
+          subjectId: IsNull(),
+        });
+      }
+
+      // Condition 2: Folders with allowed subjects
+      if (allowedSubjectIds.length > 0) {
+        whereConditions.push({
+          uploadedById: In(connectedTutorIds),
+          parentId: folderId,
+          subjectId: In(allowedSubjectIds),
+        });
+      } else if (filterSubjectId) {
+        // If we are filtering by a subject but have no allowed subjects (and didn't return early),
+        // it means we probably shouldn't see anything unless the logic allows "public" subjects when no restriction exists.
+        // But the previous logic was: if allowedSubjectIds > 0, add restriction.
+        // If allowedSubjectIds == 0, we only see no-subject folders?
+        // Let's stick to the previous logic but add the filter.
+      }
+
+      const folders = await this.foldersRepository.find({
+        where: whereConditions,
+        relations: ["subject", "uploadedBy"],
         order: { name: "ASC" },
       });
 
-      const files = await this.filesRepository
+      const filesQuery = this.filesRepository
         .createQueryBuilder("file")
         .leftJoinAndSelect("file.uploadedBy", "uploadedBy")
         .leftJoinAndSelect("file.assignedTo", "assignedTo")
+        .leftJoinAndSelect("file.subject", "subject")
         .where(
           "(file.assignedToId = :userId OR (file.assignedToId IS NULL AND file.uploadedById IN (:...tutorIds)))",
           { userId, tutorIds: connectedTutorIds },
@@ -215,9 +279,30 @@ export class FilesService {
           folderId ? "file.folderId = :folderId" : "file.folderId IS NULL",
           { folderId },
         )
-        .orderBy("file.createdAt", "DESC")
-        .getMany();
+        .orderBy("file.createdAt", "DESC");
 
+      // Apply subject filtering logic
+      filesQuery.andWhere(
+        new Brackets((qb) => {
+          // Case 1: No subject (always allowed if not filtering by subject)
+          if (!filterSubjectId) {
+            qb.where("file.subjectId IS NULL");
+          } else {
+            // If filtering, we can't see "no subject" files unless we explicitly allow them,
+            // but usually a subject filter means "show me Math".
+            qb.where("1=0"); // Start with false
+          }
+
+          // Case 2: Allowed subjects
+          if (allowedSubjectIds.length > 0) {
+            qb.orWhere("file.subjectId IN (:...allowedSubjectIds)", {
+              allowedSubjectIds,
+            });
+          }
+        }),
+      );
+
+      const files = await filesQuery.getMany();
       return { files, folders };
     }
   }
@@ -226,22 +311,35 @@ export class FilesService {
     name: string,
     uploadedById: number,
     parentId: number | null = null,
+    subjectId: number | null = null,
   ): Promise<FolderEntity> {
     const folder = this.foldersRepository.create({
       name,
       uploadedById,
       parentId,
+      subjectId,
     });
     return this.foldersRepository.save(folder);
   }
 
-  async removeFolder(id: number, userId: number): Promise<void> {
+  async removeFolder(
+    id: number,
+    userId: number,
+    allowSubjectFolderDeletion: boolean = false,
+  ): Promise<void> {
     const folder = await this.foldersRepository.findOne({
       where: { id, uploadedById: userId },
     });
     if (!folder) {
       throw new NotFoundException(
         "Folder not found or you do not have permission",
+      );
+    }
+
+    // Prevent deleting subject root folders (auto-created) unless explicitly allowed
+    if (folder.subjectId && !folder.parentId && !allowSubjectFolderDeletion) {
+      throw new ForbiddenException(
+        "Нельзя удалить корневую папку предмета. Удалите предмет, чтобы удалить папку.",
       );
     }
 
@@ -267,6 +365,20 @@ export class FilesService {
     }
   }
 
+  private async addCounts(folders: FolderEntity[]) {
+    return Promise.all(
+      folders.map(async (folder) => {
+        const subfoldersCount = await this.foldersRepository.count({
+          where: { parentId: folder.id },
+        });
+        const filesCount = await this.filesRepository.count({
+          where: { folderId: folder.id },
+        });
+        return { ...folder, subfoldersCount, filesCount };
+      }),
+    );
+  }
+
   async moveFile(
     fileId: number,
     folderId: number | null,
@@ -290,6 +402,17 @@ export class FilesService {
     await this.filesRepository.delete(id);
   }
 
+  async updateFolderSubject(
+    folderId: number,
+    subjectId: number,
+  ): Promise<void> {
+    await this.foldersRepository.update(folderId, { subjectId });
+  }
+
+  async updateFolderName(folderId: number, name: string): Promise<void> {
+    await this.foldersRepository.update(folderId, { name });
+  }
+
   async getStorageStats(
     userId: number,
     userRole: string,
@@ -299,7 +422,16 @@ export class FilesService {
     usedFormatted: string;
     totalFormatted: string;
   }> {
-    const { files } = await this.findAll(userId, userRole);
+    let files: FileEntity[] = [];
+
+    if (userRole === "tutor") {
+      files = await this.filesRepository.find({
+        where: { uploadedById: userId },
+      });
+    } else {
+      const res = await this.findAll(userId, userRole as any);
+      files = res.files;
+    }
 
     // Parse file sizes and sum them up
     let totalBytes = 0;

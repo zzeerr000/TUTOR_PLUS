@@ -19,6 +19,7 @@ const calendar_module_1 = require("./calendar/calendar.module");
 const progress_module_1 = require("./progress/progress.module");
 const connections_module_1 = require("./connections/connections.module");
 const homework_module_1 = require("./homework/homework.module");
+const subjects_module_1 = require("./subjects/subjects.module");
 const app_controller_1 = require("./app.controller");
 const user_entity_1 = require("./users/entities/user.entity");
 const task_entity_1 = require("./tasks/entities/task.entity");
@@ -30,6 +31,7 @@ const event_entity_1 = require("./calendar/entities/event.entity");
 const progress_entity_1 = require("./progress/entities/progress.entity");
 const connection_entity_1 = require("./connections/entities/connection.entity");
 const homework_entity_1 = require("./homework/entities/homework.entity");
+const subject_entity_1 = require("./subjects/entities/subject.entity");
 let AppModule = class AppModule {
 };
 exports.AppModule = AppModule;
@@ -50,6 +52,7 @@ exports.AppModule = AppModule = __decorate([
                     progress_entity_1.Progress,
                     connection_entity_1.Connection,
                     homework_entity_1.Homework,
+                    subject_entity_1.Subject,
                 ],
                 synchronize: true,
             }),
@@ -63,6 +66,7 @@ exports.AppModule = AppModule = __decorate([
             progress_module_1.ProgressModule,
             connections_module_1.ConnectionsModule,
             homework_module_1.HomeworkModule,
+            subjects_module_1.SubjectsModule,
         ],
         controllers: [app_controller_1.AppController],
     })

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import {
   Calendar,
   CheckSquare,
@@ -6,11 +6,11 @@ import {
   Users,
   TrendingUp,
   Clock,
-  FolderOpen,
-  FileText,
   Trash2,
+  Edit,
 } from "lucide-react";
 import { api } from "../services/api";
+import { SubjectManager } from "./SubjectManager";
 
 interface DashboardProps {
   userType: "tutor" | "student";
@@ -32,9 +32,39 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   const [upcomingLessons, setUpcomingLessons] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState(api.getCurrencySymbol());
+  const [showSubjectOnboarding, setShowSubjectOnboarding] = useState(false);
+
+  const handleEditLesson = async (lessonId: number) => {
+    try {
+      const events = await api.getEvents();
+      const event = events.find((e: any) => e.id === lessonId);
+      if (event) {
+        // Navigate to calendar and open edit dialog
+        onNavigate("calendar");
+        // Store the event to edit in localStorage for CalendarView to pick up
+        localStorage.setItem("editEventId", lessonId.toString());
+      }
+    } catch (error) {
+      console.error("Failed to load event for editing:", error);
+    }
+  };
+
+  const checkSubjects = async () => {
+    try {
+      const subjects = await api.getSubjects();
+      if (subjects.length === 0) {
+        setShowSubjectOnboarding(true);
+      }
+    } catch (e) {
+      console.error("Failed to check subjects", e);
+    }
+  };
 
   useEffect(() => {
     loadData();
+    if (userType === "tutor") {
+      checkSubjects();
+    }
 
     const handleStorageChange = () => {
       setCurrency(api.getCurrencySymbol());
@@ -133,22 +163,6 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           .getProgressStats()
           .catch(() => ({ overallProgress: 0, totalHours: 0 }));
 
-        const now = new Date();
-        const futureEvents = events
-          .filter((e: any) => {
-            const eventDate = e.date.split("T")[0];
-            const [h, m] = e.time.split(":");
-            const eventDateTime = new Date(
-              `${eventDate}T${h.padStart(2, "0")}:${m.padStart(2, "0")}:00`,
-            );
-            return eventDateTime >= now;
-          })
-          .sort((a: any, b: any) => {
-            const dateA = new Date(`${a.date.split("T")[0]}T${a.time}`);
-            const dateB = new Date(`${b.date.split("T")[0]}T${b.time}`);
-            return dateA.getTime() - dateB.getTime();
-          });
-
         setStats({
           students: 0,
           lessonsToday: todayEvents.length,
@@ -203,11 +217,17 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   if (userType === "tutor") {
     return (
       <div className="space-y-6 pb-6">
+        {showSubjectOnboarding && (
+          <SubjectManager
+            isModal
+            onClose={() => setShowSubjectOnboarding(false)}
+          />
+        )}
         {/* Quick Stats */}
         <div className="grid grid-cols-2 gap-3">
           <div
             onClick={() => onNavigate("students")}
-            className="bg-gradient-to-br from-[#369128] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#369128] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
             <Users size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.students}</div>
@@ -215,7 +235,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           </div>
           <div
             onClick={() => onNavigate("calendar")}
-            className="bg-gradient-to-br from-[#a02b54] to-[#c60f4f] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#a02b54] to-[#c60f4f] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
             <Calendar size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.lessonsToday}</div>
@@ -223,7 +243,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           </div>
           <div
             onClick={() => onNavigate("finance")}
-            className="bg-gradient-to-br from-[#45238f] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#45238f] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
             <DollarSign size={24} className="mb-2" />
             <div className="text-2xl mb-1">
@@ -234,7 +254,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
           </div>
           <div
             onClick={() => onNavigate("homework")}
-            className="bg-gradient-to-br from-[#9e2a89] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#9e2a89] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
             <CheckSquare size={24} className="mb-2" />
             <div className="text-2xl mb-1">{stats.pendingTasks}</div>
@@ -270,15 +290,6 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                           {lesson.time}
                         </span>
                       </div>
-                      {lesson.past ? (
-                        <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
-                          Завершено
-                        </span>
-                      ) : (
-                        <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                          Предстоит
-                        </span>
-                      )}
                     </div>
                     <div
                       className={`font-medium ${
@@ -291,18 +302,38 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
                       {lesson.subject}
                     </div>
                   </div>
-                  {userType === "tutor" && (
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteLesson(lesson.id);
-                      }}
-                      className="text-muted-foreground hover:text-destructive transition-colors p-2"
-                      title="Удалить занятие"
-                    >
-                      <Trash2 size={16} />
-                    </button>
-                  )}
+                  <div className="flex items-center gap-2">
+                    {lesson.past ? (
+                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
+                        Завершено
+                      </span>
+                    ) : (
+                      <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
+                        Предстоит
+                      </span>
+                    )}
+                    {!lesson.past && (
+                      <button
+                        onClick={() => handleEditLesson(lesson.id)}
+                        className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+                        title="Редактировать"
+                      >
+                        <Edit size={14} className="text-foreground" />
+                      </button>
+                    )}
+                    {userType === "tutor" && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          handleDeleteLesson(lesson.id);
+                        }}
+                        className="text-muted-foreground hover:text-destructive transition-colors p-2"
+                        title="Удалить занятие"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
                 </div>
               ))
             )}
@@ -319,7 +350,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       <div className="grid grid-cols-2 gap-3">
         <div
           onClick={() => onNavigate("tasks")}
-          className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
           <CheckSquare size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.activeTasks}</div>
@@ -327,7 +358,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         </div>
         <div
           onClick={() => onNavigate("calendar")}
-          className="bg-gradient-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
           <Calendar size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.lessonsThisWeek}</div>
@@ -335,7 +366,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         </div>
         <div
           onClick={() => onNavigate("progress")}
-          className="bg-gradient-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
           <TrendingUp size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.avgProgress}%</div>
@@ -343,7 +374,7 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         </div>
         <div
           onClick={() => onNavigate("progress")}
-          className="bg-gradient-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
           <Clock size={24} className="mb-2" />
           <div className="text-2xl mb-1">{stats.studyTime}ч</div>

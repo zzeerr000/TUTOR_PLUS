@@ -39,7 +39,10 @@ export declare class ProgressController {
             studentId: number;
             student: import("../users/entities/user.entity").User;
             subject: string;
+            subjectId: number;
+            subjectEntity: import("../subjects/entities/subject.entity").Subject;
             paymentPending: boolean;
+            paymentIgnored: boolean;
             transactionId: number;
             amount: number;
             duration: number;

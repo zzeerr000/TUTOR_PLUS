@@ -9,7 +9,6 @@ import {
   BookOpen,
   Edit,
   Trash2,
-  Calendar,
 } from "lucide-react";
 import { api } from "../services/api";
 
@@ -27,11 +26,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const [loading, setLoading] = useState(true);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [students, setStudents] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [isCustomSubject, setIsCustomSubject] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: "",
     date: "",
     time: "",
     subject: "",
+    subjectId: "",
     studentId: "",
     color: "#1db954",
     repeatType: "once" as "once" | "week" | "month",
@@ -53,12 +55,40 @@ export function CalendarView({ userType }: CalendarViewProps) {
     description: "",
   });
   const [showUpdateConfirm, setShowUpdateConfirm] = useState(false);
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+  });
 
   useEffect(() => {
-    loadEvents();
-    if (userType === "tutor") {
-      loadStudents();
-    }
+    const handleResize = () => {
+      setScreenSize({ width: window.innerWidth });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    const checkEditEvent = async () => {
+      loadEvents();
+      if (userType === "tutor") {
+        loadStudents();
+        loadSubjects();
+      }
+
+      // Check for stored edit event ID
+      const editEventId = localStorage.getItem("editEventId");
+      if (editEventId) {
+        const events = await api.getEvents();
+        const event = events.find((e: any) => e.id === parseInt(editEventId));
+        if (event) {
+          handleEditEvent(event);
+          localStorage.removeItem("editEventId");
+        }
+      }
+    };
+    
+    checkEditEvent();
 
     const handleStorageChange = () => {
       setCurrency(api.getCurrencySymbol());
@@ -74,11 +104,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
       const data = await api.getEvents();
       const formattedEvents = data.map((e: any) => {
         const studentName = e.student?.studentAlias || e.student?.name;
+        const subjectName = e.subjectEntity ? e.subjectEntity.name : e.subject;
         return {
           ...e,
-          title: e.subject
-            ? `${e.subject} - ${studentName || e.tutor?.name || "Пользователь"}`
+          title: subjectName
+            ? `${subjectName} - ${studentName || e.tutor?.name || "Пользователь"}`
             : e.title,
+          subjectName: subjectName,
+          subjectId: e.subjectId,
         };
       });
       setEvents(formattedEvents);
@@ -94,6 +127,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
       console.error("Failed to load events:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const loadSubjects = async () => {
+    try {
+      const data = await api.getSubjects();
+      setSubjects(data);
+    } catch (error) {
+      console.error("Failed to load subjects:", error);
     }
   };
 
@@ -139,6 +181,48 @@ export function CalendarView({ userType }: CalendarViewProps) {
     return dates;
   };
 
+  const checkTimeConflict = (
+    date: string,
+    time: string,
+    duration: number,
+    excludeEventId?: number,
+  ): { hasConflict: boolean; conflictInfo?: { studentName: string; time: string; duration: number } } => {
+    // Parse start time
+    const [startHour, startMin] = time.split(":").map(Number);
+    const startTime = new Date(`${date}T${String(startHour).padStart(2, "0")}:${String(startMin).padStart(2, "0")}:00`);
+    const endTime = new Date(startTime);
+    endTime.setMinutes(endTime.getMinutes() + duration);
+
+    // Check all events for the same date
+    const dayEvents = events.filter((e) => e.date === date && e.id !== excludeEventId);
+
+    for (const event of dayEvents) {
+      const [eventHour, eventMin] = event.time.split(":").map(Number);
+      const eventStartTime = new Date(`${date}T${String(eventHour).padStart(2, "0")}:${String(eventMin).padStart(2, "0")}:00`);
+      const eventEndTime = new Date(eventStartTime);
+      eventEndTime.setMinutes(eventEndTime.getMinutes() + (event.duration || 60));
+
+      // Check if time ranges overlap
+      if (
+        (startTime >= eventStartTime && startTime < eventEndTime) ||
+        (endTime > eventStartTime && endTime <= eventEndTime) ||
+        (startTime <= eventStartTime && endTime >= eventEndTime)
+      ) {
+        const studentName = event.student?.studentAlias || event.student?.name || "Ученик";
+        return {
+          hasConflict: true,
+          conflictInfo: {
+            studentName,
+            time: event.time,
+            duration: event.duration || 60,
+          },
+        };
+      }
+    }
+
+    return { hasConflict: false };
+  };
+
   const handleAddEvent = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -147,6 +231,31 @@ export function CalendarView({ userType }: CalendarViewProps) {
     try {
       const timeStr = formatTime(newEvent.time);
       const amount = parseFloat(newEvent.amount) || 0;
+      const duration = parseInt(newEvent.duration) || 60;
+
+      // Check for time conflicts
+      if (editingEvent) {
+        const conflict = checkTimeConflict(newEvent.date, timeStr, duration, editingEvent.id);
+        if (conflict.hasConflict) {
+          setError(
+            `Это время уже занято учеником ${conflict.conflictInfo?.studentName} (${conflict.conflictInfo?.time}, ${conflict.conflictInfo?.duration} мин)`
+          );
+          setSubmitting(false);
+          return;
+        }
+      } else {
+        const dates = generateRepeatDates(newEvent.date, newEvent.repeatType);
+        for (const date of dates) {
+          const conflict = checkTimeConflict(date, timeStr, duration);
+          if (conflict.hasConflict) {
+            setError(
+              `Время уже занято на дату ${date} учеником ${conflict.conflictInfo?.studentName} (${conflict.conflictInfo?.time}, ${conflict.conflictInfo?.duration} мин)`
+            );
+            setSubmitting(false);
+            return;
+          }
+        }
+      }
 
       // Save last used price
       localStorage.setItem("last_lesson_price", newEvent.amount);
@@ -157,10 +266,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
           date: newEvent.date,
           time: timeStr,
           subject: newEvent.subject,
+          subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
           studentId: parseInt(newEvent.studentId),
           color: newEvent.color,
           amount: amount,
-          duration: parseInt(newEvent.duration) || 60,
+          duration: duration,
         });
         setEditingEvent(null);
       } else {
@@ -174,10 +284,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
             date: date,
             time: timeStr,
             subject: newEvent.subject,
+            subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
             studentId: parseInt(newEvent.studentId),
             color: newEvent.color,
             amount: amount,
-            duration: parseInt(newEvent.duration) || 60,
+            duration: duration,
           }),
         );
 
@@ -189,6 +300,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         date: "",
         time: "",
         subject: "",
+        subjectId: "",
         studentId: "",
         color: "#1db954",
         repeatType: "once",
@@ -272,6 +384,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
     setCurrentDate(newDate);
   };
 
+  const prevDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() - 1);
+    setCurrentDate(newDate);
+  };
+
+  const nextDay = () => {
+    const newDate = new Date(currentDate);
+    newDate.setDate(newDate.getDate() + 1);
+    setCurrentDate(newDate);
+  };
+
   const getWeekDates = (date: Date): Date[] => {
     const week: Date[] = [];
     const startOfWeek = new Date(date);
@@ -322,17 +446,30 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const handleEditEvent = (event: any) => {
     const time24 = event.time;
 
+    // Find if subject name matches any existing subject
+    const matchedSubject = subjects.find((s) => s.name === event.subject);
+    const effectiveSubjectId =
+      event.subjectId?.toString() ||
+      (matchedSubject ? matchedSubject.id.toString() : "");
+
     setEditingEvent({
       ...event,
       time: time24,
       amount: event.amount?.toString() || "0",
       duration: event.duration?.toString() || "60",
+      subjectId: effectiveSubjectId,
     });
+
+    const isExistingSubject =
+      !!effectiveSubjectId || subjects.some((s) => s.name === event.subject);
+    setIsCustomSubject(!isExistingSubject && !!event.subject);
+
     setNewEvent({
       title: event.title || "",
       date: event.date,
       time: time24,
       subject: event.subject || "",
+      subjectId: effectiveSubjectId,
       studentId: event.studentId.toString(),
       color: event.color || "#1db954",
       repeatType: "once",
@@ -351,7 +488,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
     try {
       const timeStr = formatTime(newEvent.time);
       const amount = parseFloat(newEvent.amount) || 0;
+      const duration = parseInt(newEvent.duration) || 60;
       localStorage.setItem("last_lesson_price", newEvent.amount);
+
+      // Check for time conflicts
+      const conflict = checkTimeConflict(newEvent.date, timeStr, duration, editingEvent.id);
+      if (conflict.hasConflict) {
+        setError(
+          `Это время уже занято учеником ${conflict.conflictInfo?.studentName} (${conflict.conflictInfo?.time}, ${conflict.conflictInfo?.duration} мин)`
+        );
+        setSubmitting(false);
+        return;
+      }
 
       await api.updateEvent(
         editingEvent.id,
@@ -360,10 +508,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
           date: newEvent.date,
           time: timeStr,
           subject: newEvent.subject,
+          subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
           studentId: parseInt(newEvent.studentId),
           color: newEvent.color,
           amount: amount,
-          duration: parseInt(newEvent.duration) || 60,
+          duration: duration,
         },
         recurring,
       );
@@ -375,6 +524,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         date: "",
         time: "",
         subject: "",
+        subjectId: "",
         studentId: "",
         color: "#1db954",
         repeatType: "once",
@@ -487,8 +637,94 @@ export function CalendarView({ userType }: CalendarViewProps) {
     });
   };
 
+  const getTodayEvents = () => {
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(
+      today.getMonth() + 1,
+    ).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+    
+    return events.filter((event) => event.date === todayStr)
+      .sort((a, b) => {
+        const parseTime = (timeStr: string): number => {
+          const [hours, minutes] = timeStr.split(":");
+          return parseInt(hours) * 60 + parseInt(minutes);
+        };
+        return parseTime(a.time) - parseTime(b.time);
+      });
+  };
+
   return (
     <div className="space-y-4 pb-6">
+      {/* Today's Events Section */}
+      {userType === "tutor" && (
+        <div className="bg-card border border-border rounded-lg p-4">
+          <h3 className="text-lg font-semibold mb-3 text-foreground">Сегодняшние занятия</h3>
+          {getTodayEvents().length > 0 ? (
+            <div className="space-y-2">
+              {getTodayEvents().map((event) => {
+                const past = isEventPast(event.date, event.time);
+                const displayName = event.student?.studentAlias || event.student?.name || "Ученик";
+                
+                return (
+                  <div
+                    key={event.id}
+                    className={`flex items-center gap-3 p-3 rounded-lg border ${
+                      past ? 'bg-muted/50 border-muted' : 'bg-card border-border'
+                    } hover:bg-muted/50 transition-colors`}
+                  >
+                    <div className="w-10 h-10 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0 text-white overflow-hidden">
+                      {event.student?.avatarUrl ? (
+                        <img 
+                          src={`${api.getBaseUrl()}${event.student.avatarUrl}`}
+                          alt={displayName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <span className="text-sm font-medium">
+                          {displayName
+                            .split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2)}
+                        </span>
+                      )}
+                    </div>
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium text-foreground">{event.subject}</span>
+                        <span className="text-sm text-muted-foreground">{event.time}</span>
+                        {past && (
+                          <span className="text-xs bg-muted text-muted-foreground px-2 py-1 rounded">
+                            Завершено
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-sm text-muted-foreground">{displayName}</div>
+                    </div>
+                    <div className="flex gap-2">
+                      {!past && (
+                        <button
+                          onClick={() => handleEditEvent(event)}
+                          className="p-2 hover:bg-muted rounded-lg transition-colors"
+                          title="Редактировать"
+                        >
+                          <Edit size={16} className="text-foreground" />
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <div className="text-center text-muted-foreground py-8">
+              На сегодня занятий не запланировано
+            </div>
+          )}
+        </div>
+      )}
+
       {/* View Type Selector */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2 bg-card border border-border rounded-lg p-1">
@@ -538,13 +774,25 @@ export function CalendarView({ userType }: CalendarViewProps) {
           </h2>
           <div className="flex gap-2">
             <button
-              onClick={viewType === "month" ? prevMonth : prevWeek}
+              onClick={
+                viewType === "month"
+                  ? prevMonth
+                  : viewType === "week"
+                    ? prevWeek
+                    : prevDay
+              }
               className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
               <ChevronLeft size={20} className="text-foreground" />
             </button>
             <button
-              onClick={viewType === "month" ? nextMonth : nextWeek}
+              onClick={
+                viewType === "month"
+                  ? nextMonth
+                  : viewType === "week"
+                    ? nextWeek
+                    : nextDay
+              }
               className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-muted/80 transition-colors"
             >
               <ChevronRight size={20} className="text-foreground" />
@@ -595,7 +843,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       }
                     }
                   }}
-                  className={`aspect-square rounded-lg p-1 text-center relative ${
+                  className={`aspect-square rounded-lg p-1 text-center relative overflow-hidden ${
                     isToday ? "bg-[#1db954]" : "bg-muted hover:bg-muted/80"
                   } transition-colors cursor-pointer`}
                 >
@@ -607,14 +855,56 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     {day}
                   </div>
                   {dayEvents.length > 0 && (
-                    <div className="flex gap-0.5 justify-center mt-1">
-                      {dayEvents.slice(0, 3).map((event, eventIdx) => (
-                        <div
-                          key={eventIdx}
-                          className="w-1 h-1 rounded-full"
-                          style={{ backgroundColor: event.color }}
-                        />
-                      ))}
+                    <div className="flex gap-1 justify-center mt-1 flex-wrap h-6 items-center">
+                      {/* Desktop: all avatars, Tablet: 2, Mobile: 1 */}
+                      {dayEvents.slice(0, screenSize.width >= 1024 ? dayEvents.length : screenSize.width >= 768 ? 2 : 1).map((event, eventIdx) => {
+                        const displayName = userType === "tutor" 
+                          ? (event.student?.studentAlias || event.student?.name || "У")
+                          : (event.tutor?.name || "Преподаватель");
+                        const avatarUrl = userType === "tutor" 
+                          ? event.student?.avatarUrl
+                          : event.tutor?.avatarUrl;
+                        
+                        return (
+                          <div
+                            key={eventIdx}
+                            className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center text-white border border-background flex-shrink-0 overflow-hidden"
+                            style={{ 
+                              backgroundColor: event.color || "#1db954",
+                            }}
+                            title={displayName}
+                          >
+                            {avatarUrl ? (
+                              <img 
+                                src={`${api.getBaseUrl()}${avatarUrl}`}
+                                alt={displayName}
+                                className="w-full h-full object-cover"
+                              />
+                            ) : (
+                              <span style={{ fontSize: "9px", lineHeight: "14px" }}>
+                                {displayName
+                                  .split(" ")
+                                  .map((n: string) => n[0])
+                                  .join("")
+                                  .toUpperCase()
+                                  .slice(0, 2)}
+                              </span>
+                            )}
+                          </div>
+                        );
+                      })}
+                      {/* Show counter only for tablet and mobile */}
+                      {screenSize.width < 1024 && (
+                        ((screenSize.width >= 768 ? dayEvents.length > 2 : dayEvents.length > 1) && (
+                          <div
+                            className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center bg-muted text-muted-foreground border border-background flex-shrink-0"
+                            style={{ fontSize: "9px", lineHeight: "14px" }}
+                            title={`Еще ${dayEvents.length - (screenSize.width >= 768 ? 2 : 1)} занятий`}
+                          >
+                            +{dayEvents.length - (screenSize.width >= 768 ? 2 : 1)}
+                          </div>
+                        ))
+                      )}
                     </div>
                   )}
                 </div>
@@ -645,7 +935,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   className="border-r border-border last:border-r-0"
                 >
                   <div
-                    className={`text-center py-2 mb-2 ${
+                    className={`text-center py-2 mb-2 mr-2 ${
                       isToday ? "bg-[#1db954] rounded-lg" : ""
                     }`}
                   >
@@ -665,18 +955,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     </div>
                   </div>
                   <div
-                    className="space-y-1 min-h-[200px] cursor-pointer"
+                    className="space-y-1 h-60 cursor-pointer overflow-y-auto scrollbar-custom  mr-2"
                     onClick={() => {
                       if (userType === "tutor" || dayEvents.length > 0) {
                         handleDateClickFromStr(dateStr);
                       }
                     }}
                   >
-                    {dayEvents.length === 0 && userType === "tutor" && (
-                      <div className="text-xs text-muted-foreground text-center py-2">
-                        Нажмите, чтобы добавить
-                      </div>
-                    )}
+                    
+                    
                     {dayEvents.map((event, eventIdx) => {
                       const past = isEventPast(event.date, event.time);
                       return (
@@ -714,6 +1001,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         </div>
                       );
                     })}
+                    <div className="w-auto h-[48px] text-xl rounded bg-accent text-center content-center p-2 opacity-50 cursor-pointer hover:opacity-70">+</div>
                   </div>
                 </div>
               );
@@ -765,7 +1053,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               return (
                 <div
                   key={hour}
-                  className="flex border-b border-border pb-2 min-h-[60px]"
+                  className="flex border-b border-border pb-2 min-h-15"
                   onClick={() => {
                     if (userType === "tutor") {
                       const timeStr = `${hour.toString().padStart(2, "0")}:00`;
@@ -832,84 +1120,6 @@ export function CalendarView({ userType }: CalendarViewProps) {
           </div>
         </div>
       )}
-
-      {/* Events List */}
-      <div>
-        <h3 className="text-lg mb-3">События на этой неделе</h3>
-        <div className="space-y-2">
-          {loading ? (
-            <div className="text-center text-muted-foreground py-8">
-              Загрузка событий...
-            </div>
-          ) : (
-            (() => {
-              const weekEvents = getCurrentWeekEvents();
-              return weekEvents.length === 0 ? (
-                <div className="text-center text-muted-foreground py-8">
-                  На эту неделю событий не запланировано
-                </div>
-              ) : (
-                weekEvents.map((event) => {
-                  const past = isEventPast(event.date, event.time);
-                  return (
-                    <div
-                      key={event.id}
-                      className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
-                        past ? "opacity-60" : ""
-                      }`}
-                    >
-                      <div
-                        className="w-1 h-12 rounded-full"
-                        style={{ backgroundColor: event.color }}
-                      />
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-1">
-                          <div className="text-sm text-muted-foreground">
-                            {new Date(event.date).toLocaleDateString("ru-RU", {
-                              month: "short",
-                              day: "numeric",
-                            })}{" "}
-                            • {event.time}
-                            {event.duration && (
-                              <span className="ml-1 text-muted-foreground/80">
-                                ({event.duration} мин)
-                              </span>
-                            )}
-                          </div>
-                          {past ? (
-                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
-                              Завершено
-                            </span>
-                          ) : (
-                            <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                              Предстоит
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className={
-                            past ? "text-muted-foreground line-through" : ""
-                          }
-                        >
-                          {event.title}
-                        </div>
-                      </div>
-                      {userType === "tutor" && (
-                        <button
-                          onClick={() => setShowDeleteConfirm(event.id)}
-                          className="text-muted-foreground hover:text-red-500 transition-colors"
-                        >
-                          <X size={18} />
-                        </button>
-                      )}
-                    </div>
-                  );
-                })
-              );
-            })()
-          )}
-        </div>
-      </div>
 
       {/* Date Details Modal */}
       {showDateDetails && (
@@ -1148,6 +1358,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     date: "",
                     time: "",
                     subject: "",
+                    subjectId: "",
                     studentId: "",
                     color: "#1db954",
                     repeatType: "once",
@@ -1182,16 +1393,34 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         (s) => s.id.toString() === studentId,
                       );
                       if (student) {
+                        const defaultSubjectName =
+                          student.defaultSubject || newEvent.subject;
+                        const matchedSubject = subjects.find(
+                          (s) => s.name === defaultSubjectName,
+                        );
+
+                        if (matchedSubject) {
+                          setIsCustomSubject(false);
+                        } else if (defaultSubjectName && subjects.length > 0) {
+                          // Only switch to custom if we have subjects but no match found
+                          // If no subjects exist, we stay in text input mode anyway
+                          setIsCustomSubject(true);
+                        }
+
                         setNewEvent({
                           ...newEvent,
                           studentId: studentId,
-                          subject: student.defaultSubject || newEvent.subject,
-                          title: student.defaultSubject || newEvent.title,
+                          subject: defaultSubjectName,
+                          subjectId: matchedSubject
+                            ? matchedSubject.id.toString()
+                            : "",
+                          title: defaultSubjectName || newEvent.title,
                           amount:
                             student.defaultPrice?.toString() || newEvent.amount,
                           duration:
                             student.defaultDuration?.toString() ||
                             newEvent.duration,
+                          color: matchedSubject?.color || newEvent.color,
                         });
                       } else {
                         setNewEvent({ ...newEvent, studentId: studentId });
@@ -1219,20 +1448,81 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
                     size={20}
                   />
-                  <input
-                    type="text"
-                    value={newEvent.subject}
-                    onChange={(e) =>
-                      setNewEvent({
-                        ...newEvent,
-                        subject: e.target.value,
-                        title: e.target.value,
-                      })
-                    }
-                    required
-                    className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
-                    placeholder="Математика"
-                  />
+                  {!isCustomSubject && subjects.length > 0 ? (
+                    <select
+                      value={
+                        newEvent.subjectId || (isCustomSubject ? "custom" : "")
+                      }
+                      onChange={(e) => {
+                        const val = e.target.value;
+                        if (val === "custom") {
+                          setIsCustomSubject(true);
+                          setNewEvent({
+                            ...newEvent,
+                            subjectId: "",
+                            subject: "",
+                            title: "",
+                          });
+                        } else {
+                          const selectedSubject = subjects.find(
+                            (s) => s.id.toString() === val,
+                          );
+                          setNewEvent({
+                            ...newEvent,
+                            subjectId: val,
+                            subject: selectedSubject?.name || "",
+                            title: selectedSubject?.name || "",
+                            color: selectedSubject?.color || newEvent.color,
+                          });
+                        }
+                      }}
+                      required
+                      className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] appearance-none"
+                    >
+                      <option value="">Выберите предмет</option>
+                      {subjects.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name}
+                        </option>
+                      ))}
+                      <option value="custom">Другое...</option>
+                    </select>
+                  ) : (
+                    <div className="flex gap-2">
+                      <input
+                        type="text"
+                        value={newEvent.subject}
+                        onChange={(e) =>
+                          setNewEvent({
+                            ...newEvent,
+                            subject: e.target.value,
+                            title: e.target.value,
+                            subjectId: "",
+                          })
+                        }
+                        required
+                        className="w-full bg-muted rounded-lg pl-10 pr-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
+                        placeholder="Математика"
+                        autoFocus={isCustomSubject}
+                      />
+                      {subjects.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setIsCustomSubject(false);
+                            setNewEvent({
+                              ...newEvent,
+                              subject: "",
+                              subjectId: "",
+                            });
+                          }}
+                          className="px-3 py-2 bg-muted rounded-lg hover:bg-muted/80"
+                        >
+                          <X size={20} />
+                        </button>
+                      )}
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -1384,6 +1674,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       date: "",
                       time: "",
                       subject: "",
+                      subjectId: "",
                       studentId: "",
                       color: "#1db954",
                       repeatType: "once",
@@ -1466,7 +1757,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   onChange={(e) =>
                     setHwDetails({ ...hwDetails, description: e.target.value })
                   }
-                  className="w-full bg-muted rounded-lg px-4 py-2 text-foreground outline-none focus:ring-1 focus:ring-[#1db954] text-sm min-h-[100px] resize-none"
+                  className="w-full bg-muted rounded-lg px-4 py-2 text-foreground outline-none focus:ring-1 focus:ring-[#1db954] text-sm min-h-25 resize-none"
                   placeholder="Опишите детали задания..."
                 />
               </div>
@@ -1532,7 +1823,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
       {/* Delete Confirmation Dialog */}
       {showDeleteConfirm && (
-        <div className="fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-60 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-card rounded-xl p-6 w-full max-w-sm border border-border shadow-2xl">
             <h3 className="text-xl font-bold mb-2">Удалить занятие</h3>
             <p className="text-muted-foreground mb-6">
@@ -1563,7 +1854,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       )}
       {/* Update Recurring Confirm Dialog */}
       {showUpdateConfirm && (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
           <div className="bg-card rounded-xl p-6 w-full max-w-sm border border-border shadow-2xl">
             <h3 className="text-xl font-bold mb-2">Обновить занятие</h3>
             <p className="text-muted-foreground mb-6">

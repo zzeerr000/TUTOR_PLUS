@@ -1,7 +1,8 @@
-import React, { useState } from "react";
-import { User, Trash2, Save, AlertTriangle, Moon, Sun } from "lucide-react";
+import React, { useState, useRef, useEffect } from "react";
+import { User, Trash2, Save, AlertTriangle, Moon, Sun, Camera, X } from "lucide-react";
 import { api } from "../services/api";
 import { Switch } from "./ui/switch";
+import { SubjectManager } from "./SubjectManager";
 
 interface SettingsProps {
   user: {
@@ -32,6 +33,24 @@ export function Settings({
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [deleteLoading, setDeleteLoading] = useState(false);
+  const [avatarLoading, setAvatarLoading] = useState(false);
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Load current avatar on mount
+  useEffect(() => {
+    const loadCurrentUser = async () => {
+      try {
+        const response = await api.request('/auth/profile');
+        if (response.avatarUrl) {
+          setAvatarUrl(response.avatarUrl);
+        }
+      } catch (error) {
+        console.error('Failed to load user profile:', error);
+      }
+    };
+    loadCurrentUser();
+  }, []);
   // Add: local loading state for finance history deletion
   const [financeDeleteLoading, setFinanceDeleteLoading] = useState(false);
 
@@ -124,6 +143,59 @@ export function Settings({
     }
   };
 
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setError("Только изображения форматов JPG, PNG, GIF, WebP");
+      return;
+    }
+
+    // Validate file size (5MB)
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Размер файла не должен превышать 5MB");
+      return;
+    }
+
+    setError("");
+    setAvatarLoading(true);
+
+    try {
+      const result = await api.uploadAvatar(file);
+      console.log('Avatar upload result:', result);
+      setAvatarUrl(result.avatarUrl);
+      alert("Аватар успешно загружен!");
+    } catch (err: any) {
+      console.error('Avatar upload error:', err);
+      setError(err.message || "Не удалось загрузить аватар");
+    } finally {
+      setAvatarLoading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleRemoveAvatar = async () => {
+    if (!confirm("Удалить аватар?")) return;
+
+    setError("");
+    setAvatarLoading(true);
+
+    try {
+      await api.deleteAvatar();
+      setAvatarUrl(null);
+      alert("Аватар удален!");
+    } catch (err: any) {
+      setError(err.message || "Не удалось удалить аватар");
+    } finally {
+      setAvatarLoading(false);
+    }
+  };
+
   return (
     <div className="space-y-6 pb-6">
       {/* Theme Section */}
@@ -148,6 +220,59 @@ export function Settings({
           <h2 className="text-xl font-semibold text-foreground">
             Обновить профиль
           </h2>
+        </div>
+
+        {/* Avatar Section */}
+        <div className="mb-6">
+          <label className="block text-sm text-muted-foreground mb-2">
+            Аватар
+          </label>
+          <div className="flex items-center gap-4">
+            <div className="relative">
+              {avatarUrl ? (
+                <img
+                  src={`${api.getBaseUrl()}${avatarUrl}`}
+                  alt="Аватар"
+                  className="w-20 h-20 rounded-full object-cover border-2 border-border"
+                  onLoad={() => console.log('Avatar loaded successfully:', `${api.getBaseUrl()}${avatarUrl}`)}
+                  onError={(e) => {
+                    console.error('Avatar load error:', e);
+                    console.error('Failed URL:', `${api.getBaseUrl()}${avatarUrl}`);
+                    setAvatarUrl(null);
+                  }}
+                />
+              ) : (
+                <div className="w-20 h-20 rounded-full bg-muted border-2 border-border flex items-center justify-center">
+                  <User className="text-muted-foreground" size={32} />
+                </div>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                onChange={handleAvatarUpload}
+                className="hidden"
+              />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={avatarLoading}
+                className="absolute bottom-0 right-0 w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white hover:opacity-90 transition-opacity disabled:opacity-50"
+              >
+                <Camera size={16} />
+              </button>
+            </div>
+            <div className="flex-1">
+              <button
+                type="button"
+                onClick={handleRemoveAvatar}
+                disabled={avatarLoading || !avatarUrl}
+                className="px-4 py-2 bg-destructive/10 border border-destructive rounded-lg text-destructive hover:bg-destructive/20 transition-colors disabled:opacity-50 disabled:cursor-not-allowed text-sm"
+              >
+                Удалить аватар
+              </button>
+            </div>
+          </div>
         </div>
 
         <form onSubmit={handleUpdateSettings} className="space-y-4">
@@ -235,6 +360,8 @@ export function Settings({
           </button>
         </form>
       </div>
+
+      {user.role === "tutor" && <SubjectManager />}
 
       {/* Add: Delete Finance History (visible only for tutors) */}
       {user.role === "tutor" && (
@@ -330,7 +457,7 @@ export function Settings({
           <div className="bg-destructive/10 border border-destructive/30 rounded-lg p-4">
             <div className="flex items-start gap-3">
               <AlertTriangle
-                className="text-destructive flex-shrink-0 mt-0.5"
+                className="text-destructive shrink-0 mt-0.5"
                 size={20}
               />
               <div className="text-sm text-foreground/80">

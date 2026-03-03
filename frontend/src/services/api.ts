@@ -1,6 +1,7 @@
 const API_URL = "http://localhost:3000";
 
 export const api = {
+  getBaseUrl: () => API_URL,
   async request(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem("token");
     const headers: any = {
@@ -73,6 +74,38 @@ export const api = {
     });
   },
 
+  // Subjects
+  async getSubjects() {
+    return this.request("/subjects");
+  },
+
+  async createSubject(data: { name: string; color?: string }) {
+    return this.request("/subjects", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async updateSubject(id: number, data: { name?: string; color?: string }) {
+    return this.request(`/subjects/${id}`, {
+      method: "PATCH",
+      body: JSON.stringify(data),
+    });
+  },
+
+  async deleteSubject(id: number) {
+    return this.request(`/subjects/${id}`, {
+      method: "DELETE",
+    });
+  },
+
+  async updateStudentSubjects(connectionId: number, subjectIds: number[]) {
+    return this.request(`/connections/${connectionId}/subjects`, {
+      method: "POST",
+      body: JSON.stringify({ subjectIds }),
+    });
+  },
+
   // Tasks
   async getTasks() {
     return this.request("/tasks");
@@ -102,15 +135,22 @@ export const api = {
   },
 
   // Files
-  async getFiles(folderId?: number | null) {
-    const endpoint = folderId ? `/files/folder/${folderId}` : "/files";
+  async getFiles(folderId?: number | null, subjectId?: number | null) {
+    let endpoint = folderId ? `/files/folder/${folderId}` : "/files";
+    if (subjectId) {
+      endpoint += `${endpoint.includes("?") ? "&" : "?"}subjectId=${subjectId}`;
+    }
     return this.request(endpoint);
   },
 
-  async createFolder(name: string, parentId?: number | null) {
+  async createFolder(
+    name: string,
+    parentId?: number | null,
+    subjectId?: number | null,
+  ) {
     return this.request("/files/folders", {
       method: "POST",
-      body: JSON.stringify({ name, parentId }),
+      body: JSON.stringify({ name, parentId, subjectId }),
     });
   },
 
@@ -327,11 +367,18 @@ export const api = {
     });
   },
 
+  async deleteConnection(id: number, deleteData: boolean = true) {
+    return this.request(`/connections/${id}?deleteData=${deleteData}`, {
+      method: "DELETE",
+    });
+  },
+
   async createManualStudent(
     name: string,
     defaultSubject?: string,
     defaultPrice?: number,
     defaultDuration?: number,
+    subjectIds?: number[],
   ) {
     return this.request("/connections/manual", {
       method: "POST",
@@ -340,6 +387,7 @@ export const api = {
         defaultSubject,
         defaultPrice,
         defaultDuration,
+        subjectIds,
       }),
     });
   },
@@ -358,6 +406,7 @@ export const api = {
       defaultSubject?: string;
       defaultPrice?: number;
       defaultDuration?: number;
+      subjectIds?: number[];
     },
   ) {
     return this.request(`/connections/${studentId}/alias`, {
@@ -390,6 +439,23 @@ export const api = {
   async clearAllData() {
     return this.request("/admin/clear-data", {
       method: "POST",
+    });
+  },
+
+  // Avatar methods
+  async uploadAvatar(file: File) {
+    const formData = new FormData();
+    formData.append('avatar', file);
+    
+    return this.request('/users/profile/avatar', {
+      method: 'POST',
+      body: formData,
+    });
+  },
+
+  async deleteAvatar() {
+    return this.request('/users/profile/avatar', {
+      method: 'DELETE',
     });
   },
 

@@ -11,6 +11,7 @@ import { Connection, ConnectionStatus } from "./entities/connection.entity";
 import { UsersService } from "../users/users.service";
 import { CalendarService } from "../calendar/calendar.service";
 import { HomeworkService } from "../homework/homework.service";
+import { SubjectsService } from "../subjects/subjects.service";
 
 @Injectable()
 export class ConnectionsService {
@@ -22,6 +23,8 @@ export class ConnectionsService {
     @Inject(forwardRef(() => CalendarService))
     private calendarService: CalendarService,
     private homeworkService: HomeworkService,
+    @Inject(forwardRef(() => SubjectsService))
+    private subjectsService: SubjectsService,
   ) {}
 
   async createConnectionRequest(
@@ -270,6 +273,38 @@ export class ConnectionsService {
     await this.connectionsRepository.save(connection);
   }
 
+  async deleteConnection(connectionId: number, userId: number, deleteData?: boolean): Promise<void> {
+    const connection = await this.connectionsRepository.findOne({
+      where: { id: connectionId },
+    });
+
+    if (!connection) {
+      throw new NotFoundException("Connection not found");
+    }
+
+    // Verify user is part of this connection
+    const isParticipant =
+      connection.tutorId === userId || connection.studentId === userId;
+
+    if (!isParticipant) {
+      throw new BadRequestException("You cannot delete this connection");
+    }
+
+    // If deleteData is true, also delete related chat history and calendar events
+    if (deleteData) {
+      // Delete calendar events between these users
+      await this.calendarService.deleteEventsBetweenUsers(
+        connection.tutorId,
+        connection.studentId
+      );
+      
+      // Delete messages between these users
+      // Note: Add message service dependency and deletion logic here if needed
+    }
+
+    await this.connectionsRepository.remove(connection);
+  }
+
   async getConnections(
     userId: number,
     userRole: string,
@@ -277,16 +312,38 @@ export class ConnectionsService {
     if (userRole === "tutor") {
       return this.connectionsRepository.find({
         where: { tutorId: userId, status: ConnectionStatus.APPROVED },
-        relations: ["student"],
+        relations: ["student", "subjects"],
         order: { createdAt: "DESC" },
       });
     } else {
       return this.connectionsRepository.find({
         where: { studentId: userId, status: ConnectionStatus.APPROVED },
-        relations: ["tutor"],
+        relations: ["tutor", "subjects"],
         order: { createdAt: "DESC" },
       });
     }
+  }
+
+  async updateSubjects(
+    connectionId: number,
+    tutorId: number,
+    subjectIds: number[],
+  ): Promise<Connection> {
+    const connection = await this.connectionsRepository.findOne({
+      where: { id: connectionId, tutorId, status: ConnectionStatus.APPROVED },
+      relations: ["subjects"],
+    });
+
+    if (!connection) {
+      throw new NotFoundException("Connection not found");
+    }
+
+    if (subjectIds) {
+      const subjects = await this.subjectsService.findByIds(subjectIds);
+      connection.subjects = subjects;
+    }
+
+    return this.connectionsRepository.save(connection);
   }
 
   async createManualStudent(
@@ -295,8 +352,14 @@ export class ConnectionsService {
     defaultSubject?: string,
     defaultPrice?: number,
     defaultDuration?: number,
+    subjectIds?: number[],
   ): Promise<Connection> {
     const student = await this.usersService.createVirtualStudent(name);
+
+    let subjects: any[] = [];
+    if (subjectIds && subjectIds.length > 0) {
+      subjects = await this.subjectsService.findByIds(subjectIds);
+    }
 
     const connection = this.connectionsRepository.create({
       tutorId,
@@ -306,6 +369,7 @@ export class ConnectionsService {
       defaultSubject,
       defaultPrice,
       defaultDuration,
+      subjects,
     });
 
     return this.connectionsRepository.save(connection);
@@ -319,10 +383,12 @@ export class ConnectionsService {
       defaultSubject?: string;
       defaultPrice?: number;
       defaultDuration?: number;
+      subjectIds?: number[];
     },
   ): Promise<Connection> {
     const connection = await this.connectionsRepository.findOne({
       where: { tutorId, studentId, status: ConnectionStatus.APPROVED },
+      relations: ["subjects"],
     });
 
     if (!connection) {
@@ -336,6 +402,11 @@ export class ConnectionsService {
       connection.defaultPrice = data.defaultPrice;
     if (data.defaultDuration !== undefined)
       connection.defaultDuration = data.defaultDuration;
+
+    if (data.subjectIds) {
+      const subjects = await this.subjectsService.findByIds(data.subjectIds);
+      connection.subjects = subjects;
+    }
 
     return this.connectionsRepository.save(connection);
   }
@@ -380,12 +451,14 @@ export class ConnectionsService {
       );
 
     const now = new Date();
-    
+
     const pastLessons = studentEvents.filter((e) => {
       const eventDate = e.date.split("T")[0];
       const timeParts = e.time.split(":");
       const h = timeParts[0].padStart(2, "0");
-      const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+      const m = timeParts[1]
+        ? timeParts[1].split(" ")[0].padStart(2, "0")
+        : "00";
       const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
       return lessonDateTime < now;
     });
@@ -395,7 +468,9 @@ export class ConnectionsService {
         const eventDate = e.date.split("T")[0];
         const timeParts = e.time.split(":");
         const h = timeParts[0].padStart(2, "0");
-        const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
+        const m = timeParts[1]
+          ? timeParts[1].split(" ")[0].padStart(2, "0")
+          : "00";
         const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
         return lessonDateTime >= now;
       })

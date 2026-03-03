@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { Plus, X, Check, User, Clock, Search } from "lucide-react";
+import { Plus, X, Check, Clock, Search, Trash2 } from "lucide-react";
 import { api } from "../services/api";
 
 interface ConnectionsProps {
@@ -16,10 +16,33 @@ export function Connections({ userType }: ConnectionsProps) {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [selectedConnectionId, setSelectedConnectionId] = useState<number | null>(null);
+  const [deleteData, setDeleteData] = useState(true);
 
   useEffect(() => {
     loadData();
   }, []);
+
+  const handleDeleteConnection = (connectionId: number) => {
+    setSelectedConnectionId(connectionId);
+    setShowDeleteDialog(true);
+    setDeleteData(true); // Default to deleting data
+  };
+
+  const confirmDeleteConnection = async () => {
+    if (!selectedConnectionId) return;
+    
+    try {
+      await api.deleteConnection(selectedConnectionId, deleteData);
+      setShowDeleteDialog(false);
+      setSelectedConnectionId(null);
+      loadData(); // Refresh connections list
+    } catch (error) {
+      console.error("Failed to delete connection:", error);
+      alert("Не удалось удалить связь");
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -104,7 +127,8 @@ export function Connections({ userType }: ConnectionsProps) {
   }
 
   return (
-    <div className="space-y-4 pb-6">
+    <>
+      <div className="space-y-4 pb-6">
       {/* Pending Requests */}
       {pendingRequests.length > 0 && (
         <div>
@@ -113,21 +137,30 @@ export function Connections({ userType }: ConnectionsProps) {
             {pendingRequests.map((request) => {
               const otherUser =
                 userType === "tutor" ? request.student : request.tutor;
+              const displayName = otherUser?.name;
               return (
                 <div
                   key={request.id}
-                  className="bg-card border border-border rounded-lg p-4 flex items-center justify-between hover:bg-muted/50 transition-colors"
+                  className="bg-card rounded-lg p-4 hover:bg-muted/50 transition-colors group relative cursor-pointer border border-border"
                 >
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0">
-                      <span className="text-white font-medium">
-                        {otherUser?.name
-                          ?.split(" ")
-                          .map((n: string) => n[0])
-                          .join("")
-                          .toUpperCase()
-                          .slice(0, 2) || "U"}
-                      </span>
+                  <div className="flex items-start gap-3">
+                    <div className="w-10 h-10 rounded-full bg-[#1db954] flex items-center justify-center text-white overflow-hidden flex-shrink-0">
+                      {otherUser?.avatarUrl ? (
+                        <img
+                          src={`${api.getBaseUrl()}${otherUser.avatarUrl}`}
+                          alt={displayName}
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-xs text-white">
+                          {(displayName
+                            ?.split(" ")
+                            .map((n: string) => n[0])
+                            .join("")
+                            .toUpperCase()
+                            .slice(0, 2) || "U")}
+                        </div>
+                      )}
                     </div>
                     <div>
                       <div className="font-medium text-foreground">
@@ -202,17 +235,25 @@ export function Connections({ userType }: ConnectionsProps) {
               return (
                 <div
                   key={connection.id}
-                  className="bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors"
+                  className="bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors group"
                 >
-                  <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0">
-                    <span className="text-white font-medium">
-                      {displayName
-                        ?.split(" ")
-                        .map((n: string) => n[0])
-                        .join("")
-                        .toUpperCase()
-                        .slice(0, 2) || "U"}
-                    </span>
+                  <div className="w-12 h-12 rounded-full bg-[#1db954] flex items-center justify-center flex-shrink-0 text-white overflow-hidden">
+                    {otherUser?.avatarUrl ? (
+                      <img 
+                        src={`${api.getBaseUrl()}${otherUser.avatarUrl}`}
+                        alt={displayName}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-white font-medium">
+                        {displayName
+                          ?.split(" ")
+                          .map((n: string) => n[0])
+                          .join("")
+                          .toUpperCase()
+                          .slice(0, 2) || "U"}
+                      </span>
+                    )}
                   </div>
                   <div className="flex-1">
                     <div className="font-medium text-foreground">
@@ -233,9 +274,18 @@ export function Connections({ userType }: ConnectionsProps) {
                       {otherUser?.email || "Нет почты (Ручной профиль)"}
                     </div>
                   </div>
-                  <div className="text-xs text-muted-foreground">
-                    Подключен{" "}
-                    {new Date(connection.createdAt).toLocaleDateString("ru-RU")}
+                  <div className="flex items-center gap-2">
+                    <div className="text-xs text-muted-foreground">
+                      Подключен{" "}
+                      {new Date(connection.createdAt).toLocaleDateString("ru-RU")}
+                    </div>
+                    <button
+                      onClick={() => handleDeleteConnection(connection.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-destructive/10 rounded-lg text-destructive"
+                      title="Удалить связь"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 </div>
               );
@@ -392,5 +442,78 @@ export function Connections({ userType }: ConnectionsProps) {
         </div>
       )}
     </div>
+
+    {/* Delete Connection Confirmation Dialog */}
+    {showDeleteDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
+        <div className="bg-card rounded-lg p-6 w-full max-w-md border border-border">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold text-foreground">Удаление связи</h2>
+            <button
+              onClick={() => setShowDeleteDialog(false)}
+              className="p-2 hover:bg-muted rounded-lg transition-colors"
+            >
+              <X size={20} />
+            </button>
+          </div>
+
+          <div className="space-y-4">
+            <p className="text-muted-foreground">
+              Вы уверены, что хотите удалить эту связь?
+            </p>
+
+            <div className="space-y-3">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="deleteOption"
+                  checked={deleteData}
+                  onChange={() => setDeleteData(true)}
+                  className="w-4 h-4 text-[#1db954] border-border focus:ring-[#1db954]"
+                />
+                <div>
+                  <div className="font-medium text-foreground">Удалить все данные</div>
+                  <div className="text-sm text-muted-foreground">
+                    Удалить историю чата и расписание занятий
+                  </div>
+                </div>
+              </label>
+
+              <label className="flex items-center gap-3 cursor-pointer">
+                <input
+                  type="radio"
+                  name="deleteOption"
+                  checked={!deleteData}
+                  onChange={() => setDeleteData(false)}
+                  className="w-4 h-4 text-[#1db954] border-border focus:ring-[#1db954]"
+                />
+                <div>
+                  <div className="font-medium text-foreground">Сохранить данные</div>
+                  <div className="text-sm text-muted-foreground">
+                    Сохранить историю чата и расписание
+                  </div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex gap-3 pt-4">
+              <button
+                onClick={() => setShowDeleteDialog(false)}
+                className="flex-1 px-4 py-2 bg-muted border border-border rounded-lg hover:bg-muted/80 transition-colors text-foreground"
+              >
+                Отмена
+              </button>
+              <button
+                onClick={confirmDeleteConnection}
+                className="flex-1 px-4 py-2 bg-destructive text-white rounded-lg hover:bg-destructive/90 transition-colors"
+              >
+                Удалить связь
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

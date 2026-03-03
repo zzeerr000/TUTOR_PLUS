@@ -68,6 +68,7 @@ export function Homework({ userType }: HomeworkProps) {
     dueDate: "next_lesson",
     status: "pending",
   });
+  const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
   const [questionText, setQuestionText] = useState("");
   const [answerText, setAnswerText] = useState("");
   const [commentText, setCommentText] = useState("");
@@ -158,7 +159,7 @@ export function Homework({ userType }: HomeworkProps) {
         }
       }
 
-      await api.createHomework({
+      const created = await api.createHomework({
         ...newHW,
         studentId: parseInt(newHW.studentId),
         dueDate:
@@ -167,6 +168,11 @@ export function Homework({ userType }: HomeworkProps) {
             : finalDueDate,
         lessonId: finalLessonId,
       });
+      if (created && created.id && attachedFiles.length > 0) {
+        for (const file of attachedFiles) {
+          await api.uploadHomeworkFile(created.id, file);
+        }
+      }
       setShowAddModal(false);
       setNewHW({
         title: "",
@@ -176,6 +182,7 @@ export function Homework({ userType }: HomeworkProps) {
         dueDate: "next_lesson",
         status: "pending",
       });
+      setAttachedFiles([]);
       loadData();
     } catch (error) {
       alert("Не удалось создать домашнее задание");
@@ -468,73 +475,94 @@ export function Homework({ userType }: HomeworkProps) {
                         </div>
                       </div>
                     ) : (
-                      <>
-                        {item.description && (
-                          <div className="text-sm text-foreground/80 whitespace-pre-wrap">
-                            {item.description}
+                      <div className="space-y-6">
+                        {/* Блок задания */}
+                        <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span className="text-xs font-bold uppercase tracking-wider">
+                              Задание
+                            </span>
                           </div>
-                        )}
-
-                        {/* Files Section */}
-                        <div className="space-y-2">
-                          <div className="flex items-center justify-between">
-                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                              Файлы
-                            </h4>
-                            {userType === "student" &&
-                              item.status !== "completed" && (
-                                <label className="cursor-pointer text-[#1db954] hover:text-[#1ed760] transition-colors">
-                                  <Paperclip size={16} />
-                                  <input
-                                    type="file"
-                                    className="hidden"
-                                    onChange={(e) =>
-                                      handleFileUpload(item.id, e)
-                                    }
-                                  />
-                                </label>
-                              )}
+                          <div className="text-sm text-muted-foreground flex items-center gap-3">
+                            <span className="font-medium text-foreground">
+                              {item.title}
+                            </span>
+                            <span>•</span>
+                            <span>{item.subject}</span>
+                            {item.dueDate && (
+                              <span>
+                                • Срок:{" "}
+                                {new Date(item.dueDate).toLocaleDateString(
+                                  "ru-RU",
+                                )}
+                              </span>
+                            )}
                           </div>
-                          {item.files && item.files.length > 0 ? (
-                            <div className="grid grid-cols-1 gap-2">
-                              {item.files.map((file: any) => (
-                                <div
-                                  key={file.id}
-                                  className="flex items-center justify-between p-2 bg-muted rounded-md group"
-                                >
-                                  <div className="flex items-center gap-2 min-w-0">
-                                    <FileText
-                                      size={16}
-                                      className="text-[#1db954] flex-shrink-0"
-                                    />
-                                    <span className="text-sm truncate text-foreground">
-                                      {file.name}
-                                    </span>
-                                  </div>
-                                  <button
-                                    onClick={() =>
-                                      api.downloadFile(file.id, file.name)
-                                    }
-                                    className="text-xs text-muted-foreground hover:text-foreground"
-                                  >
-                                    Скачать
-                                  </button>
-                                </div>
-                              ))}
-                            </div>
-                          ) : (
-                            <div className="text-xs text-muted-foreground italic">
-                              Файлов нет
+                          {item.description && (
+                            <div className="text-sm text-foreground/80 whitespace-pre-wrap">
+                              {item.description}
                             </div>
                           )}
+                          <div className="space-y-2">
+                            <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                              Файлы преподавателя
+                            </h4>
+                            {item.files &&
+                            item.files.filter(
+                              (f: any) =>
+                                f.uploadedById ===
+                                (item.tutor?.id || (item as any).tutorId),
+                            ).length > 0 ? (
+                              <div className="grid grid-cols-1 gap-2">
+                                {item.files
+                                  .filter(
+                                    (f: any) =>
+                                      f.uploadedById ===
+                                      (item.tutor?.id || (item as any).tutorId),
+                                  )
+                                  .map((file: any) => (
+                                    <div
+                                      key={file.id}
+                                      className="flex items-center justify-between p-2 bg-muted rounded-md group cursor-pointer hover:bg-accent"
+                                      onClick={() =>
+                                        api.downloadFile(file.id, file.name)
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <FileText
+                                          size={16}
+                                          className="text-[#1db954] flex-shrink-0"
+                                        />
+                                        <span className="text-sm truncate text-foreground">
+                                          {file.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
+                              </div>
+                            ) : (
+                              <div className="text-xs text-muted-foreground italic">
+                                Файлов нет
+                              </div>
+                            )}
+                          </div>
                         </div>
 
-                        {/* Comments & Questions */}
-                        <div className="space-y-4">
-                          {/* Student Comment */}
-                          <div className="space-y-1">
+                        {/* Блок ответа */}
+                        <div className="bg-card border border-border rounded-lg p-4 space-y-3">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <span className="text-xs font-bold uppercase tracking-wider">
+                              Ответ ученика
+                            </span>
+                            <span
+                              className={`text-xs px-2 py-0.5 rounded-full ${getStatusInfo(item.status).bg} ${getStatusInfo(item.status).color}`}
+                            >
+                              {getStatusInfo(item.status).label}
+                            </span>
+                          </div>
+                          <div className="space-y-2">
                             <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-                              Комментарий ученика
+                              Комментарий
                             </h4>
                             {item.studentComment ? (
                               <div className="text-sm p-3 bg-muted rounded-md italic text-foreground/80">
@@ -563,142 +591,130 @@ export function Homework({ userType }: HomeworkProps) {
                               )
                             )}
                           </div>
-
-                          {/* Question Section */}
-                          <div className="space-y-2 p-3 bg-[#1db954]/5 rounded-lg border border-[#1db954]/20">
-                            <div className="flex items-center gap-2 text-[#1db954]">
-                              <HelpCircle size={16} />
-                              <h4 className="text-xs font-bold uppercase tracking-wider">
-                                Вопрос преподавателю
+                          <div className="space-y-2">
+                            <div className="flex items-center justify-between">
+                              <h4 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+                                Файлы ученика
                               </h4>
-                            </div>
-
-                            {item.question ? (
-                              <div className="space-y-3">
-                                <div className="text-sm text-foreground/80">
-                                  <span className="text-muted-foreground mr-2">
-                                    Вопрос:
-                                  </span>
-                                  {item.question}
-                                </div>
-                                {item.questionAnswer ? (
-                                  <div className="text-sm text-foreground/80 pl-4 border-l-2 border-[#1db954]">
-                                    <span className="text-[#1db954] font-medium mr-2">
-                                      Ответ:
-                                    </span>
-                                    {item.questionAnswer}
-                                  </div>
-                                ) : (
-                                  userType === "tutor" && (
-                                    <div className="flex gap-2">
-                                      <input
-                                        type="text"
-                                        value={answerText}
-                                        onChange={(e) =>
-                                          setAnswerText(e.target.value)
-                                        }
-                                        placeholder="Ответить на вопрос..."
-                                        className="flex-1 bg-muted border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
-                                      />
-                                      <button
-                                        onClick={() => handleAddAnswer(item.id)}
-                                        className="p-1.5 bg-[#1db954] rounded-md text-white"
-                                      >
-                                        <Send size={16} />
-                                      </button>
-                                    </div>
-                                  )
+                              {userType === "student" &&
+                                item.status !== "completed" && (
+                                  <label className="cursor-pointer text-[#1db954] hover:text-[#1ed760] transition-colors">
+                                    <Paperclip size={16} />
+                                    <input
+                                      type="file"
+                                      className="hidden"
+                                      onChange={(e) =>
+                                        handleFileUpload(item.id, e)
+                                      }
+                                    />
+                                  </label>
                                 )}
+                            </div>
+                            {item.files &&
+                            item.files.filter(
+                              (f: any) =>
+                                f.uploadedById ===
+                                (item.student?.id || item.studentId),
+                            ).length > 0 ? (
+                              <div className="grid grid-cols-1 gap-2">
+                                {item.files
+                                  .filter(
+                                    (f: any) =>
+                                      f.uploadedById ===
+                                      (item.student?.id || item.studentId),
+                                  )
+                                  .map((file: any) => (
+                                    <div
+                                      key={file.id}
+                                      className="flex items-center justify-between p-2 bg-muted rounded-md group cursor-pointer hover:bg-accent"
+                                      onClick={() =>
+                                        api.downloadFile(file.id, file.name)
+                                      }
+                                    >
+                                      <div className="flex items-center gap-2 min-w-0">
+                                        <FileText
+                                          size={16}
+                                          className="text-[#1db954] flex-shrink-0"
+                                        />
+                                        <span className="text-sm truncate text-foreground">
+                                          {file.name}
+                                        </span>
+                                      </div>
+                                    </div>
+                                  ))}
                               </div>
                             ) : (
-                              userType === "student" &&
-                              item.status !== "completed" && (
-                                <div className="flex gap-2">
-                                  <input
-                                    type="text"
-                                    value={questionText}
-                                    onChange={(e) =>
-                                      setQuestionText(e.target.value)
-                                    }
-                                    placeholder="Задать вопрос..."
-                                    className="flex-1 bg-muted border-none rounded-md px-3 py-1.5 text-sm focus:ring-1 focus:ring-[#1db954] text-foreground placeholder:text-muted-foreground"
-                                  />
-                                  <button
-                                    onClick={() => handleAddQuestion(item.id)}
-                                    className="p-1.5 bg-[#1db954] rounded-md text-white"
-                                  >
-                                    <Send size={16} />
-                                  </button>
-                                </div>
-                              )
+                              <div className="text-xs text-muted-foreground italic">
+                                Файлов нет
+                              </div>
                             )}
                           </div>
+                        </div>
 
-                          {/* Action Buttons */}
-                          {userType === "student" && (
-                            <div className="flex flex-col gap-2">
-                              {(item.status === "pending" ||
-                                item.status === "missed") && (
-                                <button
-                                  onClick={() =>
-                                    handleUpdateStatus(item.id, "submitted")
-                                  }
-                                  className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
-                                >
-                                  <Check size={16} />
-                                  {item.status === "missed"
-                                    ? "Выполнить просроченное ДЗ"
-                                    : "Отправить на проверку"}
-                                </button>
-                              )}
-                            </div>
-                          )}
+                        {/* Action Buttons */}
+                        {userType === "student" && (
+                          <div className="flex flex-col gap-2">
+                            {(item.status === "pending" ||
+                              item.status === "missed") && (
+                              <button
+                                onClick={() =>
+                                  handleUpdateStatus(item.id, "submitted")
+                                }
+                                className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
+                              >
+                                <Check size={16} />
+                                {item.status === "missed"
+                                  ? "Выполнить просроченное ДЗ"
+                                  : "Отправить на проверку"}
+                              </button>
+                            )}
+                          </div>
+                        )}
 
-                          {userType === "tutor" && (
-                            <div className="flex flex-col gap-2">
-                              {(item.status === "pending" ||
-                                item.status === "missed") && (
+                        {userType === "tutor" && (
+                          <div className="flex flex-col gap-2">
+                            {(item.status === "pending" ||
+                              item.status === "missed") && (
+                              <button
+                                onClick={() =>
+                                  handleUpdateStatus(item.id, "completed")
+                                }
+                                className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
+                              >
+                                <Check size={16} />
+                                Отметить как выполненное
+                              </button>
+                            )}
+                            {item.status === "submitted" && (
+                              <div className="flex gap-2">
                                 <button
                                   onClick={() =>
                                     handleUpdateStatus(item.id, "completed")
                                   }
-                                  className="w-full py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
+                                  className="flex-1 py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
                                 >
                                   <Check size={16} />
-                                  Отметить как выполненное
+                                  Принять
                                 </button>
-                              )}
-                              {item.status === "submitted" && (
-                                <div className="flex gap-2">
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateStatus(item.id, "completed")
-                                    }
-                                    className="flex-1 py-2 bg-[#1db954] hover:bg-[#1ed760] rounded-md text-sm font-bold transition-colors flex items-center justify-center gap-2 text-white"
-                                  >
-                                    <Check size={16} />
-                                    Принять
-                                  </button>
-                                  <button
-                                    onClick={() =>
-                                      handleUpdateStatus(item.id, "pending")
-                                    }
-                                    className="flex-1 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
-                                  >
-                                    Отклонить
-                                  </button>
-                                </div>
-                              )}
-                              <button
-                                onClick={() => handleDeleteHW(item.id)}
-                                className="w-full py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
-                              >
-                                Удалить задание
-                              </button>
-                            </div>
-                          )}
-                        </div>
-                      </>
+                                <button
+                                  onClick={() =>
+                                    handleUpdateStatus(item.id, "pending")
+                                  }
+                                  className="flex-1 py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
+                                >
+                                  Отклонить
+                                </button>
+                              </div>
+                            )}
+                            <button
+                              onClick={() => handleDeleteHW(item.id)}
+                              className="w-full py-2 bg-destructive/10 hover:bg-destructive/20 text-destructive rounded-md text-sm font-medium transition-colors"
+                            >
+                              Удалить задание
+                            </button>
+                          </div>
+                        )}
+                      </div>
                     )}
                   </div>
                 )}
@@ -820,6 +836,46 @@ export function Homework({ userType }: HomeworkProps) {
                     />
                   )}
                 </div>
+              </div>
+              <div>
+                <label className="block text-sm text-muted-foreground mb-1">
+                  Прикрепить файлы
+                </label>
+                <div className="flex items-center gap-3">
+                  <label className="cursor-pointer px-3 py-2 bg-muted rounded-md text-foreground hover:bg-accent transition-colors flex items-center gap-2">
+                    <Paperclip size={16} className="text-muted-foreground" />
+                    <span className="text-sm">Выбрать файлы</span>
+                    <input
+                      type="file"
+                      multiple
+                      className="hidden"
+                      onChange={(e) => {
+                        const files = e.target.files
+                          ? Array.from(e.target.files)
+                          : [];
+                        setAttachedFiles(files);
+                      }}
+                    />
+                  </label>
+                  {attachedFiles.length > 0 && (
+                    <span className="text-xs text-muted-foreground">
+                      {attachedFiles.length} файл(ов) выбрано
+                    </span>
+                  )}
+                </div>
+                {attachedFiles.length > 0 && (
+                  <div className="mt-2 space-y-1">
+                    {attachedFiles.map((f, idx) => (
+                      <div
+                        key={idx}
+                        className="text-xs text-muted-foreground flex items-center gap-2"
+                      >
+                        <FileText size={12} />
+                        <span className="truncate">{f.name}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
               <button
                 type="submit"

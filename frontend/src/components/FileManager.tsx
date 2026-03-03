@@ -4,7 +4,6 @@ import {
   Video,
   Image,
   Download,
-  Eye,
   Upload,
   X,
   File,
@@ -12,7 +11,6 @@ import {
   ChevronRight,
   Plus,
   ArrowLeft,
-  MoreVertical,
   Move,
 } from "lucide-react";
 import { api } from "../services/api";
@@ -32,6 +30,8 @@ export function FileManager({ userType }: FileManagerProps) {
     name: string;
   } | null>(null);
   const [newFolderName, setNewFolderName] = useState("");
+  const [newFolderSubjectId, setNewFolderSubjectId] = useState<string>("");
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [files, setFiles] = useState<any[]>([]);
   const [folders, setFolders] = useState<any[]>([]);
   const [currentFolderId, setCurrentFolderId] = useState<number | null>(null);
@@ -39,12 +39,13 @@ export function FileManager({ userType }: FileManagerProps) {
     { id: number | null; name: string }[]
   >([{ id: null, name: "Материалы" }]);
   const [students, setStudents] = useState<any[]>([]);
+  const [subjects, setSubjects] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [uploadData, setUploadData] = useState({
     name: "",
-    subject: "Mathematics",
+    subjectId: "",
     assignedToId: "",
   });
   const [storageStats, setStorageStats] = useState({
@@ -57,15 +58,29 @@ export function FileManager({ userType }: FileManagerProps) {
   useEffect(() => {
     loadFiles();
     loadStorageStats();
+    // Load subjects for both tutor and student to enable filtering
     if (userType === "tutor") {
       loadStudents();
     }
-  }, [userType, currentFolderId]);
+    loadSubjects();
+  }, [userType, currentFolderId, selectedSubjectId]);
+
+  const loadSubjects = async () => {
+    try {
+      const data = await api.getSubjects();
+      setSubjects(data);
+    } catch (error) {
+      console.error("Failed to load subjects:", error);
+    }
+  };
 
   const loadFiles = async () => {
     try {
       setLoading(true);
-      const data = await api.getFiles(currentFolderId);
+      const data = await api.getFiles(
+        currentFolderId,
+        selectedSubjectId ? parseInt(selectedSubjectId) : null,
+      );
       setFiles(
         data.files.map((f: any) => ({
           ...f,
@@ -93,8 +108,13 @@ export function FileManager({ userType }: FileManagerProps) {
   const handleCreateFolder = async () => {
     if (!newFolderName.trim()) return;
     try {
-      await api.createFolder(newFolderName, currentFolderId);
+      await api.createFolder(
+        newFolderName,
+        currentFolderId,
+        newFolderSubjectId ? parseInt(newFolderSubjectId) : null,
+      );
       setNewFolderName("");
+      setNewFolderSubjectId("");
       setShowFolderModal(false);
       loadFiles();
     } catch (error) {
@@ -154,7 +174,9 @@ export function FileManager({ userType }: FileManagerProps) {
       const formData = new FormData();
       formData.append("file", selectedFile);
       formData.append("name", uploadData.name);
-      formData.append("subject", uploadData.subject);
+      if (uploadData.subjectId) {
+        formData.append("subjectId", uploadData.subjectId);
+      }
       if (uploadData.assignedToId) {
         formData.append("assignedToId", uploadData.assignedToId);
       }
@@ -165,7 +187,7 @@ export function FileManager({ userType }: FileManagerProps) {
       await api.uploadFile(formData);
       setShowUploadModal(false);
       setSelectedFile(null);
-      setUploadData({ name: "", subject: "Математика", assignedToId: "" });
+      setUploadData({ name: "", subjectId: "", assignedToId: "" });
       await loadFiles();
     } catch (error) {
       console.error("Upload failed:", error);
@@ -220,20 +242,24 @@ export function FileManager({ userType }: FileManagerProps) {
     return true;
   });
 
-  const getSubjectColor = (subject: string) => {
-    switch (subject) {
-      case "Mathematics":
-      case "Математика":
-        return "#1db954";
-      case "Physics":
-      case "Физика":
-        return "#2e77d0";
-      case "Chemistry":
-      case "Химия":
-        return "#af2896";
-      default:
-        return "#b3b3b3";
+  const getSubjectColor = (subject: any) => {
+    if (!subject) return "#b3b3b3";
+    if (typeof subject === "string") {
+      switch (subject) {
+        case "Mathematics":
+        case "Математика":
+          return "#1db954";
+        case "Physics":
+        case "Физика":
+          return "#2e77d0";
+        case "Chemistry":
+        case "Химия":
+          return "#af2896";
+        default:
+          return "#b3b3b3";
+      }
     }
+    return subject.color || "#b3b3b3";
   };
 
   if (loading) {
@@ -246,62 +272,51 @@ export function FileManager({ userType }: FileManagerProps) {
 
   return (
     <div className="space-y-4 pb-20">
-      {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 overflow-x-auto text-sm no-scrollbar py-1">
-        {breadcrumbs.map((crumb, index) => (
-          <React.Fragment key={index}>
-            {index > 0 && <ChevronRight size={14} className="text-muted-foreground flex-shrink-0" />}
+      {/* Actions (для репетитора) */}
+
+      {/* Filter Tabs and Subject Selector */}
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
+        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+          {[
+            { id: "all", label: "Все файлы" },
+            { id: "documents", label: "Документы" },
+            { id: "videos", label: "Видео" },
+            { id: "images", label: "Изображения" },
+          ].map((f) => (
             <button
-              onClick={() => handleNavigate(crumb)}
-              className={`whitespace-nowrap transition-colors ${
-                index === breadcrumbs.length - 1
-                  ? "text-foreground font-medium"
-                  : "text-muted-foreground hover:text-foreground"
+              key={f.id}
+              onClick={() => setFilter(f.id as any)}
+              className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
+                filter === f.id
+                  ? "bg-[#1db954] text-white"
+                  : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
               }`}
             >
-              {crumb.name}
+              {f.label}
             </button>
-          </React.Fragment>
-        ))}
-      </div>
-
-      {/* Action Buttons (for tutors) */}
-      {userType === "tutor" && (
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowFolderModal(true)}
-            className="flex-1 bg-card border border-border rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-muted/50 transition-colors text-sm text-foreground"
-          >
-            <Plus size={18} className="text-[#1db954]" />
-            Новая папка
-          </button>
+          ))}
         </div>
-      )}
 
-      {/* Filter Tabs */}
-      <div className="flex gap-2 overflow-x-auto no-scrollbar">
-        {[
-          { id: "all", label: "Все файлы" },
-          { id: "documents", label: "Документы" },
-          { id: "videos", label: "Видео" },
-          { id: "images", label: "Изображения" },
-        ].map((f) => (
-          <button
-            key={f.id}
-            onClick={() => setFilter(f.id as any)}
-            className={`px-4 py-2 rounded-full text-sm whitespace-nowrap transition-colors ${
-              filter === f.id
-                ? "bg-[#1db954] text-white"
-                : "bg-card border border-border text-muted-foreground hover:text-foreground hover:bg-muted/50"
-            }`}
-          >
-            {f.label}
-          </button>
-        ))}
+        {subjects.length > 0 && (
+          <div className="w-full sm:w-auto">
+            <select
+              value={selectedSubjectId}
+              onChange={(e) => setSelectedSubjectId(e.target.value)}
+              className="w-full sm:w-48 bg-card border border-border rounded-lg px-3 py-2 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
+            >
+              <option value="">Все предметы</option>
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       {/* Storage Info */}
-      <div className="bg-gradient-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 text-white">
+      <div className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 text-white">
         <div className="flex items-center justify-between mb-2">
           <span>Использовано памяти</span>
           <span>
@@ -320,38 +335,155 @@ export function FileManager({ userType }: FileManagerProps) {
           />
         </div>
       </div>
+      {userType === "tutor" && (
+        <div className="flex gap-2">
+          <button
+            onClick={() => setShowFolderModal(true)}
+            className="flex-1 bg-card border border-border rounded-lg py-2.5 flex items-center justify-center gap-2 hover:bg-muted/50 transition-colors text-sm text-foreground"
+          >
+            <Plus size={18} className="text-[#1db954]" />
+            Новая папка
+          </button>
+        </div>
+      )}
 
       {/* Folder & File List */}
       <div className="space-y-2">
-        {/* Folders */}
-        {filter === "all" && folders.map((folder) => (
-          <div
-            key={folder.id}
-            className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors group"
-          >
-            <div className="flex items-center gap-3">
-              <div 
-                className="flex-1 flex items-center gap-3 cursor-pointer"
-                onClick={() => handleNavigate({id: folder.id, name: folder.name})}
-              >
-                <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
-                  <Folder size={20} className="text-[#1db954] fill-[#1db954]/20" />
-                </div>
-                <div className="flex-1 min-w-0 font-medium text-foreground">{folder.name}</div>
-              </div>
-              {userType === "tutor" && (
+        {/* Breadcrumbs above folders */}
+        <div className="flex items-center gap-2">
+          {currentFolderId !== null && (
+            <button
+              onClick={() => {
+                if (breadcrumbs.length > 1) {
+                  const prev = breadcrumbs[breadcrumbs.length - 2];
+                  setBreadcrumbs(breadcrumbs.slice(0, -1));
+                  setCurrentFolderId(prev.id);
+                } else {
+                  setCurrentFolderId(null);
+                }
+              }}
+              className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-muted-foreground"
+              title="Назад"
+            >
+              <ArrowLeft size={16} />
+            </button>
+          )}
+          <div className="flex items-center gap-2 overflow-x-auto text-sm no-scrollbar py-1">
+            {breadcrumbs.map((crumb, index) => (
+              <React.Fragment key={index}>
+                {index > 0 && (
+                  <ChevronRight
+                    size={14}
+                    className="text-muted-foreground shrink-0"
+                  />
+                )}
                 <button
-                  onClick={() => handleDeleteFolder(folder.id)}
-                  className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors opacity-0 group-hover:opacity-100"
-                  title="Удалить папку"
+                  onClick={() => handleNavigate(crumb)}
+                  className={`whitespace-nowrap transition-colors ${
+                    index === breadcrumbs.length - 1
+                      ? "text-foreground font-medium"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`}
                 >
-                  <X size={16} />
+                  {crumb.name}
                 </button>
-              )}
-              <ChevronRight size={18} className="text-muted-foreground" />
-            </div>
+              </React.Fragment>
+            ))}
           </div>
-        ))}
+        </div>
+
+        {/* Folders */}
+        {filter === "all" &&
+          folders.map((folder) => (
+            <div
+              key={folder.id}
+              className={`bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors group`}
+              style={
+                folder.subject
+                  ? {
+                      borderLeft: `4px solid ${folder.subject.color || "#1db954"}`,
+                    }
+                  : {}
+              }
+            >
+              <div className="flex items-center gap-3">
+                <div
+                  className="flex-1 flex items-center gap-3 cursor-pointer"
+                  onClick={() =>
+                    handleNavigate({ id: folder.id, name: folder.name })
+                  }
+                >
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0 relative">
+                    <Folder
+                      size={20}
+                      className="text-[#1db954] fill-[#1db954]/20"
+                      style={
+                        folder.subject
+                          ? {
+                              color: folder.subject.color || "#1db954",
+                              fill: `${folder.subject.color || "#1db954"}33`,
+                            }
+                          : {}
+                      }
+                    />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="font-medium text-foreground">
+                      {folder.name}
+                    </div>
+                    {folder.subject && (
+                      <div className="text-xs text-muted-foreground flex items-center gap-2 mt-1">
+                        <span
+                          className="font-medium text-[#1db954]"
+                          style={{ color: folder.subject.color || "#1db954" }}
+                        >
+                          {folder.subject.name}
+                        </span>
+                        {userType === "student" && folder.uploadedBy && (
+                          <>
+                            <span>•</span>
+                            <span>{folder.uploadedBy.name}</span>
+                          </>
+                        )}
+                        {/* Placeholder for counts if available */}
+                        {(folder.subfoldersCount > 0 ||
+                          folder.filesCount > 0) && (
+                          <>
+                            <span>•</span>
+                            <span>
+                              {folder.subfoldersCount || 0} папок,{" "}
+                              {folder.filesCount || 0} файлов
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {userType === "tutor" &&
+                  !(folder.subject && folder.parentId == null) && (
+                    <button
+                      onClick={() => handleDeleteFolder(folder.id)}
+                      className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors opacity-0 group-hover:opacity-100"
+                      title="Удалить папку"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
+                {userType === "tutor" &&
+                  folder.subject &&
+                  folder.parentId == null && (
+                    <div
+                      className="text-xs text-muted-foreground italic px-2"
+                      title="Папку предмета нельзя удалить напрямую"
+                    >
+                      Папка предмета
+                    </div>
+                  )}
+                <ChevronRight size={18} className="text-muted-foreground" />
+              </div>
+            </div>
+          ))}
 
         {filteredFiles.length === 0 && folders.length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
@@ -363,14 +495,17 @@ export function FileManager({ userType }: FileManagerProps) {
             return (
               <div
                 key={file.id}
-                className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors"
+                className="bg-card border border-border rounded-lg p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                onClick={() => handleDownload(file)}
               >
                 <div className="flex items-start gap-3">
-                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center flex-shrink-0">
+                  <div className="w-10 h-10 rounded-lg bg-muted flex items-center justify-center shrink-0">
                     <Icon size={20} className="text-[#1db954]" />
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="mb-1 truncate text-foreground">{file.name}</div>
+                    <div className="mb-1 truncate text-foreground">
+                      {file.name}
+                    </div>
                     <div className="flex items-center gap-2 text-sm text-muted-foreground">
                       <span>{file.size}</span>
                       <span>•</span>
@@ -383,21 +518,28 @@ export function FileManager({ userType }: FileManagerProps) {
                           color: getSubjectColor(file.subject),
                         }}
                       >
-                        {file.subject === "Mathematics"
-                          ? "Математика"
-                          : file.subject === "Physics"
-                            ? "Физика"
-                            : file.subject === "Chemistry"
-                              ? "Химия"
-                              : file.subject === "Other"
-                                ? "Другое"
-                                : file.subject}
+                        {file.subject
+                          ? typeof file.subject === "string"
+                            ? file.subject === "Mathematics"
+                              ? "Математика"
+                              : file.subject === "Physics"
+                                ? "Физика"
+                                : file.subject === "Chemistry"
+                                  ? "Химия"
+                                  : file.subject === "Other"
+                                    ? "Другое"
+                                    : file.subject
+                            : file.subject.name
+                          : "Без предмета"}
                       </span>
                     </div>
                   </div>
-                  <div className="flex gap-2 flex-shrink-0">
+                  <div className="flex gap-2 shrink-0">
                     <button
-                      onClick={() => handleDownload(file)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDownload(file);
+                      }}
                       className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground"
                       title="Скачать"
                     >
@@ -406,14 +548,23 @@ export function FileManager({ userType }: FileManagerProps) {
                     {userType === "tutor" && (
                       <>
                         <button
-                          onClick={() => setShowMoveModal({fileId: file.id, name: file.name})}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            setShowMoveModal({
+                              fileId: file.id,
+                              name: file.name,
+                            });
+                          }}
                           className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground"
                           title="Переместить"
                         >
                           <Move size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(file.id)}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDelete(file.id);
+                          }}
                           className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-destructive/20 text-destructive transition-colors"
                           title="Удалить"
                         >
@@ -439,7 +590,7 @@ export function FileManager({ userType }: FileManagerProps) {
 
       {/* New Folder Modal */}
       {showFolderModal && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-60 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 shadow-lg">
             <h3 className="text-xl mb-4 text-foreground">Создать папку</h3>
             <input
@@ -447,9 +598,21 @@ export function FileManager({ userType }: FileManagerProps) {
               value={newFolderName}
               onChange={(e) => setNewFolderName(e.target.value)}
               placeholder="Имя папки"
-              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954] mb-6 placeholder:text-muted-foreground"
+              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954] mb-4 placeholder:text-muted-foreground"
               autoFocus
             />
+            <select
+              value={newFolderSubjectId}
+              onChange={(e) => setNewFolderSubjectId(e.target.value)}
+              className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954] mb-6"
+            >
+              <option value="">Без предмета (общая)</option>
+              {subjects.map((subject) => (
+                <option key={subject.id} value={subject.id}>
+                  {subject.name}
+                </option>
+              ))}
+            </select>
             <div className="flex gap-3">
               <button
                 onClick={() => setShowFolderModal(false)}
@@ -470,11 +633,13 @@ export function FileManager({ userType }: FileManagerProps) {
 
       {/* Move File Modal */}
       {showMoveModal && (
-        <div className="fixed inset-0 bg-black/80 z-[60] flex items-center justify-center p-4">
+        <div className="fixed inset-0 bg-black/80 z-60 flex items-center justify-center p-4">
           <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 flex flex-col max-h-[80vh] shadow-lg">
             <h3 className="text-xl mb-2 text-foreground">Переместить файл</h3>
-            <p className="text-sm text-muted-foreground mb-4 truncate">{showMoveModal.name}</p>
-            
+            <p className="text-sm text-muted-foreground mb-4 truncate">
+              {showMoveModal.name}
+            </p>
+
             <div className="flex-1 overflow-y-auto space-y-2 mb-6">
               <button
                 onClick={() => handleMoveFile(null)}
@@ -485,7 +650,7 @@ export function FileManager({ userType }: FileManagerProps) {
               </button>
               {/* Note: This only shows top-level folders for simplicity in this mobile-first view, 
                   but we could make it recursive if needed */}
-              {folders.map(f => (
+              {folders.map((f) => (
                 <button
                   key={f.id}
                   onClick={() => handleMoveFile(f.id)}
@@ -516,7 +681,7 @@ export function FileManager({ userType }: FileManagerProps) {
               setSelectedFile(null);
               setUploadData({
                 name: "",
-                subject: "Математика",
+                subjectId: selectedSubjectId || "",
                 assignedToId: "",
               });
             }}
@@ -530,7 +695,9 @@ export function FileManager({ userType }: FileManagerProps) {
             <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center p-4">
               <div className="bg-card border border-border rounded-lg max-w-md w-full p-6 shadow-lg">
                 <div className="flex items-center justify-between mb-6">
-                  <h3 className="text-xl text-foreground">Загрузить материал</h3>
+                  <h3 className="text-xl text-foreground">
+                    Загрузить материал
+                  </h3>
                   <button
                     onClick={() => setShowUploadModal(false)}
                     className="w-8 h-8 rounded-full bg-muted flex items-center justify-center hover:bg-accent text-foreground transition-colors"
@@ -560,7 +727,9 @@ export function FileManager({ userType }: FileManagerProps) {
                     <File
                       size={48}
                       className={`mx-auto mb-4 ${
-                        selectedFile ? "text-[#1db954]" : "text-muted-foreground"
+                        selectedFile
+                          ? "text-[#1db954]"
+                          : "text-muted-foreground"
                       }`}
                     />
                     {selectedFile ? (
@@ -605,19 +774,21 @@ export function FileManager({ userType }: FileManagerProps) {
                       Предмет
                     </label>
                     <select
-                      value={uploadData.subject}
+                      value={uploadData.subjectId}
                       onChange={(e) =>
                         setUploadData({
                           ...uploadData,
-                          subject: e.target.value,
+                          subjectId: e.target.value,
                         })
                       }
                       className="w-full bg-muted border border-input rounded-lg px-4 py-3 text-sm text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
                     >
-                      <option>Математика</option>
-                      <option>Физика</option>
-                      <option>Химия</option>
-                      <option>Другое</option>
+                      <option value="">Без предмета</option>
+                      {subjects.map((subject) => (
+                        <option key={subject.id} value={subject.id}>
+                          {subject.name}
+                        </option>
+                      ))}
                     </select>
                   </div>
 

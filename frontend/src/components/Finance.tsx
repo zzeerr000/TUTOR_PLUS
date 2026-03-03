@@ -1,15 +1,6 @@
-import React, { useEffect, useState, useMemo } from "react";
-import {
-  TrendingUp,
-  TrendingDown,
-  DollarSign,
-  Calendar,
-  Check,
-  ChevronLeft,
-  ChevronRight,
-  X,
-} from "lucide-react";
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts";
+import { useEffect, useState, useMemo } from "react";
+import { Calendar, Check, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { PieChart, Pie, Cell } from "recharts";
 import { api } from "../services/api";
 
 const COLORS = [
@@ -29,23 +20,7 @@ interface FinanceProps {
 
 export function Finance({ userType }: FinanceProps) {
   const [currency, setCurrency] = useState(api.getCurrencySymbol());
-  const [stats, setStats] = useState([
-    { label: "В этом месяце", value: `${currency}0`, change: "0%", up: true },
-    {
-      label: "В прошлом месяце",
-      value: `${currency}0`,
-      change: "0%",
-      up: true,
-    },
-    {
-      label: "В ожидании",
-      value: `${currency}0`,
-      change: "0 счетов",
-      up: false,
-    },
-  ]);
   const [recentTransactions, setRecentTransactions] = useState<any[]>([]);
-  const [upcomingPayments, setUpcomingPayments] = useState<any[]>([]);
   const [allTransactions, setAllTransactions] = useState<any[]>([]);
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [loading, setLoading] = useState(true);
@@ -146,10 +121,38 @@ export function Finance({ userType }: FinanceProps) {
     }
   };
 
+  const hasStarted = (eventDateStr: string, timeStr: string) => {
+    const now = new Date();
+    const datePart = eventDateStr.split("T")[0];
+    let hour24 = 0;
+    let minutes = 0;
+    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, mins] = timePart.split(":");
+      hour24 = parseInt(hours);
+      if (period === "PM" && hour24 !== 12) {
+        hour24 += 12;
+      } else if (period === "AM" && hour24 === 12) {
+        hour24 = 0;
+      }
+      minutes = parseInt(mins);
+    } else {
+      const [hours, mins] = timeStr.split(":");
+      hour24 = parseInt(hours);
+      minutes = parseInt(mins);
+    }
+    const eventDateTime = new Date(
+      `${datePart}T${String(hour24).padStart(2, "0")}:${String(
+        minutes,
+      ).padStart(2, "0")}:00`,
+    );
+    return eventDateTime <= now;
+  };
+
   const loadData = async () => {
     try {
       setLoading(true);
-      const [transactions, financeStats] = await Promise.all([
+      const [transactions, financeStats, events] = await Promise.all([
         api.getTransactions().catch(() => []),
         api.getFinanceStats().catch(() => ({
           thisMonth: 0,
@@ -157,6 +160,7 @@ export function Finance({ userType }: FinanceProps) {
           pending: 0,
           pendingCount: 0,
         })),
+        api.getEvents().catch(() => []),
       ]);
 
       const now = new Date();
@@ -188,45 +192,38 @@ export function Finance({ userType }: FinanceProps) {
             ).toFixed(0)
           : "0";
 
-      setStats([
-        {
-          label: "В этом месяце",
-          value: `${currency}${financeStats.thisMonth.toLocaleString()}`,
-          change: `${change.startsWith("-") ? "" : "+"}${change}%`,
-          up: Number(change) >= 0,
-        },
-        {
-          label: "В прошлом месяце",
-          value: `${currency}${financeStats.lastMonth.toLocaleString()}`,
-          change: "+0%",
-          up: true,
-        },
-        {
-          label: "В ожидании",
-          value: `${currency}${financeStats.pending.toLocaleString()}`,
-          change: `${financeStats.pendingCount} счетов`,
-          up: false,
-        },
-      ]);
+      // Stats header removed earlier; keep financeStats usage internal only
 
-      setRecentTransactions(
-        formattedTransactions.filter((t: any) => t.status === "pending"),
+      const pendingTx = formattedTransactions.filter(
+        (t: any) => t.status === "pending",
       );
 
-      setUpcomingPayments(
-        transactions
-          .filter((t: any) => t.status === "pending" && t.dueDate)
-          .slice(0, 3)
-          .map((t: any) => ({
-            student: t.student?.name || "Ученик",
-            amount: Number(t.amount),
-            dueDate: new Date(t.dueDate).toLocaleDateString("ru-RU", {
+      if (pendingTx.length > 0) {
+        setRecentTransactions(pendingTx);
+      } else {
+        // Fallback: use events with paymentPending=true (in case transactions not yet created)
+        const pendingEvents = events
+          .filter(
+            (e: any) =>
+              e.paymentPending && e.transactionId && hasStarted(e.date, e.time),
+          )
+          .map((e: any) => ({
+            id: e.transactionId,
+            student: e.student?.name || "Ученик",
+            amount: Number(e.amount) || 0,
+            date: new Date(e.date).toLocaleDateString("ru-RU", {
               month: "short",
               day: "numeric",
             }),
-            subject: t.subject || "",
-          })),
-      );
+            fullDate: new Date(e.date),
+            status: "pending",
+            subject: e.subject || e.title || "",
+            tutorId: e.tutorId,
+          }));
+        setRecentTransactions(pendingEvents);
+      }
+
+      // Upcoming payments widget removed earlier
     } catch (error) {
       console.error("Failed to load finance data:", error);
     } finally {
@@ -257,7 +254,7 @@ export function Finance({ userType }: FinanceProps) {
             <ChevronLeft size={24} />
           </button>
 
-          <div className="flex flex-col items-center min-w-[140px]">
+          <div className="flex flex-col items-center min-w-35">
             <span className="text-muted-foreground text-[10px] uppercase tracking-[0.2em] font-bold mb-0.5">
               Период
             </span>
@@ -313,7 +310,7 @@ export function Finance({ userType }: FinanceProps) {
               isAnimationActive={false}
             >
               {chartData.length > 0 ? (
-                chartData.map((entry, index) => (
+                chartData.map((_, index) => (
                   <Cell
                     key={`cell-${index}`}
                     fill={COLORS[index % COLORS.length]}

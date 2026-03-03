@@ -2,25 +2,20 @@ import React, { useEffect, useState } from "react";
 import {
   Search,
   Plus,
-  TrendingUp,
   Clock,
   CheckCircle,
-  Mail,
   User,
-  Lock,
   X,
   Edit2,
   Link,
   Trash2,
   BookOpen,
   Calendar,
-  ChevronRight,
   ChevronDown,
   ChevronUp,
   FileText,
   Download,
   Save,
-  MessageSquare,
 } from "lucide-react";
 import { api } from "../services/api";
 
@@ -41,6 +36,7 @@ export function StudentManager() {
     defaultSubject: "",
     defaultPrice: "",
     defaultDuration: "60",
+    subjectIds: [] as number[],
   });
   const [linkData, setLinkData] = useState({
     virtualStudentId: 0,
@@ -53,6 +49,7 @@ export function StudentManager() {
     defaultSubject: "",
     defaultPrice: "",
     defaultDuration: "60",
+    subjectIds: [] as number[],
   });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -67,8 +64,13 @@ export function StudentManager() {
   const [editingNoteId, setEditingNoteId] = useState<number | null>(null);
   const [noteText, setNoteText] = useState("");
 
+  const [subjects, setSubjects] = useState<any[]>([]);
+  const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState("");
+
   useEffect(() => {
     loadData();
+    loadSubjects();
 
     const handleStorageChange = () => {
       setCurrency(api.getCurrencySymbol());
@@ -77,6 +79,15 @@ export function StudentManager() {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, []);
+
+  const loadSubjects = async () => {
+    try {
+      const data = await api.getSubjects();
+      setSubjects(data);
+    } catch (e) {
+      console.error("Failed to load subjects", e);
+    }
+  };
 
   const loadData = async () => {
     try {
@@ -170,6 +181,7 @@ export function StudentManager() {
                 weekday: "short",
               })}, ${nextEvent.time}`
             : "Нет предстоящих занятий",
+          avatarUrl: student.avatarUrl,
           avatar: (conn.studentAlias || student.name)
             .split(" ")
             .map((n: string) => n[0])
@@ -178,6 +190,7 @@ export function StudentManager() {
             .slice(0, 2),
           color,
           status: student.isVirtual ? "виртуальный" : "активный",
+          subjectIds: conn.subjects ? conn.subjects.map((s: any) => s.id) : [],
         };
       });
 
@@ -232,6 +245,7 @@ export function StudentManager() {
         newStudent.defaultSubject,
         newStudent.defaultPrice ? Number(newStudent.defaultPrice) : undefined,
         newStudent.defaultDuration ? Number(newStudent.defaultDuration) : 60,
+        newStudent.subjectIds,
       );
       setShowAddDialog(false);
       setNewStudent({
@@ -240,6 +254,7 @@ export function StudentManager() {
         defaultSubject: "",
         defaultPrice: "",
         defaultDuration: "60",
+        subjectIds: [],
       });
       loadData();
     } catch (err: any) {
@@ -264,6 +279,7 @@ export function StudentManager() {
         defaultDuration: editData.defaultDuration
           ? Number(editData.defaultDuration)
           : undefined,
+        subjectIds: editData.subjectIds,
       });
       setShowEditDialog(false);
       loadData();
@@ -319,17 +335,44 @@ export function StudentManager() {
 
   return (
     <div className="space-y-4 pb-6">
-      {/* Search */}
-      <div className="relative">
-        <Search
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
-          size={20}
-        />
-        <input
-          type="text"
-          placeholder="Поиск учеников..."
-          className="w-full bg-card rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] border border-border text-foreground placeholder:text-muted-foreground"
-        />
+      {/* Search and Filter */}
+      <div className="flex gap-2">
+        <div className="relative flex-1">
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={20}
+          />
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            placeholder="Поиск учеников..."
+            className="w-full bg-card rounded-lg pl-10 pr-4 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] border border-border text-foreground placeholder:text-muted-foreground"
+          />
+        </div>
+
+        <div className="relative w-1/3">
+          <BookOpen
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+            size={20}
+          />
+          <select
+            value={selectedSubjectId}
+            onChange={(e) => setSelectedSubjectId(e.target.value)}
+            className="w-full bg-card rounded-lg pl-10 pr-8 py-3 text-sm outline-none focus:ring-2 focus:ring-[#1db954] border border-border text-foreground appearance-none cursor-pointer"
+          >
+            <option value="">Все предметы</option>
+            {subjects.map((subject) => (
+              <option key={subject.id} value={subject.id}>
+                {subject.name}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground pointer-events-none"
+            size={16}
+          />
+        </div>
       </div>
 
       {/* Summary Stats */}
@@ -354,146 +397,175 @@ export function StudentManager() {
 
       {/* Student List */}
       <div className="space-y-3">
-        {students.length === 0 ? (
+        {students.filter((student) => {
+          const matchesSubject =
+            !selectedSubjectId ||
+            (student.subjectIds &&
+              student.subjectIds.includes(parseInt(selectedSubjectId)));
+          const matchesSearch =
+            !searchQuery ||
+            student.name.toLowerCase().includes(searchQuery.toLowerCase());
+          return matchesSubject && matchesSearch;
+        }).length === 0 ? (
           <div className="text-center text-muted-foreground py-8">
             Ученики не найдены
           </div>
         ) : (
-          students.map((student) => (
-            <div
-              key={student.id}
-              onClick={() => loadStudentDetails(student)}
-              className="bg-card rounded-lg p-4 hover:bg-muted/50 transition-colors group relative cursor-pointer border border-border"
-            >
-              <div className="flex items-start gap-3 mb-3">
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white"
-                  style={{ backgroundColor: student.color }}
-                >
-                  <span>{student.avatar}</span>
-                </div>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex flex-col">
-                      <span className="font-medium text-foreground">
-                        {student.name}
-                      </span>
-                      {student.name !== student.originalName && (
-                        <span className="text-xs text-muted-foreground">
-                          {student.originalName}
+          students
+            .filter((student) => {
+              const matchesSubject =
+                !selectedSubjectId ||
+                (student.subjectIds &&
+                  student.subjectIds.includes(parseInt(selectedSubjectId)));
+              const matchesSearch =
+                !searchQuery ||
+                student.name.toLowerCase().includes(searchQuery.toLowerCase());
+              return matchesSubject && matchesSearch;
+            })
+            .map((student) => (
+              <div
+                key={student.id}
+                onClick={() => loadStudentDetails(student)}
+                className="bg-card rounded-lg p-4 hover:bg-muted/50 transition-colors group relative cursor-pointer border border-border"
+              >
+                <div className="flex items-start gap-3 mb-3">
+                  <div
+                    className="w-12 h-12 rounded-full flex items-center justify-center shrink-0 text-white overflow-hidden"
+                    style={{ backgroundColor: student.color }}
+                  >
+                    {student.avatarUrl && student.avatarUrl.startsWith('/uploads/') ? (
+                      <img 
+                        src={`${api.getBaseUrl()}${student.avatarUrl}`}
+                        alt={student.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span>{student.avatar}</span>
+                    )}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-1">
+                      <div className="flex flex-col">
+                        <span className="font-medium text-foreground">
+                          {student.name}
                         </span>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className="text-xs px-2 py-1 rounded-full"
-                        style={{
-                          backgroundColor: `${student.color}20`,
-                          color: student.color,
-                        }}
-                      >
-                        {student.subject}
-                      </span>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setEditData({
-                            studentId: student.id,
-                            alias: student.name,
-                            originalName: student.originalName,
-                            defaultSubject: student.defaultSubject || "",
-                            defaultPrice:
-                              student.defaultPrice?.toString() || "",
-                            defaultDuration:
-                              student.defaultDuration?.toString() || "60",
-                          });
-                          setShowEditDialog(true);
-                        }}
-                        className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
-                        title="Переименовать"
-                      >
-                        <Edit2 size={14} />
-                      </button>
-                      {student.isVirtual && (
+                        {student.name !== student.originalName && (
+                          <span className="text-xs text-muted-foreground">
+                            {student.originalName}
+                          </span>
+                        )}
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className="text-xs px-2 py-1 rounded-full"
+                          style={{
+                            backgroundColor: `${student.color}20`,
+                            color: student.color,
+                          }}
+                        >
+                          {student.subject}
+                        </span>
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
-                            setLinkData({
-                              virtualStudentId: student.id,
-                              studentCode: "",
+                            setEditData({
+                              studentId: student.id,
+                              alias: student.name,
+                              originalName: student.originalName,
+                              defaultSubject: student.defaultSubject || "",
+                              defaultPrice:
+                                student.defaultPrice?.toString() || "",
+                              defaultDuration:
+                                student.defaultDuration?.toString() || "60",
+                              subjectIds: student.subjectIds || [],
                             });
-                            setShowLinkDialog(true);
+                            setShowEditDialog(true);
                           }}
-                          className="p-1.5 text-muted-foreground hover:text-[#1db954] transition-colors"
-                          title="Привязать по коду"
+                          className="p-1.5 text-muted-foreground hover:text-foreground transition-colors"
+                          title="Переименовать"
                         >
-                          <Link size={14} />
+                          <Edit2 size={14} />
                         </button>
-                      )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteStudent(student.id, student.name);
-                        }}
-                        className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors"
-                        title="Удалить ученика"
-                      >
-                        <Trash2 size={14} />
-                      </button>
+                        {student.isVirtual && (
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setLinkData({
+                                virtualStudentId: student.id,
+                                studentCode: "",
+                              });
+                              setShowLinkDialog(true);
+                            }}
+                            className="p-1.5 text-muted-foreground hover:text-[#1db954] transition-colors"
+                            title="Привязать по коду"
+                          >
+                            <Link size={14} />
+                          </button>
+                        )}
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteStudent(student.id, student.name);
+                          }}
+                          className="p-1.5 text-muted-foreground hover:text-red-500 transition-colors"
+                          title="Удалить ученика"
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <Clock size={14} />
+                      <span>{student.nextLesson}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Clock size={14} />
-                    <span>{student.nextLesson}</span>
-                  </div>
                 </div>
-              </div>
 
-              {/* Homework Status */}
-              <div className="flex items-center gap-4 mb-3">
-                <div className="flex-1 bg-muted rounded-lg p-2 text-center">
-                  <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
-                    Активные ДЗ
+                {/* Homework Status */}
+                <div className="flex items-center gap-4 mb-3">
+                  <div className="flex-1 bg-muted rounded-lg p-2 text-center">
+                    <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
+                      Активные ДЗ
+                    </div>
+                    <div
+                      className={`text-lg font-bold ${
+                        student.activeHW > 0
+                          ? "text-[#ff9500]"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {student.activeHW}
+                    </div>
                   </div>
-                  <div
-                    className={`text-lg font-bold ${
-                      student.activeHW > 0
-                        ? "text-[#ff9500]"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {student.activeHW}
+                  <div className="flex-1 bg-muted rounded-lg p-2 text-center">
+                    <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
+                      Просрочено
+                    </div>
+                    <div
+                      className={`text-lg font-bold ${
+                        student.missedHW > 0
+                          ? "text-red-500"
+                          : "text-muted-foreground"
+                      }`}
+                    >
+                      {student.missedHW}
+                    </div>
                   </div>
                 </div>
-                <div className="flex-1 bg-muted rounded-lg p-2 text-center">
-                  <div className="text-xs text-muted-foreground mb-0.5 uppercase font-bold tracking-wider">
-                    Просрочено
-                  </div>
-                  <div
-                    className={`text-lg font-bold ${
-                      student.missedHW > 0
-                        ? "text-red-500"
-                        : "text-muted-foreground"
-                    }`}
-                  >
-                    {student.missedHW}
-                  </div>
-                </div>
-              </div>
 
-              {/* Stats */}
-              <div className="flex items-center gap-4 text-sm">
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <BookOpen size={14} />
-                  <span>{student.lessonsCount} занятий проведено</span>
-                </div>
-                <div className="flex items-center gap-1 text-muted-foreground">
-                  <CheckCircle size={14} />
-                  <span>{student.status}</span>
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-sm">
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <BookOpen size={14} />
+                    <span>{student.lessonsCount} занятий проведено</span>
+                  </div>
+                  <div className="flex items-center gap-1 text-muted-foreground">
+                    <CheckCircle size={14} />
+                    <span>{student.status}</span>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))
+            ))
         )}
       </div>
 
@@ -523,6 +595,7 @@ export function StudentManager() {
                     defaultSubject: "",
                     defaultPrice: "",
                     defaultDuration: "60",
+                    subjectIds: [],
                   });
                 }}
                 className="text-muted-foreground hover:text-foreground"
@@ -554,23 +627,101 @@ export function StudentManager() {
                 </div>
               </div>
 
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Предметы
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {subjects.map((subject) => (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => {
+                        const exists = newStudent.subjectIds.includes(
+                          subject.id,
+                        );
+                        let newIds;
+                        if (exists) {
+                          newIds = newStudent.subjectIds.filter(
+                            (id) => id !== subject.id,
+                          );
+                        } else {
+                          newIds = [...newStudent.subjectIds, subject.id];
+                        }
+
+                        // Auto-select default subject if only one is selected
+                        let newDefaultSubject = newStudent.defaultSubject;
+                        if (newIds.length === 1) {
+                          const s = subjects.find(
+                            (sub) => sub.id === newIds[0],
+                          );
+                          if (s) newDefaultSubject = s.name;
+                        } else if (newIds.length === 0) {
+                          newDefaultSubject = "";
+                        }
+
+                        setNewStudent({
+                          ...newStudent,
+                          subjectIds: newIds,
+                          defaultSubject: newDefaultSubject,
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        newStudent.subjectIds.includes(subject.id)
+                          ? "bg-[#1db954] text-white"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {subject.name}
+                    </button>
+                  ))}
+                  {subjects.length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">
+                      Нет доступных предметов. Добавьте их в настройках.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">
                     Предмет по умолчанию
                   </label>
-                  <input
-                    type="text"
-                    value={newStudent.defaultSubject}
-                    onChange={(e) =>
-                      setNewStudent({
-                        ...newStudent,
-                        defaultSubject: e.target.value,
-                      })
-                    }
-                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
-                    placeholder="Математика, Английский..."
-                  />
+                  {subjects.length > 0 ? (
+                    <select
+                      value={newStudent.defaultSubject}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          defaultSubject: e.target.value,
+                        })
+                      }
+                      className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
+                    >
+                      <option value="">Не выбран</option>
+                      {subjects
+                        .filter((s) => newStudent.subjectIds.includes(s.id))
+                        .map((s) => (
+                          <option key={s.id} value={s.name}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={newStudent.defaultSubject}
+                      onChange={(e) =>
+                        setNewStudent({
+                          ...newStudent,
+                          defaultSubject: e.target.value,
+                        })
+                      }
+                      className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
+                      placeholder="Математика, Английский..."
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">
@@ -635,10 +786,18 @@ export function StudentManager() {
             <div className="p-6 border-b border-border flex items-center justify-between bg-card rounded-t-2xl">
               <div className="flex items-center gap-4">
                 <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white"
+                  className="w-12 h-12 rounded-full flex items-center justify-center text-lg font-bold text-white overflow-hidden"
                   style={{ backgroundColor: selectedStudent.color }}
                 >
-                  {selectedStudent.avatar}
+                  {selectedStudent.avatarUrl ? (
+                    <img 
+                      src={`${api.getBaseUrl()}${selectedStudent.avatarUrl}`}
+                      alt={selectedStudent.name}
+                      className="w-full h-full object-cover"
+                    />
+                  ) : (
+                    selectedStudent.avatar
+                  )}
                 </div>
                 <div>
                   <h2 className="text-xl font-bold text-foreground">
@@ -1192,7 +1351,7 @@ export function StudentManager() {
                                                     </div>
                                                   )}
                                                   {hw.question && (
-                                                    <div className="bg-card p-2 rounded-lg border-l-2 border-[#1db954] border-y border-r border-border">
+                                                    <div className="bg-card p-2 rounded-lg border border-border border-l-2 border-l-[#1db954]">
                                                       <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                                         Вопрос ученика
                                                       </div>
@@ -1202,7 +1361,7 @@ export function StudentManager() {
                                                     </div>
                                                   )}
                                                   {hw.questionAnswer && (
-                                                    <div className="bg-card p-2 rounded-lg border-l-2 border-[#2e77d0] ml-2 border-y border-r border-border">
+                                                    <div className="bg-card p-2 rounded-lg border border-border border-l-2 border-l-[#2e77d0] ml-2">
                                                       <div className="text-[10px] text-muted-foreground uppercase font-bold mb-1">
                                                         Ваш ответ
                                                       </div>
@@ -1581,23 +1740,99 @@ export function StudentManager() {
                 </p>
               </div>
 
+              <div>
+                <label className="block text-sm text-muted-foreground mb-2">
+                  Предметы
+                </label>
+                <div className="flex flex-wrap gap-2 mb-2">
+                  {subjects.map((subject) => (
+                    <button
+                      key={subject.id}
+                      type="button"
+                      onClick={() => {
+                        const exists = editData.subjectIds.includes(subject.id);
+                        let newIds;
+                        if (exists) {
+                          newIds = editData.subjectIds.filter(
+                            (id) => id !== subject.id,
+                          );
+                        } else {
+                          newIds = [...editData.subjectIds, subject.id];
+                        }
+
+                        // Auto-select default subject if only one is selected
+                        let newDefaultSubject = editData.defaultSubject;
+                        if (newIds.length === 1) {
+                          const s = subjects.find(
+                            (sub) => sub.id === newIds[0],
+                          );
+                          if (s) newDefaultSubject = s.name;
+                        } else if (newIds.length === 0) {
+                          newDefaultSubject = "";
+                        }
+
+                        setEditData({
+                          ...editData,
+                          subjectIds: newIds,
+                          defaultSubject: newDefaultSubject,
+                        });
+                      }}
+                      className={`px-3 py-1.5 rounded-full text-sm font-medium transition-colors ${
+                        editData.subjectIds.includes(subject.id)
+                          ? "bg-[#1db954] text-white"
+                          : "bg-muted text-muted-foreground hover:bg-muted/80"
+                      }`}
+                    >
+                      {subject.name}
+                    </button>
+                  ))}
+                  {subjects.length === 0 && (
+                    <div className="text-sm text-muted-foreground italic">
+                      Нет доступных предметов. Добавьте их в настройках.
+                    </div>
+                  )}
+                </div>
+              </div>
+
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">
                     Предмет по умолчанию
                   </label>
-                  <input
-                    type="text"
-                    value={editData.defaultSubject}
-                    onChange={(e) =>
-                      setEditData({
-                        ...editData,
-                        defaultSubject: e.target.value,
-                      })
-                    }
-                    className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
-                    placeholder="Математика, Английский..."
-                  />
+                  {subjects.length > 0 ? (
+                    <select
+                      value={editData.defaultSubject}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          defaultSubject: e.target.value,
+                        })
+                      }
+                      className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
+                    >
+                      <option value="">Не выбран</option>
+                      {subjects
+                        .filter((s) => editData.subjectIds.includes(s.id))
+                        .map((s) => (
+                          <option key={s.id} value={s.name}>
+                            {s.name}
+                          </option>
+                        ))}
+                    </select>
+                  ) : (
+                    <input
+                      type="text"
+                      value={editData.defaultSubject}
+                      onChange={(e) =>
+                        setEditData({
+                          ...editData,
+                          defaultSubject: e.target.value,
+                        })
+                      }
+                      className="w-full bg-muted rounded-lg px-4 py-3 text-foreground outline-none focus:ring-2 focus:ring-[#1db954] placeholder:text-muted-foreground"
+                      placeholder="Математика, Английский..."
+                    />
+                  )}
                 </div>
                 <div>
                   <label className="block text-sm text-muted-foreground mb-2">
