@@ -25,15 +25,6 @@ let CalendarService = class CalendarService {
         this.connectionsService = connectionsService;
         this.financeService = financeService;
     }
-    async deleteEventsBetweenUsers(tutorId, studentId) {
-        const events = await this.eventsRepository.find({
-            where: {
-                tutorId,
-                studentId,
-            },
-        });
-        await this.eventsRepository.remove(events);
-    }
     async verifyConnection(tutorId, studentId) {
         const connections = await this.connectionsService.getConnections(tutorId, "tutor");
         const isConnected = connections.some((c) => c.studentId === studentId);
@@ -45,7 +36,7 @@ let CalendarService = class CalendarService {
         const event = this.eventsRepository.create(createEventDto);
         const saved = await this.eventsRepository.save(event);
         const savedEvent = Array.isArray(saved) ? saved[0] : saved;
-        return this.findOne(savedEvent.id);
+        return savedEvent;
     }
     async findAll(userId, userRole) {
         const connections = await this.connectionsService.getConnections(userId, userRole);
@@ -57,7 +48,6 @@ let CalendarService = class CalendarService {
             return this.eventsRepository
                 .createQueryBuilder("event")
                 .leftJoinAndSelect("event.student", "student")
-                .leftJoinAndSelect("event.subjectEntity", "subjectEntity")
                 .where("event.tutorId = :tutorId", { tutorId: userId })
                 .andWhere("event.studentId IN (:...studentIds)", {
                 studentIds: connectedUserIds,
@@ -70,7 +60,6 @@ let CalendarService = class CalendarService {
             return this.eventsRepository
                 .createQueryBuilder("event")
                 .leftJoinAndSelect("event.tutor", "tutor")
-                .leftJoinAndSelect("event.subjectEntity", "subjectEntity")
                 .where("event.studentId = :studentId", { studentId: userId })
                 .andWhere("event.tutorId IN (:...tutorIds)", {
                 tutorIds: connectedUserIds,
@@ -83,7 +72,7 @@ let CalendarService = class CalendarService {
     async findOne(id) {
         return this.eventsRepository.findOne({
             where: { id },
-            relations: ["student", "tutor", "subjectEntity"],
+            relations: ["student", "tutor"],
         });
     }
     async updatePaymentStatus(transactionId, status) {
@@ -93,7 +82,7 @@ let CalendarService = class CalendarService {
         await this.eventsRepository.update(id, updateEventDto);
         const updated = await this.eventsRepository.findOne({
             where: { id },
-            relations: ["student", "tutor", "subjectEntity"],
+            relations: ["student", "tutor"],
         });
         if (!updated) {
             throw new Error("Event not found");
@@ -132,43 +121,6 @@ let CalendarService = class CalendarService {
                 }
             }
             await this.eventsRepository.remove(eventsToDelete);
-        }
-    }
-    async updateRecurring(id, updateEventDto) {
-        const originalEvent = await this.eventsRepository.findOne({
-            where: { id },
-        });
-        if (!originalEvent)
-            throw new Error("Event not found");
-        const { studentId, time: oldTime, date: oldDateStr, tutorId, } = originalEvent;
-        const oldDate = new Date(oldDateStr);
-        const oldDayOfWeek = oldDate.getDay();
-        const allEvents = await this.eventsRepository.find({
-            where: { studentId, time: oldTime, tutorId },
-        });
-        const eventsToUpdate = allEvents.filter((e) => {
-            const eDate = new Date(e.date);
-            return eDate.getDay() === oldDayOfWeek && e.date >= oldDateStr;
-        });
-        let dateShiftDays = 0;
-        if (updateEventDto.date && updateEventDto.date !== oldDateStr) {
-            const newDate = new Date(updateEventDto.date);
-            const diffTime = newDate.getTime() - oldDate.getTime();
-            dateShiftDays = Math.round(diffTime / (1000 * 60 * 60 * 24));
-        }
-        const baseUpdates = { ...updateEventDto };
-        delete baseUpdates.date;
-        delete baseUpdates.id;
-        for (const event of eventsToUpdate) {
-            const updates = { ...baseUpdates };
-            if (dateShiftDays !== 0) {
-                const currentEventDate = new Date(event.date);
-                currentEventDate.setDate(currentEventDate.getDate() + dateShiftDays);
-                updates.date = currentEventDate.toISOString().split("T")[0];
-            }
-            else if (updateEventDto.date) {
-            }
-            await this.eventsRepository.update(event.id, updates);
         }
     }
 };

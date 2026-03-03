@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, UseGuards, Request, Param, ParseIntPipe, BadRequestException } from '@nestjs/common';
+import { Controller, Get, Post, Body, UseGuards, Request } from '@nestjs/common';
 import { ProgressService } from './progress.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 
@@ -15,14 +15,6 @@ export class ProgressController {
   @Get('stats')
   getStats(@Request() req) {
     return this.progressService.getOverallStats(req.user.sub, req.user.role);
-  }
-
-  @Get('history/:tutorId')
-  getSubjectHistory(@Param('tutorId', ParseIntPipe) tutorId: number, @Request() req) {
-    if (req.user.role !== 'student') {
-        throw new BadRequestException('Only students can view their subject history');
-    }
-    return this.progressService.getSubjectHistory(req.user.sub, tutorId);
   }
 
   @Post()

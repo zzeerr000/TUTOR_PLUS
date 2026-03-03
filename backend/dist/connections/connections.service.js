@@ -20,15 +20,13 @@ const connection_entity_1 = require("./entities/connection.entity");
 const users_service_1 = require("../users/users.service");
 const calendar_service_1 = require("../calendar/calendar.service");
 const homework_service_1 = require("../homework/homework.service");
-const subjects_service_1 = require("../subjects/subjects.service");
 let ConnectionsService = class ConnectionsService {
-    constructor(connectionsRepository, usersService, dataSource, calendarService, homeworkService, subjectsService) {
+    constructor(connectionsRepository, usersService, dataSource, calendarService, homeworkService) {
         this.connectionsRepository = connectionsRepository;
         this.usersService = usersService;
         this.dataSource = dataSource;
         this.calendarService = calendarService;
         this.homeworkService = homeworkService;
-        this.subjectsService = subjectsService;
     }
     async createConnectionRequest(requestedById, code) {
         const requester = await this.usersService.findById(requestedById);
@@ -189,58 +187,24 @@ let ConnectionsService = class ConnectionsService {
         connection.status = connection_entity_1.ConnectionStatus.REJECTED;
         await this.connectionsRepository.save(connection);
     }
-    async deleteConnection(connectionId, userId, deleteData) {
-        const connection = await this.connectionsRepository.findOne({
-            where: { id: connectionId },
-        });
-        if (!connection) {
-            throw new common_1.NotFoundException("Connection not found");
-        }
-        const isParticipant = connection.tutorId === userId || connection.studentId === userId;
-        if (!isParticipant) {
-            throw new common_1.BadRequestException("You cannot delete this connection");
-        }
-        if (deleteData) {
-            await this.calendarService.deleteEventsBetweenUsers(connection.tutorId, connection.studentId);
-        }
-        await this.connectionsRepository.remove(connection);
-    }
     async getConnections(userId, userRole) {
         if (userRole === "tutor") {
             return this.connectionsRepository.find({
                 where: { tutorId: userId, status: connection_entity_1.ConnectionStatus.APPROVED },
-                relations: ["student", "subjects"],
+                relations: ["student"],
                 order: { createdAt: "DESC" },
             });
         }
         else {
             return this.connectionsRepository.find({
                 where: { studentId: userId, status: connection_entity_1.ConnectionStatus.APPROVED },
-                relations: ["tutor", "subjects"],
+                relations: ["tutor"],
                 order: { createdAt: "DESC" },
             });
         }
     }
-    async updateSubjects(connectionId, tutorId, subjectIds) {
-        const connection = await this.connectionsRepository.findOne({
-            where: { id: connectionId, tutorId, status: connection_entity_1.ConnectionStatus.APPROVED },
-            relations: ["subjects"],
-        });
-        if (!connection) {
-            throw new common_1.NotFoundException("Connection not found");
-        }
-        if (subjectIds) {
-            const subjects = await this.subjectsService.findByIds(subjectIds);
-            connection.subjects = subjects;
-        }
-        return this.connectionsRepository.save(connection);
-    }
-    async createManualStudent(tutorId, name, defaultSubject, defaultPrice, defaultDuration, subjectIds) {
+    async createManualStudent(tutorId, name, defaultSubject, defaultPrice, defaultDuration) {
         const student = await this.usersService.createVirtualStudent(name);
-        let subjects = [];
-        if (subjectIds && subjectIds.length > 0) {
-            subjects = await this.subjectsService.findByIds(subjectIds);
-        }
         const connection = this.connectionsRepository.create({
             tutorId,
             studentId: student.id,
@@ -249,14 +213,12 @@ let ConnectionsService = class ConnectionsService {
             defaultSubject,
             defaultPrice,
             defaultDuration,
-            subjects,
         });
         return this.connectionsRepository.save(connection);
     }
     async updateStudentAlias(tutorId, studentId, data) {
         const connection = await this.connectionsRepository.findOne({
             where: { tutorId, studentId, status: connection_entity_1.ConnectionStatus.APPROVED },
-            relations: ["subjects"],
         });
         if (!connection) {
             throw new common_1.NotFoundException("Connection not found");
@@ -269,10 +231,6 @@ let ConnectionsService = class ConnectionsService {
             connection.defaultPrice = data.defaultPrice;
         if (data.defaultDuration !== undefined)
             connection.defaultDuration = data.defaultDuration;
-        if (data.subjectIds) {
-            const subjects = await this.subjectsService.findByIds(data.subjectIds);
-            connection.subjects = subjects;
-        }
         return this.connectionsRepository.save(connection);
     }
     async removeStudent(tutorId, studentId) {
@@ -306,9 +264,7 @@ let ConnectionsService = class ConnectionsService {
             const eventDate = e.date.split("T")[0];
             const timeParts = e.time.split(":");
             const h = timeParts[0].padStart(2, "0");
-            const m = timeParts[1]
-                ? timeParts[1].split(" ")[0].padStart(2, "0")
-                : "00";
+            const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
             const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
             return lessonDateTime < now;
         });
@@ -317,9 +273,7 @@ let ConnectionsService = class ConnectionsService {
             const eventDate = e.date.split("T")[0];
             const timeParts = e.time.split(":");
             const h = timeParts[0].padStart(2, "0");
-            const m = timeParts[1]
-                ? timeParts[1].split(" ")[0].padStart(2, "0")
-                : "00";
+            const m = timeParts[1] ? timeParts[1].split(" ")[0].padStart(2, "0") : "00";
             const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
             return lessonDateTime >= now;
         })
@@ -346,12 +300,10 @@ exports.ConnectionsService = ConnectionsService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(connection_entity_1.Connection)),
     __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => calendar_service_1.CalendarService))),
-    __param(5, (0, common_1.Inject)((0, common_1.forwardRef)(() => subjects_service_1.SubjectsService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
         users_service_1.UsersService,
         typeorm_2.DataSource,
         calendar_service_1.CalendarService,
-        homework_service_1.HomeworkService,
-        subjects_service_1.SubjectsService])
+        homework_service_1.HomeworkService])
 ], ConnectionsService);
 //# sourceMappingURL=connections.service.js.map

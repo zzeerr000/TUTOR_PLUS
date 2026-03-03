@@ -12,18 +12,15 @@ export declare class FilesService {
     constructor(filesRepository: Repository<FileEntity>, foldersRepository: Repository<FolderEntity>, homeworkRepository: Repository<Homework>, connectionsService: ConnectionsService);
     uploadFile(file: Express.Multer.File, data: any): Promise<FileEntity>;
     getFileForDownload(id: number, userId: number, userRole: string): Promise<FileEntity>;
-    findAll(userId: number, userRole: string, folderId?: number | null, filterSubjectId?: number | null): Promise<{
+    findAll(userId: number, userRole: string, folderId?: number | null): Promise<{
         files: FileEntity[];
-        folders: any[];
+        folders: FolderEntity[];
     }>;
-    createFolder(name: string, uploadedById: number, parentId?: number | null, subjectId?: number | null): Promise<FolderEntity>;
-    removeFolder(id: number, userId: number, allowSubjectFolderDeletion?: boolean): Promise<void>;
+    createFolder(name: string, uploadedById: number, parentId?: number | null): Promise<FolderEntity>;
+    removeFolder(id: number, userId: number): Promise<void>;
     private deleteFolderContents;
-    private addCounts;
     moveFile(fileId: number, folderId: number | null, userId: number): Promise<FileEntity>;
     remove(id: number): Promise<void>;
-    updateFolderSubject(folderId: number, subjectId: number): Promise<void>;
-    updateFolderName(folderId: number, name: string): Promise<void>;
     getStorageStats(userId: number, userRole: string): Promise<{
         used: number;
         total: number;

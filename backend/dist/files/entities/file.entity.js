@@ -14,7 +14,6 @@ const typeorm_1 = require("typeorm");
 const user_entity_1 = require("../../users/entities/user.entity");
 const folder_entity_1 = require("./folder.entity");
 const homework_entity_1 = require("../../homework/entities/homework.entity");
-const subject_entity_1 = require("../../subjects/entities/subject.entity");
 let FileEntity = class FileEntity {
 };
 exports.FileEntity = FileEntity;
@@ -44,12 +43,7 @@ __decorate([
 ], FileEntity.prototype, "path", void 0);
 __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
-    __metadata("design:type", Number)
-], FileEntity.prototype, "subjectId", void 0);
-__decorate([
-    (0, typeorm_1.ManyToOne)(() => subject_entity_1.Subject, { nullable: true }),
-    (0, typeorm_1.JoinColumn)({ name: "subjectId" }),
-    __metadata("design:type", subject_entity_1.Subject)
+    __metadata("design:type", String)
 ], FileEntity.prototype, "subject", void 0);
 __decorate([
     (0, typeorm_1.Column)(),
