@@ -10,7 +10,6 @@ import {
   UseInterceptors,
   UploadedFile,
   Res,
-  Query,
 } from "@nestjs/common";
 import { FileInterceptor } from "@nestjs/platform-express";
 import { FilesService } from "./files.service";
@@ -23,44 +22,18 @@ export class FilesController {
   constructor(private readonly filesService: FilesService) {}
 
   @Get()
-  findAll(
-    @Request() req,
-    @Query("folderId") folderId?: string,
-    @Query("subjectId") subjectId?: string,
-  ) {
-    return this.filesService.findAll(
-      req.user.sub,
-      req.user.role,
-      folderId ? +folderId : null,
-      subjectId ? +subjectId : null,
-    );
+  findAll(@Request() req, @Param("folderId") folderId?: string) {
+    return this.filesService.findAll(req.user.sub, req.user.role, folderId ? +folderId : null);
   }
 
   @Get("folder/:folderId")
-  findInFolder(
-    @Request() req,
-    @Param("folderId") folderId: string,
-    @Query("subjectId") subjectId?: string,
-  ) {
-    return this.filesService.findAll(
-      req.user.sub,
-      req.user.role,
-      +folderId,
-      subjectId ? +subjectId : null,
-    );
+  findInFolder(@Request() req, @Param("folderId") folderId: string) {
+    return this.filesService.findAll(req.user.sub, req.user.role, +folderId);
   }
 
   @Post("folders")
-  createFolder(
-    @Body() body: { name: string; parentId?: number; subjectId?: number },
-    @Request() req,
-  ) {
-    return this.filesService.createFolder(
-      body.name,
-      req.user.sub,
-      body.parentId,
-      body.subjectId,
-    );
+  createFolder(@Body() body: { name: string, parentId?: number }, @Request() req) {
+    return this.filesService.createFolder(body.name, req.user.sub, body.parentId);
   }
 
   @Delete("folders/:id")
@@ -69,11 +42,7 @@ export class FilesController {
   }
 
   @Post(":id/move")
-  moveFile(
-    @Param("id") id: string,
-    @Body() body: { folderId: number | null },
-    @Request() req,
-  ) {
+  moveFile(@Param("id") id: string, @Body() body: { folderId: number | null }, @Request() req) {
     return this.filesService.moveFile(+id, body.folderId, req.user.sub);
   }
 
@@ -82,7 +51,7 @@ export class FilesController {
   uploadFile(
     @UploadedFile() file: Express.Multer.File,
     @Body() body: any,
-    @Request() req,
+    @Request() req
   ) {
     return this.filesService.uploadFile(file, {
       ...body,
@@ -94,12 +63,12 @@ export class FilesController {
   async downloadFile(
     @Param("id") id: string,
     @Res() res: Response,
-    @Request() req,
+    @Request() req
   ) {
     const file = await this.filesService.getFileForDownload(
       +id,
       req.user.sub,
-      req.user.role,
+      req.user.role
     );
     return res.download(file.path, file.name);
   }

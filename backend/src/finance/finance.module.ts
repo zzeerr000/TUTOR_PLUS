@@ -4,12 +4,11 @@ import { FinanceService } from './finance.service';
 import { FinanceController } from './finance.controller';
 import { Transaction } from './entities/transaction.entity';
 import { Event } from '../calendar/entities/event.entity';
-import { Homework } from '../homework/entities/homework.entity';
 import { ConnectionsModule } from '../connections/connections.module';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Transaction, Event, Homework]),
+    TypeOrmModule.forFeature([Transaction, Event]),
     forwardRef(() => ConnectionsModule),
   ],
   controllers: [FinanceController],

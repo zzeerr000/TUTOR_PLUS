@@ -3,18 +3,17 @@ import { Response } from "express";
 export declare class FilesController {
     private readonly filesService;
     constructor(filesService: FilesService);
-    findAll(req: any, folderId?: string, subjectId?: string): Promise<{
+    findAll(req: any, folderId?: string): Promise<{
         files: import("./entities/file.entity").FileEntity[];
-        folders: any[];
+        folders: import("./entities/folder.entity").FolderEntity[];
     }>;
-    findInFolder(req: any, folderId: string, subjectId?: string): Promise<{
+    findInFolder(req: any, folderId: string): Promise<{
         files: import("./entities/file.entity").FileEntity[];
-        folders: any[];
+        folders: import("./entities/folder.entity").FolderEntity[];
     }>;
     createFolder(body: {
         name: string;
         parentId?: number;
-        subjectId?: number;
     }, req: any): Promise<import("./entities/folder.entity").FolderEntity>;
     removeFolder(id: string, req: any): Promise<void>;
     moveFile(id: string, body: {

@@ -12,7 +12,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.Connection = exports.ConnectionStatus = void 0;
 const typeorm_1 = require("typeorm");
 const user_entity_1 = require("../../users/entities/user.entity");
-const subject_entity_1 = require("../../subjects/entities/subject.entity");
 var ConnectionStatus;
 (function (ConnectionStatus) {
     ConnectionStatus["PENDING"] = "pending";
@@ -64,11 +63,6 @@ __decorate([
     (0, typeorm_1.Column)({ nullable: true }),
     __metadata("design:type", String)
 ], Connection.prototype, "defaultSubject", void 0);
-__decorate([
-    (0, typeorm_1.ManyToMany)(() => subject_entity_1.Subject),
-    (0, typeorm_1.JoinTable)(),
-    __metadata("design:type", Array)
-], Connection.prototype, "subjects", void 0);
 __decorate([
     (0, typeorm_1.Column)({ type: "decimal", precision: 10, scale: 2, nullable: true }),
     __metadata("design:type", Number)

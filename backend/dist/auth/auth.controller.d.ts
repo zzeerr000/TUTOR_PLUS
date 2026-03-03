@@ -11,8 +11,6 @@ export declare class AuthController {
             email: string;
             name: string;
             role: import("../users/entities/user.entity").UserRole;
-            code: string;
-            avatarUrl: string;
         };
     }>;
     login(loginDto: LoginDto): Promise<{
@@ -22,16 +20,6 @@ export declare class AuthController {
             email: any;
             name: any;
             role: any;
-            code: any;
-            avatarUrl: any;
         };
-    }>;
-    getProfile(req: any): Promise<{
-        id: number;
-        email: string;
-        name: string;
-        role: import("../users/entities/user.entity").UserRole;
-        code: string;
-        avatarUrl: string;
     }>;
 }

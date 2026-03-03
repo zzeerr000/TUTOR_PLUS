@@ -9,7 +9,6 @@ import {
 import { User } from "../../users/entities/user.entity";
 import { FolderEntity } from "./folder.entity";
 import { Homework } from "../../homework/entities/homework.entity";
-import { Subject } from "../../subjects/entities/subject.entity";
 
 @Entity("files")
 export class FileEntity {
@@ -32,11 +31,7 @@ export class FileEntity {
   path: string;
 
   @Column({ nullable: true })
-  subjectId: number;
-
-  @ManyToOne(() => Subject, { nullable: true })
-  @JoinColumn({ name: "subjectId" })
-  subject: Subject;
+  subject: string;
 
   @Column()
   uploadedById: number;

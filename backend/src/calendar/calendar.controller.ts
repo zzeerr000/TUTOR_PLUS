@@ -53,7 +53,6 @@ export class CalendarController {
   async update(
     @Param("id", ParseIntPipe) id: number,
     @Body() updateEventDto: any,
-    @Query("recurring") recurring: string,
     @Request() req
   ) {
     const tutorId =
@@ -68,15 +67,6 @@ export class CalendarController {
     const event = await this.calendarService.findOne(id);
     if (event && event.tutorId !== req.user.sub && req.user.role === "tutor") {
       throw new ForbiddenException("You can only edit your own lessons");
-    }
-
-    if (recurring === "true") {
-      await this.calendarService.updateRecurring(id, {
-        ...updateEventDto,
-        tutorId,
-        studentId,
-      });
-      return { message: "Recurring events updated successfully" };
     }
 
     return this.calendarService.update(id, {

@@ -1,17 +1,8 @@
-import {
-  Entity,
-  Column,
-  PrimaryGeneratedColumn,
-  CreateDateColumn,
-  ManyToOne,
-  JoinColumn,
-  OneToMany,
-} from "typeorm";
-import { User } from "../../users/entities/user.entity";
-import { FileEntity } from "./file.entity";
-import { Subject } from "../../subjects/entities/subject.entity";
+import { Entity, Column, PrimaryGeneratedColumn, CreateDateColumn, ManyToOne, JoinColumn, OneToMany } from 'typeorm';
+import { User } from '../../users/entities/user.entity';
+import { FileEntity } from './file.entity';
 
-@Entity("folders")
+@Entity('folders')
 export class FolderEntity {
   @PrimaryGeneratedColumn()
   id: number;
@@ -23,31 +14,21 @@ export class FolderEntity {
   uploadedById: number;
 
   @ManyToOne(() => User)
-  @JoinColumn({ name: "uploadedById" })
+  @JoinColumn({ name: 'uploadedById' })
   uploadedBy: User;
 
   @Column({ nullable: true })
   parentId: number;
 
-  @ManyToOne(() => FolderEntity, (folder) => folder.subfolders, {
-    nullable: true,
-    onDelete: "CASCADE",
-  })
-  @JoinColumn({ name: "parentId" })
+  @ManyToOne(() => FolderEntity, folder => folder.subfolders, { nullable: true, onDelete: 'CASCADE' })
+  @JoinColumn({ name: 'parentId' })
   parent: FolderEntity;
 
-  @OneToMany(() => FolderEntity, (folder) => folder.parent)
+  @OneToMany(() => FolderEntity, folder => folder.parent)
   subfolders: FolderEntity[];
 
-  @OneToMany(() => FileEntity, (file) => file.folder)
+  @OneToMany(() => FileEntity, file => file.folder)
   files: FileEntity[];
-
-  @Column({ nullable: true })
-  subjectId: number;
-
-  @ManyToOne(() => Subject, { nullable: true })
-  @JoinColumn({ name: "subjectId" })
-  subject: Subject;
 
   @CreateDateColumn()
   createdAt: Date;

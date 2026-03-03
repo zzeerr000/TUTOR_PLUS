@@ -1,9 +1,9 @@
-import { Injectable, UnauthorizedException } from "@nestjs/common";
-import { UsersService } from "../users/users.service";
-import { JwtService } from "@nestjs/jwt";
-import * as bcrypt from "bcryptjs";
-import { RegisterDto } from "./dto/register.dto";
-import { LoginDto } from "./dto/login.dto";
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { UsersService } from '../users/users.service';
+import { JwtService } from '@nestjs/jwt';
+import * as bcrypt from 'bcryptjs';
+import { RegisterDto } from './dto/register.dto';
+import { LoginDto } from './dto/login.dto';
 
 @Injectable()
 export class AuthService {
@@ -14,14 +14,9 @@ export class AuthService {
 
   async register(registerDto: RegisterDto) {
     // Check if user with same email and role already exists
-    const existingUser = await this.usersService.findByEmailAndRole(
-      registerDto.email,
-      registerDto.role,
-    );
+    const existingUser = await this.usersService.findByEmailAndRole(registerDto.email, registerDto.role);
     if (existingUser) {
-      throw new UnauthorizedException(
-        `Account with email ${registerDto.email} as ${registerDto.role} already exists`,
-      );
+      throw new UnauthorizedException(`Account with email ${registerDto.email} as ${registerDto.role} already exists`);
     }
 
     const user = await this.usersService.create(
@@ -39,8 +34,6 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        code: user.code,
-        avatarUrl: user.avatarUrl,
       },
     };
   }
@@ -50,31 +43,23 @@ export class AuthService {
     // Otherwise, try to find by email (for backward compatibility)
     let user;
     if (loginDto.role) {
-      user = await this.usersService.findByEmailAndRole(
-        loginDto.email,
-        loginDto.role,
-      );
+      user = await this.usersService.findByEmailAndRole(loginDto.email, loginDto.role);
     } else {
       user = await this.usersService.findByEmail(loginDto.email);
     }
 
     if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
 
-    const isPasswordValid = await bcrypt.compare(
-      loginDto.password,
-      user.password,
-    );
+    const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
     if (!isPasswordValid) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException('Invalid credentials');
     }
 
     // If role was provided but doesn't match, throw error
     if (loginDto.role && user.role !== loginDto.role) {
-      throw new UnauthorizedException(
-        `No ${loginDto.role} account found with this email`,
-      );
+      throw new UnauthorizedException(`No ${loginDto.role} account found with this email`);
     }
 
     const payload = { sub: user.id, email: user.email, role: user.role };
@@ -85,25 +70,8 @@ export class AuthService {
         email: user.email,
         name: user.name,
         role: user.role,
-        code: user.code,
-        avatarUrl: user.avatarUrl,
       },
     };
   }
-
-  async getProfile(userId: number) {
-    const user = await this.usersService.findById(userId);
-    if (!user) {
-      throw new UnauthorizedException('User not found');
-    }
-    
-    return {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      role: user.role,
-      code: user.code,
-      avatarUrl: user.avatarUrl,
-    };
-  }
 }
+

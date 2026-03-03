@@ -21,14 +21,14 @@ let FilesController = class FilesController {
     constructor(filesService) {
         this.filesService = filesService;
     }
-    findAll(req, folderId, subjectId) {
-        return this.filesService.findAll(req.user.sub, req.user.role, folderId ? +folderId : null, subjectId ? +subjectId : null);
+    findAll(req, folderId) {
+        return this.filesService.findAll(req.user.sub, req.user.role, folderId ? +folderId : null);
     }
-    findInFolder(req, folderId, subjectId) {
-        return this.filesService.findAll(req.user.sub, req.user.role, +folderId, subjectId ? +subjectId : null);
+    findInFolder(req, folderId) {
+        return this.filesService.findAll(req.user.sub, req.user.role, +folderId);
     }
     createFolder(body, req) {
-        return this.filesService.createFolder(body.name, req.user.sub, body.parentId, body.subjectId);
+        return this.filesService.createFolder(body.name, req.user.sub, body.parentId);
     }
     removeFolder(id, req) {
         return this.filesService.removeFolder(+id, req.user.sub);
@@ -57,19 +57,17 @@ exports.FilesController = FilesController;
 __decorate([
     (0, common_1.Get)(),
     __param(0, (0, common_1.Request)()),
-    __param(1, (0, common_1.Query)("folderId")),
-    __param(2, (0, common_1.Query)("subjectId")),
+    __param(1, (0, common_1.Param)("folderId")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], FilesController.prototype, "findAll", null);
 __decorate([
     (0, common_1.Get)("folder/:folderId"),
     __param(0, (0, common_1.Request)()),
     __param(1, (0, common_1.Param)("folderId")),
-    __param(2, (0, common_1.Query)("subjectId")),
     __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Object, String, String]),
+    __metadata("design:paramtypes", [Object, String]),
     __metadata("design:returntype", void 0)
 ], FilesController.prototype, "findInFolder", null);
 __decorate([

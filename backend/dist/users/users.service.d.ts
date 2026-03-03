@@ -15,6 +15,5 @@ export declare class UsersService {
     getConnectedStudents(tutorId: number): Promise<User[]>;
     getConnectedTutors(studentId: number): Promise<User[]>;
     updateName(userId: number, name: string): Promise<User>;
-    updateAvatar(userId: number, avatarUrl: string | null): Promise<User>;
     deleteAccount(userId: number): Promise<void>;
 }

@@ -40,9 +40,6 @@ export class User {
   @Column({ default: false })
   isVirtual: boolean;
 
-  @Column({ nullable: true })
-  avatarUrl: string;
-
   @CreateDateColumn()
   createdAt: Date;
 }

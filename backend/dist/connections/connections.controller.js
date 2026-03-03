@@ -29,14 +29,11 @@ let ConnectionsController = class ConnectionsController {
     getConnections(req) {
         return this.connectionsService.getConnections(req.user.sub, req.user.role);
     }
-    updateSubjects(id, body, req) {
-        return this.connectionsService.updateSubjects(id, req.user.sub, body.subjectIds);
-    }
     approveConnection(id, body, req) {
         return this.connectionsService.approveConnection(id, req.user.sub, body.existingStudentId);
     }
     createManualStudent(body, req) {
-        return this.connectionsService.createManualStudent(req.user.sub, body.name, body.defaultSubject, body.defaultPrice, body.defaultDuration, body.subjectIds);
+        return this.connectionsService.createManualStudent(req.user.sub, body.name, body.defaultSubject, body.defaultPrice, body.defaultDuration);
     }
     linkVirtualStudent(body, req) {
         return this.connectionsService.linkVirtualStudentByCode(req.user.sub, body.virtualStudentId, body.studentCode);
@@ -46,9 +43,6 @@ let ConnectionsController = class ConnectionsController {
     }
     rejectConnection(id, req) {
         return this.connectionsService.rejectConnection(id, req.user.sub);
-    }
-    deleteConnection(id, req, deleteData) {
-        return this.connectionsService.deleteConnection(id, req.user.sub, deleteData);
     }
     removeStudent(studentId, req) {
         return this.connectionsService.removeStudent(req.user.sub, studentId);
@@ -80,15 +74,6 @@ __decorate([
     __metadata("design:paramtypes", [Object]),
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "getConnections", null);
-__decorate([
-    (0, common_1.Post)(":id/subjects"),
-    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Body)()),
-    __param(2, (0, common_1.Request)()),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object, Object]),
-    __metadata("design:returntype", void 0)
-], ConnectionsController.prototype, "updateSubjects", null);
 __decorate([
     (0, common_1.Post)(":id/approve"),
     __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
@@ -131,15 +116,6 @@ __decorate([
     __metadata("design:paramtypes", [Number, Object]),
     __metadata("design:returntype", void 0)
 ], ConnectionsController.prototype, "rejectConnection", null);
-__decorate([
-    (0, common_1.Delete)(":id"),
-    __param(0, (0, common_1.Param)("id", common_1.ParseIntPipe)),
-    __param(1, (0, common_1.Request)()),
-    __param(2, (0, common_1.Query)('deleteData')),
-    __metadata("design:type", Function),
-    __metadata("design:paramtypes", [Number, Object, Boolean]),
-    __metadata("design:returntype", void 0)
-], ConnectionsController.prototype, "deleteConnection", null);
 __decorate([
     (0, common_1.Post)(":studentId/delete"),
     __param(0, (0, common_1.Param)("studentId", common_1.ParseIntPipe)),
