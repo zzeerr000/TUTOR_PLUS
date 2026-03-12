@@ -59,7 +59,15 @@ export class AuthService {
     }
 
     if (!user) {
-      throw new UnauthorizedException("Invalid credentials");
+      if (loginDto.role) {
+        throw new UnauthorizedException(
+          `Аккаунт с email ${loginDto.email} и ролью ${loginDto.role === 'tutor' ? 'репетитор' : 'ученик'} не найден`
+        );
+      } else {
+        throw new UnauthorizedException(
+          `Аккаунт с email ${loginDto.email} не найден`
+        );
+      }
     }
 
     const isPasswordValid = await bcrypt.compare(
@@ -67,13 +75,13 @@ export class AuthService {
       user.password,
     );
     if (!isPasswordValid) {
-      throw new UnauthorizedException("Invalid credentials");
+      throw new UnauthorizedException("Неверный пароль");
     }
 
     // If role was provided but doesn't match, throw error
     if (loginDto.role && user.role !== loginDto.role) {
       throw new UnauthorizedException(
-        `No ${loginDto.role} account found with this email`,
+        `Для этого email нет аккаунта с ролью ${loginDto.role === 'tutor' ? 'репетитор' : 'ученик'}`
       );
     }
 

@@ -17,6 +17,11 @@ export const api = {
       headers["Authorization"] = `Bearer ${token}`;
     }
 
+    // Debug logging
+    console.log(`API Request: ${API_URL}${endpoint}`);
+    console.log('Token exists:', !!token);
+    console.log('Token:', token ? token.substring(0, 20) + '...' : 'none');
+
     try {
       const response = await fetch(`${API_URL}${endpoint}`, {
         ...options,
@@ -27,6 +32,16 @@ export const api = {
         const error = await response
           .json()
           .catch(() => ({ message: "Request failed" }));
+        console.log('API Error:', error);
+        
+        // Don't auto-reload on 401 for login attempts - let the user see the error
+        if (response.status === 401 && !endpoint.includes('/auth/login')) {
+          console.log('Unauthorized - clearing authentication');
+          this.clearAuth();
+          // Force page reload to show login screen
+          window.location.reload();
+        }
+        
         throw new Error(error.message || "Request failed");
       }
 
@@ -461,5 +476,29 @@ export const api = {
 
   getCurrencySymbol() {
     return localStorage.getItem("currency") || "$";
+  },
+
+  // Debug and utility functions
+  clearAuth() {
+    localStorage.removeItem("token");
+    localStorage.removeItem("user");
+    localStorage.removeItem("currency");
+    console.log("Authentication cleared");
+  },
+
+  clearAllLocalStorage() {
+    localStorage.clear();
+    console.log("All localStorage data cleared");
+  },
+
+  getAuthStatus() {
+    const token = localStorage.getItem("token");
+    const user = localStorage.getItem("user");
+    return {
+      hasToken: !!token,
+      hasUser: !!user,
+      tokenPreview: token ? token.substring(0, 20) + '...' : 'none',
+      userInfo: user ? JSON.parse(user) : null
+    };
   },
 };

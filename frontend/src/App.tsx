@@ -80,10 +80,16 @@ export default function App() {
     const storedToken = localStorage.getItem("token");
     if (storedUser && storedToken) {
       setUser(JSON.parse(storedUser));
+      console.log("Auth status:", api.getAuthStatus());
+    } else {
+      console.log("No authentication found");
+      // Clear any potentially corrupted data
+      api.clearAuth();
     }
   }, []);
 
   useEffect(() => {
+    console.log("User state changed:", user);
     if (user) {
       loadUserCode();
     }
@@ -107,7 +113,9 @@ export default function App() {
   };
 
   const handleAuthSuccess = (userData: User, token: string) => {
+    console.log("handleAuthSuccess called with:", { userData, token });
     setUser(userData);
+    console.log("User state set, current user:", userData);
   };
 
   const handleLogout = () => {

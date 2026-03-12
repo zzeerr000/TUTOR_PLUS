@@ -29,6 +29,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
     setLoading(true);
 
     try {
+      console.log("Attempting login with:", { email, role, isLogin });
       let data;
       if (!role) {
         throw new Error("Пожалуйста, выберите роль (Репетитор или Ученик)");
@@ -39,8 +40,17 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         data = await api.register(email, password, name, role);
       }
 
+      console.log("Login response:", data);
+      
+      if (!data.access_token || !data.user) {
+        throw new Error("Неверный ответ сервера: отсутствуют токен или данные пользователя");
+      }
+
       localStorage.setItem("token", data.access_token);
       localStorage.setItem("user", JSON.stringify(data.user));
+      console.log("Token saved to localStorage");
+      console.log("User saved to localStorage:", data.user);
+      
       onAuthSuccess(data.user, data.access_token);
     } catch (err: any) {
       if (

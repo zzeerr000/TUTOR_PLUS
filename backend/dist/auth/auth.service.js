@@ -47,14 +47,19 @@ let AuthService = class AuthService {
             user = await this.usersService.findByEmail(loginDto.email);
         }
         if (!user) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            if (loginDto.role) {
+                throw new common_1.UnauthorizedException(`Аккаунт с email ${loginDto.email} и ролью ${loginDto.role === 'tutor' ? 'репетитор' : 'ученик'} не найден`);
+            }
+            else {
+                throw new common_1.UnauthorizedException(`Аккаунт с email ${loginDto.email} не найден`);
+            }
         }
         const isPasswordValid = await bcrypt.compare(loginDto.password, user.password);
         if (!isPasswordValid) {
-            throw new common_1.UnauthorizedException("Invalid credentials");
+            throw new common_1.UnauthorizedException("Неверный пароль");
         }
         if (loginDto.role && user.role !== loginDto.role) {
-            throw new common_1.UnauthorizedException(`No ${loginDto.role} account found with this email`);
+            throw new common_1.UnauthorizedException(`Для этого email нет аккаунта с ролью ${loginDto.role === 'tutor' ? 'репетитор' : 'ученик'}`);
         }
         const payload = { sub: user.id, email: user.email, role: user.role };
         return {
