@@ -27,8 +27,12 @@ import { Subject } from "./subjects/entities/subject.entity";
 @Module({
   imports: [
     TypeOrmModule.forRoot({
-      type: "sqlite",
-      database: "tutorplus.db",
+      type: "postgres",
+      host: process.env.DB_HOST || "localhost",
+      port: parseInt(process.env.DB_PORT) || 5432,
+      username: process.env.DB_USERNAME || "postgres",
+      password: process.env.DB_PASSWORD || "postgres",
+      database: process.env.DB_DATABASE || "tutorplus",
       entities: [
         User,
         Task,
@@ -43,6 +47,7 @@ import { Subject } from "./subjects/entities/subject.entity";
         Subject,
       ],
       synchronize: true,
+      logging: process.env.NODE_ENV === "development",
     }),
     AuthModule,
     UsersModule,
