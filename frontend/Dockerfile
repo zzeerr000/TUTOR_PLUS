@@ -1,5 +1,5 @@
 # Multi-stage build для оптимизации размера образа
-FROM node:18-alpine as builder
+FROM node:20-alpine as builder
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -8,7 +8,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Устанавливаем все зависимости (включая devDependencies для сборки)
-RUN npm ci
+RUN npm install
 
 # Копируем исходный код и nginx.conf
 COPY . .
