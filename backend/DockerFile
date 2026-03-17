@@ -1,0 +1,37 @@
+# Используем официальный образ Node.js
+FROM node:18-alpine
+
+# Устанавливаем рабочую директорию
+WORKDIR /app
+
+# Копируем файлы управления зависимостями
+COPY package*.json ./
+
+# Устанавливаем зависимости
+RUN npm ci --only=production
+
+# Копируем исходный код
+COPY . .
+
+# Создаем директорию для загрузок и БД
+RUN mkdir -p uploads
+
+# Собираем приложение
+RUN npm run build
+
+# Создаем пользователя без прав root для безопасности
+RUN addgroup -g 1001 -S nodejs
+RUN adduser -S nodejs -u 1001
+
+# Меняем владельца файлов
+RUN chown -R nodejs:nodejs /app
+USER nodejs
+
+# Открываем порт
+EXPOSE 3000
+
+# Переменные окружения
+ENV NODE_ENV=production
+
+# Запускаем приложение
+CMD ["npm", "run", "start:prod"]

@@ -33,6 +33,18 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
   const [loading, setLoading] = useState(true);
   const [currency, setCurrency] = useState(api.getCurrencySymbol());
   const [showSubjectOnboarding, setShowSubjectOnboarding] = useState(false);
+  const [screenSize, setScreenSize] = useState({
+    width: typeof window !== 'undefined' ? window.innerWidth : 1024,
+  });
+
+  useEffect(() => {
+    const handleResize = () => {
+      setScreenSize({ width: window.innerWidth });
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
   const handleEditLesson = async (lessonId: number) => {
     try {
@@ -227,38 +239,38 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
         <div className="grid grid-cols-2 gap-3">
           <div
             onClick={() => onNavigate("students")}
-            className="bg-linear-to-br from-[#369128] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#369128] to-[#15883d] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
-            <Users size={24} className="mb-2" />
-            <div className="text-2xl mb-1">{stats.students}</div>
-            <div className="text-sm opacity-90">Активные студенты</div>
+            <Users size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+            <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.students}</div>
+            <div className="text-xs sm:text-sm opacity-90">Активные студенты</div>
           </div>
           <div
             onClick={() => onNavigate("calendar")}
-            className="bg-linear-to-br from-[#a02b54] to-[#c60f4f] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#a02b54] to-[#c60f4f] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
-            <Calendar size={24} className="mb-2" />
-            <div className="text-2xl mb-1">{stats.lessonsToday}</div>
-            <div className="text-sm opacity-90">Занятий сегодня</div>
+            <Calendar size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+            <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.lessonsToday}</div>
+            <div className="text-xs sm:text-sm opacity-90">Занятий сегодня</div>
           </div>
           <div
             onClick={() => onNavigate("finance")}
-            className="bg-linear-to-br from-[#45238f] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#45238f] to-[#1f5296] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
-            <DollarSign size={24} className="mb-2" />
-            <div className="text-2xl mb-1">
+            <DollarSign size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+            <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>
               {currency}
               {stats.thisMonth.toLocaleString()}
             </div>
-            <div className="text-sm opacity-90">В этом месяце</div>
+            <div className="text-xs sm:text-sm opacity-90">В этом месяце</div>
           </div>
           <div
             onClick={() => onNavigate("homework")}
-            className="bg-linear-to-br from-[#9e2a89] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+            className="bg-linear-to-br from-[#9e2a89] to-[#7c1f66] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
           >
-            <CheckSquare size={24} className="mb-2" />
-            <div className="text-2xl mb-1">{stats.pendingTasks}</div>
-            <div className="text-sm opacity-90">Ожидающие задачи</div>
+            <CheckSquare size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+            <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.pendingTasks}</div>
+            <div className="text-xs sm:text-sm opacity-90">Ожидающие задачи</div>
           </div>
         </div>
 
@@ -274,65 +286,111 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
               todaySchedule.map((lesson, idx) => (
                 <div
                   key={idx}
-                  className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
+                  className={`bg-card border border-border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors ${
                     lesson.past ? "opacity-60" : ""
                   }`}
                 >
-                  <div
-                    className="w-1 h-12 rounded-full"
-                    style={{ backgroundColor: lesson.color }}
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex items-center gap-2">
-                        <Clock size={14} className="text-muted-foreground" />
-                        <span className="text-sm text-muted-foreground">
-                          {lesson.time}
-                        </span>
-                      </div>
-                    </div>
+                  <div className="flex items-start gap-3">
                     <div
-                      className={`font-medium ${
-                        lesson.past ? "text-muted-foreground line-through" : ""
-                      }`}
-                    >
-                      {lesson.student}
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {lesson.subject}
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    {lesson.past ? (
-                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
-                        Завершено
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                        Предстоит
-                      </span>
-                    )}
-                    {!lesson.past && (
-                      <button
-                        onClick={() => handleEditLesson(lesson.id)}
-                        className="p-1.5 hover:bg-muted rounded-lg transition-colors"
-                        title="Редактировать"
+                      className="w-1 rounded-full flex-shrink-0 self-stretch"
+                      style={{ backgroundColor: lesson.color }}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-2">
+                        <div className="flex items-center gap-2">
+                          <Clock size={screenSize.width >= 768 ? 14 : 12} className="text-muted-foreground flex-shrink-0" />
+                          <span className="text-sm text-muted-foreground">
+                            {lesson.time}
+                          </span>
+                        </div>
+                        {screenSize.width >= 768 && (
+                          <div className="flex items-center gap-2">
+                            {lesson.past ? (
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
+                                Завершено
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
+                                Предстоит
+                              </span>
+                            )}
+                            {!lesson.past && (
+                              <button
+                                onClick={() => handleEditLesson(lesson.id)}
+                                className="p-1.5 hover:bg-muted rounded-lg transition-colors"
+                                title="Редактировать"
+                              >
+                                <Edit size={14} className="text-foreground" />
+                              </button>
+                            )}
+                            {userType === "tutor" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLesson(lesson.id);
+                                }}
+                                className="text-muted-foreground hover:text-destructive transition-colors p-2"
+                                title="Удалить занятие"
+                              >
+                                <Trash2 size={16} />
+                              </button>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                      <div
+                        className={`font-medium mb-1 ${
+                          lesson.past ? "text-muted-foreground line-through" : ""
+                        }`}
                       >
-                        <Edit size={14} className="text-foreground" />
-                      </button>
-                    )}
-                    {userType === "tutor" && (
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleDeleteLesson(lesson.id);
-                        }}
-                        className="text-muted-foreground hover:text-destructive transition-colors p-2"
-                        title="Удалить занятие"
-                      >
-                        <Trash2 size={16} />
-                      </button>
-                    )}
+                        {lesson.student}
+                      </div>
+                      <div className="text-sm text-muted-foreground">
+                        {lesson.subject}
+                      </div>
+                      
+                      {/* Mobile: Status and buttons below */}
+                      {screenSize.width < 768 && (
+                        <div className="mt-3 space-y-2">
+                          <div className="flex items-center gap-2">
+                            {lesson.past ? (
+                              <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
+                                Завершено
+                              </span>
+                            ) : (
+                              <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
+                                Предстоит
+                              </span>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-2">
+                            {!lesson.past && (
+                              <button
+                                onClick={() => handleEditLesson(lesson.id)}
+                                className="px-2 py-1 bg-muted hover:bg-muted/80 rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
+                                title="Редактировать"
+                              >
+                                <Edit size={12} className="text-foreground" />
+                                Редактировать
+                              </button>
+                            )}
+                            {userType === "tutor" && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  handleDeleteLesson(lesson.id);
+                                }}
+                                className="px-2 py-1 bg-muted hover:bg-muted/80 text-destructive hover:text-destructive rounded-lg transition-colors text-xs font-medium flex items-center gap-1.5"
+                                title="Удалить занятие"
+                              >
+                                <Trash2 size={14} />
+                                Удалить
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
                 </div>
               ))
@@ -350,35 +408,35 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
       <div className="grid grid-cols-2 gap-3">
         <div
           onClick={() => onNavigate("tasks")}
-          className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
-          <CheckSquare size={24} className="mb-2" />
-          <div className="text-2xl mb-1">{stats.activeTasks}</div>
-          <div className="text-sm opacity-90">Активные задачи</div>
+          <CheckSquare size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+          <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.activeTasks}</div>
+          <div className="text-xs sm:text-sm opacity-90">Активные задачи</div>
         </div>
         <div
           onClick={() => onNavigate("calendar")}
-          className="bg-linear-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#2e77d0] to-[#1f5296] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
-          <Calendar size={24} className="mb-2" />
-          <div className="text-2xl mb-1">{stats.lessonsThisWeek}</div>
-          <div className="text-sm opacity-90">Занятий на неделе</div>
+          <Calendar size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+          <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.lessonsThisWeek}</div>
+          <div className="text-xs sm:text-sm opacity-90">Занятий на неделе</div>
         </div>
         <div
           onClick={() => onNavigate("progress")}
-          className="bg-linear-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#af2896] to-[#7c1f66] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
-          <TrendingUp size={24} className="mb-2" />
-          <div className="text-2xl mb-1">{stats.avgProgress}%</div>
-          <div className="text-sm opacity-90">Средний прогресс</div>
+          <TrendingUp size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+          <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.avgProgress}%</div>
+          <div className="text-xs sm:text-sm opacity-90">Средний прогресс</div>
         </div>
         <div
           onClick={() => onNavigate("progress")}
-          className="bg-linear-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
+          className="bg-linear-to-br from-[#e8115b] to-[#b0084a] rounded-lg p-3 sm:p-4 cursor-pointer hover:opacity-90 transition-opacity text-white"
         >
-          <Clock size={24} className="mb-2" />
-          <div className="text-2xl mb-1">{stats.studyTime}ч</div>
-          <div className="text-sm opacity-90">Время обучения</div>
+          <Clock size={screenSize.width >= 768 ? 24 : 20} className="mb-1.5 sm:mb-2" />
+          <div className={`mb-1 ${screenSize.width >= 768 ? 'text-2xl' : 'text-xl'}`}>{stats.studyTime}ч</div>
+          <div className="text-xs sm:text-sm opacity-90">Время обучения</div>
         </div>
       </div>
 
@@ -394,38 +452,61 @@ export function Dashboard({ userType, onNavigate }: DashboardProps) {
             upcomingLessons.map((lesson, idx) => (
               <div
                 key={idx}
-                className={`bg-card border border-border rounded-lg p-4 flex items-center gap-3 hover:bg-muted/50 transition-colors ${
+                className={`bg-card border border-border rounded-lg p-3 sm:p-4 hover:bg-muted/50 transition-colors ${
                   lesson.past ? "opacity-60" : ""
                 }`}
               >
-                <div
-                  className="w-1 h-12 rounded-full"
-                  style={{ backgroundColor: lesson.color }}
-                />
-                <div className="flex-1">
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="text-sm text-muted-foreground">
-                      {lesson.day} • {lesson.time}
-                    </div>
-                    {lesson.past ? (
-                      <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
-                        Завершено
-                      </span>
-                    ) : (
-                      <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
-                        Предстоит
-                      </span>
-                    )}
-                  </div>
+                <div className="flex items-start gap-3">
                   <div
-                    className={`font-medium ${
-                      lesson.past ? "text-muted-foreground line-through" : ""
-                    }`}
-                  >
-                    {lesson.subject}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {lesson.tutor}
+                    className="w-1 rounded-full flex-shrink-0 self-stretch"
+                    style={{ backgroundColor: lesson.color }}
+                  />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm text-muted-foreground">
+                        {lesson.day} • {lesson.time}
+                      </div>
+                      {screenSize.width >= 768 && (
+                        <div className="flex items-center gap-2">
+                          {lesson.past ? (
+                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
+                              Завершено
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
+                              Предстоит
+                            </span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    <div
+                      className={`font-medium mb-1 ${
+                        lesson.past ? "text-muted-foreground line-through" : ""
+                      }`}
+                    >
+                      {lesson.subject}
+                    </div>
+                    <div className="text-sm text-muted-foreground">
+                      {lesson.tutor}
+                    </div>
+                    
+                    {/* Mobile: Status below */}
+                    {screenSize.width < 768 && (
+                      <div className="mt-3">
+                        <div className="flex items-center gap-2">
+                          {lesson.past ? (
+                            <span className="text-[10px] bg-muted text-muted-foreground px-1.5 py-0.5 rounded uppercase font-bold">
+                              Завершено
+                            </span>
+                          ) : (
+                            <span className="text-[10px] bg-[#1db954]/20 text-[#1db954] px-1.5 py-0.5 rounded uppercase font-bold">
+                              Предстоит
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>

@@ -640,8 +640,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
   return (
     <div className="space-y-4 pb-6">
       {/* View Type Selector */}
-      <div className="flex items-center justify-between">
-        <div className="flex gap-2 bg-card border border-border rounded-lg p-1">
+      <div className={`${screenSize.width >= 768 ? 'flex items-center justify-between' : 'space-y-4'}`}>
+        <div className={`${screenSize.width >= 768 ? 'flex gap-2' : 'flex flex-col gap-2'} bg-card border border-border rounded-lg p-1`}>
           <button
             onClick={() => setViewType("month")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -673,8 +673,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
             День
           </button>
         </div>
-        <div className="flex items-center gap-2">
-          <h2 className="text-xl font-semibold">
+        <div className={`${screenSize.width >= 768 ? 'flex items-center gap-2' : 'flex items-center justify-between gap-2'}`}>
+          <h2 className={`text-xl font-semibold ${screenSize.width < 768 ? 'text-lg' : ''}`}>
             {viewType === "month"
               ? monthName
               : viewType === "week"
@@ -769,55 +769,70 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     {day}
                   </div>
                   {dayEvents.length > 0 && (
-                    <div className="flex gap-1 justify-center mt-1 flex-wrap h-6 items-center">
-                      {/* Desktop: all avatars, Tablet: 2, Mobile: 1 */}
-                      {dayEvents.slice(0, screenSize.width >= 1024 ? dayEvents.length : screenSize.width >= 768 ? 2 : 1).map((event, eventIdx) => {
-                        const displayName = userType === "tutor" 
-                          ? (event.student?.studentAlias || event.student?.name || "У")
-                          : (event.tutor?.name || "Преподаватель");
-                        const avatarUrl = userType === "tutor" 
-                          ? event.student?.avatarUrl
-                          : event.tutor?.avatarUrl;
-                        
-                        return (
-                          <div
-                            key={eventIdx}
-                            className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center text-white border border-background flex-shrink-0 overflow-hidden"
-                            style={{ 
-                              backgroundColor: event.color || "#1db954",
-                            }}
-                            title={displayName}
-                          >
-                            {avatarUrl ? (
-                              <img 
-                                src={`${api.getBaseUrl()}${avatarUrl}`}
-                                alt={displayName}
-                                className="w-full h-full object-cover"
-                              />
-                            ) : (
-                              <span style={{ fontSize: "9px", lineHeight: "14px" }}>
-                                {displayName
-                                  .split(" ")
-                                  .map((n: string) => n[0])
-                                  .join("")
-                                  .toUpperCase()
-                                  .slice(0, 2)}
-                              </span>
-                            )}
-                          </div>
-                        );
-                      })}
-                      {/* Show counter only for tablet and mobile */}
-                      {screenSize.width < 1024 && (
-                        ((screenSize.width >= 768 ? dayEvents.length > 2 : dayEvents.length > 1) && (
-                          <div
-                            className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center bg-muted text-muted-foreground border border-background flex-shrink-0"
-                            style={{ fontSize: "9px", lineHeight: "14px" }}
-                            title={`Еще ${dayEvents.length - (screenSize.width >= 768 ? 2 : 1)} занятий`}
-                          >
-                            +{dayEvents.length - (screenSize.width >= 768 ? 2 : 1)}
-                          </div>
-                        ))
+                    <div className="flex justify-center mt-1">
+                      {screenSize.width >= 768 ? (
+                        // Desktop and Tablet: show avatars
+                        <div className="flex gap-1 justify-center flex-wrap h-6 items-center">
+                          {dayEvents.slice(0, screenSize.width >= 1024 ? dayEvents.length : 2).map((event, eventIdx) => {
+                            const displayName = userType === "tutor" 
+                              ? (event.student?.studentAlias || event.student?.name || "У")
+                              : (event.tutor?.name || "Преподаватель");
+                            const avatarUrl = userType === "tutor" 
+                              ? event.student?.avatarUrl
+                              : event.tutor?.avatarUrl;
+                            
+                            return (
+                              <div
+                                key={eventIdx}
+                                className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center text-white border border-background flex-shrink-0 overflow-hidden"
+                                style={{ 
+                                  backgroundColor: event.color || "#1db954",
+                                }}
+                                title={displayName}
+                              >
+                                {avatarUrl ? (
+                                  <img 
+                                    src={`${api.getBaseUrl()}${avatarUrl}`}
+                                    alt={displayName}
+                                    className="w-full h-full object-cover"
+                                  />
+                                ) : (
+                                  <span style={{ fontSize: "9px", lineHeight: "14px" }}>
+                                    {displayName
+                                      .split(" ")
+                                      .map((n: string) => n[0])
+                                      .join("")
+                                      .toUpperCase()
+                                      .slice(0, 2)}
+                                  </span>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {/* Show counter for tablet */}
+                          {screenSize.width < 1024 && screenSize.width >= 768 && dayEvents.length > 2 && (
+                            <div
+                              className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center bg-muted text-muted-foreground border border-background flex-shrink-0"
+                              style={{ fontSize: "9px", lineHeight: "14px" }}
+                              title={`Еще ${dayEvents.length - 2} занятий`}
+                            >
+                              +{dayEvents.length - 2}
+                            </div>
+                          )}
+                        </div>
+                      ) : (
+                        // Mobile: show just the number
+                        <div
+                          className="w-6 h-6 rounded-full text-xs font-medium flex items-center justify-center text-white border border-background flex-shrink-0"
+                          style={{ 
+                            backgroundColor: "#1db954",
+                            fontSize: "10px",
+                            lineHeight: "14px"
+                          }}
+                          title={`${dayEvents.length} занятий`}
+                        >
+                          {dayEvents.length}
+                        </div>
                       )}
                     </div>
                   )}
