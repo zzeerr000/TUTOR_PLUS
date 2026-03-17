@@ -10,7 +10,7 @@ COPY package*.json ./
 # Устанавливаем все зависимости (включая devDependencies для сборки)
 RUN npm ci
 
-# Копируем исходный код
+# Копируем исходный код и nginx.conf
 COPY . .
 
 # Собираем приложение
@@ -22,8 +22,8 @@ FROM nginx:alpine
 # Копируем собранные файлы из builder stage
 COPY --from=builder /app/build /usr/share/nginx/html
 
-# Копируем конфигурацию nginx
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+# Копируем конфигурацию nginx из builder stage
+COPY --from=builder /app/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Открываем порт
 EXPOSE 5173
