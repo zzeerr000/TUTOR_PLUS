@@ -17,7 +17,7 @@ COPY . .
 RUN mkdir -p uploads
 
 # Собираем приложение
-RUN npm run start:prod
+RUN npm run build
 
 # Создаем пользователя без прав root для безопасности
 RUN addgroup -g 1001 -S nodejs
