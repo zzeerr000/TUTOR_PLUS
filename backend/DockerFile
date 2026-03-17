@@ -7,8 +7,8 @@ WORKDIR /app
 # Копируем файлы управления зависимостями
 COPY package*.json ./
 
-# Устанавливаем зависимости
-RUN npm ci --only=production
+# Устанавливаем все зависимости (включая dev для сборки)
+RUN npm ci
 
 # Копируем исходный код
 COPY . .
@@ -18,6 +18,9 @@ RUN mkdir -p uploads
 
 # Собираем приложение
 RUN npm run build
+
+# Удаляем dev зависимости после сборки для оптимизации
+RUN npm prune --production
 
 # Создаем пользователя без прав root для безопасности
 RUN addgroup -g 1001 -S nodejs
