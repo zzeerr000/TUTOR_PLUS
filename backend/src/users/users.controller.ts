@@ -1,10 +1,12 @@
-import { Controller, Get, Post, Put, Delete, Body, UseGuards, Request, ForbiddenException, Inject, forwardRef, Param, ParseIntPipe, UseInterceptors, UploadedFile } from '@nestjs/common';
+import { Controller, Get, Post, Put, Body, Request, UseGuards, UploadedFile, UseInterceptors, BadRequestException, ForbiddenException, Delete, Inject, forwardRef } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { ConnectionsService } from '../connections/connections.service';
 import { FileInterceptor } from '@nestjs/platform-express';
-import { diskStorage } from 'multer';
+import { memoryStorage } from 'multer';
 import { extname } from 'path';
+import * as fs from 'fs';
+import * as path from 'path';
 
 @Controller('users')
 @UseGuards(JwtAuthGuard)
@@ -56,15 +58,7 @@ export class UsersController {
   @Post('profile/avatar')
   @UseInterceptors(
     FileInterceptor('avatar', {
-      storage: diskStorage({
-        destination: '/app/uploads/avatars',
-        filename: (req, file, cb) => {
-          const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-          const ext = extname(file.originalname);
-          const userId = (req.user as any).sub;
-          cb(null, `${userId}-${uniqueSuffix}${ext}`);
-        },
-      }),
+      storage: memoryStorage(),
       fileFilter: (req, file, cb) => {
         const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'image/webp'];
         if (!allowedTypes.includes(file.mimetype)) {
@@ -81,9 +75,26 @@ export class UsersController {
     if (!file) {
       throw new Error('No file uploaded');
     }
-    const avatarUrl = `/uploads/avatars/${file.filename}`;
-    console.log('Avatar uploaded:', avatarUrl, 'for user:', (req.user as any).sub);
-    return this.usersService.updateAvatar((req.user as any).sub, avatarUrl);
+
+    // Создаем уникальное имя файла
+    const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
+    const ext = extname(file.originalname);
+    const userId = (req.user as any).sub;
+    const filename = `${userId}-${uniqueSuffix}${ext}`;
+    
+    // Создаем директорию если она не существует
+    const uploadDir = '/app/uploads/avatars';
+    if (!fs.existsSync(uploadDir)) {
+      fs.mkdirSync(uploadDir, { recursive: true });
+    }
+    
+    // Сохраняем файл
+    const filePath = path.join(uploadDir, filename);
+    fs.writeFileSync(filePath, file.buffer);
+    
+    const avatarUrl = `/uploads/avatars/${filename}`;
+    console.log('Avatar uploaded:', avatarUrl, 'for user:', userId);
+    return this.usersService.updateAvatar(userId, avatarUrl);
   }
 
   @Delete('profile/avatar')
