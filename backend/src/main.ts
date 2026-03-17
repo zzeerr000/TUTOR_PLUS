@@ -3,9 +3,31 @@ import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
 import { join } from 'path';
 import * as express from 'express';
+import * as fs from 'fs';
+import * as path from 'path';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+  
+  // Создаем необходимые директории при запуске
+  const uploadsDir = join(process.cwd(), 'uploads');
+  const avatarsDir = join(uploadsDir, 'avatars');
+  const homeworkDir = join(uploadsDir, 'homework');
+  
+  try {
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+    if (!fs.existsSync(avatarsDir)) {
+      fs.mkdirSync(avatarsDir, { recursive: true });
+    }
+    if (!fs.existsSync(homeworkDir)) {
+      fs.mkdirSync(homeworkDir, { recursive: true });
+    }
+    console.log('Upload directories created successfully');
+  } catch (error) {
+    console.error('Error creating upload directories:', error);
+  }
   
   // Enable CORS
   app.enableCors({
