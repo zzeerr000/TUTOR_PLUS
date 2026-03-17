@@ -13,8 +13,8 @@ RUN npm ci
 # Копируем исходный код
 COPY . .
 
-# Создаем директорию для загрузок и БД
-RUN mkdir -p uploads
+# Создаем директорию для загрузок и БД с правильными правами
+RUN mkdir -p uploads/avatars uploads/homework
 
 # Собираем приложение
 RUN npm run build
@@ -26,8 +26,8 @@ RUN npm prune --production
 RUN addgroup -g 1001 -S nodejs
 RUN adduser -S nodejs -u 1001
 
-# Меняем владельца файлов
-RUN chown -R nodejs:nodejs /app
+# Меняем владельца файлов и создаем папки uploads с правами на запись
+RUN chown -R nodejs:nodejs /app && chmod -R 755 /app/uploads
 USER nodejs
 
 # Открываем порт
