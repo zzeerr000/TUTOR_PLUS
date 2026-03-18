@@ -598,8 +598,15 @@ export function CalendarView({ userType }: CalendarViewProps) {
       );
 
       // If lesson has started and has amount, create payment transaction
+      console.log('=== TRANSACTION DEBUG ===');
+      console.log('Has started:', hasStarted);
+      console.log('Amount:', amount);
+      console.log('Amount > 0:', amount > 0);
+      console.log('Should create transaction:', hasStarted && amount > 0);
+      
       if (hasStarted && amount > 0) {
         try {
+          console.log('Creating transaction...');
           await api.createTransaction({
             eventId: editingEvent.id,
             studentId: parseInt(newEvent.studentId),
@@ -609,6 +616,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             status: 'pending',
             createdAt: new Date().toISOString(),
           });
+          console.log('Transaction created successfully');
         } catch (txError) {
           console.error('Failed to create transaction:', txError);
           // Don't fail the whole update if transaction creation fails
@@ -616,8 +624,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
       }
 
       // If lesson has started, create homework assignment
+      console.log('=== HOMEWORK DEBUG ===');
+      console.log('Has started:', hasStarted);
+      console.log('Should create homework:', hasStarted);
+      
       if (hasStarted) {
         try {
+          console.log('Creating homework...');
           await api.createHomework({
             title: `Домашнее задание по ${newEvent.subject}`,
             description: '',
@@ -627,6 +640,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             dueDate: 'next_lesson',
             status: 'pending',
           });
+          console.log('Homework created successfully');
         } catch (hwError) {
           console.error('Failed to create homework:', hwError);
           // Don't fail the whole update if homework creation fails
