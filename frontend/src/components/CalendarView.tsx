@@ -524,9 +524,23 @@ export function CalendarView({ userType }: CalendarViewProps) {
       }
 
       // Check if lesson has started and needs payment transaction
+      // Use server time to avoid timezone issues
       const eventDateTime = new Date(`${newEvent.date}T${timeStr}`);
-      const now = new Date();
-      const hasStarted = eventDateTime <= now;
+      
+      // Get server time for accurate comparison
+      let serverTime = new Date();
+      try {
+        const serverTimeResponse = await api.getServerTime();
+        serverTime = new Date(serverTimeResponse.time);
+      } catch (error) {
+        // Fallback to client time with timezone adjustment
+        const now = new Date();
+        const serverTimeOffset = 3 * 60; // Moscow is UTC+3
+        const nowUTC = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
+        serverTime = new Date(nowUTC.getTime() + (serverTimeOffset * 60000));
+      }
+      
+      const hasStarted = eventDateTime <= serverTime;
 
       await api.updateEvent(
         editingEvent.id,

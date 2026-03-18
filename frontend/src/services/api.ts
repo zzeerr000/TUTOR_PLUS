@@ -212,6 +212,10 @@ export const api = {
   },
 
   // Finance
+  async getServerTime() {
+    return this.request("/time");
+  },
+
   async getTransactions() {
     return this.request("/finance");
   },
