@@ -19,9 +19,11 @@ const typeorm_2 = require("typeorm");
 const event_entity_1 = require("./entities/event.entity");
 const connections_service_1 = require("../connections/connections.service");
 const finance_service_1 = require("../finance/finance.service");
+const homework_entity_1 = require("../homework/entities/homework.entity");
 let CalendarService = class CalendarService {
-    constructor(eventsRepository, connectionsService, financeService) {
+    constructor(eventsRepository, homeworkRepository, connectionsService, financeService) {
         this.eventsRepository = eventsRepository;
+        this.homeworkRepository = homeworkRepository;
         this.connectionsService = connectionsService;
         this.financeService = financeService;
     }
@@ -102,6 +104,7 @@ let CalendarService = class CalendarService {
     }
     async remove(id) {
         const event = await this.eventsRepository.findOne({ where: { id } });
+        await this.homeworkRepository.delete({ lessonId: id });
         if (event && event.transactionId) {
             await this.financeService.deletePendingTransaction(event.transactionId);
         }
@@ -126,6 +129,9 @@ let CalendarService = class CalendarService {
             return eDate.getDay() === dayOfWeek && e.date >= date;
         });
         if (eventsToDelete.length > 0) {
+            await this.homeworkRepository.delete({
+                lessonId: (0, typeorm_2.In)(eventsToDelete.map((e) => e.id)),
+            });
             for (const e of eventsToDelete) {
                 if (e.transactionId) {
                     await this.financeService.deletePendingTransaction(e.transactionId);
@@ -176,9 +182,11 @@ exports.CalendarService = CalendarService;
 exports.CalendarService = CalendarService = __decorate([
     (0, common_1.Injectable)(),
     __param(0, (0, typeorm_1.InjectRepository)(event_entity_1.Event)),
-    __param(1, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
-    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => finance_service_1.FinanceService))),
+    __param(1, (0, typeorm_1.InjectRepository)(homework_entity_1.Homework)),
+    __param(2, (0, common_1.Inject)((0, common_1.forwardRef)(() => connections_service_1.ConnectionsService))),
+    __param(3, (0, common_1.Inject)((0, common_1.forwardRef)(() => finance_service_1.FinanceService))),
     __metadata("design:paramtypes", [typeorm_2.Repository,
+        typeorm_2.Repository,
         connections_service_1.ConnectionsService,
         finance_service_1.FinanceService])
 ], CalendarService);

@@ -2,11 +2,13 @@ import { Repository } from "typeorm";
 import { Event } from "./entities/event.entity";
 import { ConnectionsService } from "../connections/connections.service";
 import { FinanceService } from "../finance/finance.service";
+import { Homework } from "../homework/entities/homework.entity";
 export declare class CalendarService {
     private eventsRepository;
+    private homeworkRepository;
     private connectionsService;
     private financeService;
-    constructor(eventsRepository: Repository<Event>, connectionsService: ConnectionsService, financeService: FinanceService);
+    constructor(eventsRepository: Repository<Event>, homeworkRepository: Repository<Homework>, connectionsService: ConnectionsService, financeService: FinanceService);
     deleteEventsBetweenUsers(tutorId: number, studentId: number): Promise<void>;
     verifyConnection(tutorId: number, studentId: number): Promise<void>;
     create(createEventDto: any): Promise<Event>;

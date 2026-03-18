@@ -12,6 +12,7 @@ const typeorm_1 = require("@nestjs/typeorm");
 const calendar_service_1 = require("./calendar.service");
 const calendar_controller_1 = require("./calendar.controller");
 const event_entity_1 = require("./entities/event.entity");
+const homework_entity_1 = require("../homework/entities/homework.entity");
 const connections_module_1 = require("../connections/connections.module");
 const finance_module_1 = require("../finance/finance.module");
 let CalendarModule = class CalendarModule {
@@ -20,7 +21,7 @@ exports.CalendarModule = CalendarModule;
 exports.CalendarModule = CalendarModule = __decorate([
     (0, common_1.Module)({
         imports: [
-            typeorm_1.TypeOrmModule.forFeature([event_entity_1.Event]),
+            typeorm_1.TypeOrmModule.forFeature([event_entity_1.Event, homework_entity_1.Homework]),
             (0, common_1.forwardRef)(() => connections_module_1.ConnectionsModule),
             (0, common_1.forwardRef)(() => finance_module_1.FinanceModule),
         ],
