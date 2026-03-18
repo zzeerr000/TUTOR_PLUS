@@ -555,8 +555,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
           serverTime = new Date(serverTimeResponse.timestamp);
           console.log('Updated server time from API (UTC):', serverTime);
           
-          // Convert event time to UTC for fair comparison
-          const eventTimeUTC = new Date(eventDateTime.getTime() - (eventDateTime.getTimezoneOffset() * 60000));
+          // IMPORTANT: Convert event time to UTC assuming it's in server's timezone (UTC+3 Moscow)
+          // Since server stores times in UTC, we need to create the event time in UTC
+          const eventTimeInServerTimezone = new Date(`${newEvent.date}T${timeStr}+03:00`);
+          console.log('Event time in server timezone (UTC+3):', eventTimeInServerTimezone);
+          
+          // Convert to UTC for comparison
+          const eventTimeUTC = new Date(eventTimeInServerTimezone.getTime() - (eventTimeInServerTimezone.getTimezoneOffset() * 60000));
           console.log('Event time converted to UTC:', eventTimeUTC);
           
           // Compare UTC times
