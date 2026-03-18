@@ -36,9 +36,15 @@ import { Subject } from "./subjects/entities/subject.entity";
         type: "postgres",
         host: config.get<string>("DB_HOST", "localhost"),
         port: parseInt(config.get<string>("DB_PORT", "5432"), 10),
-        username: config.get<string>("DB_USER", "postgres"),
+        username: config.get<string>(
+          "DB_USER",
+          config.get<string>("DB_USERNAME", "postgres"),
+        ),
         password: config.get<string>("DB_PASSWORD", "postgres"),
-        database: config.get<string>("DB_NAME", "tutorplus"),
+        database: config.get<string>(
+          "DB_NAME",
+          config.get<string>("DB_DATABASE", "tutorplus"),
+        ),
         entities: [
           User,
           Task,

@@ -43,7 +43,7 @@ export class UsersService {
       return await this.usersRepository.save(user);
     } catch (error: any) {
       // Handle unique constraint violation
-      if (error.code === 'SQLITE_CONSTRAINT_UNIQUE' || error.code === '23505') {
+      if (error.code === '23505') {
         throw new ConflictException(`Account with email ${email} as ${role} already exists`);
       }
       throw error;
