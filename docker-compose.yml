@@ -5,7 +5,7 @@ services:
     container_name: tutorplus-postgres
     restart: unless-stopped
     environment:
-      - POSTGRES_DB=tutorplus_pgdata
+      - POSTGRES_DB=tutorplus
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=postgres
       - POSTGRES_INITDB_ARGS=--auth-host=md5
