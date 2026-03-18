@@ -117,6 +117,37 @@ export function CalendarView({ userType }: CalendarViewProps) {
     }
     lessonStartTimeoutsRef.current.clear();
 
+    const parseEventStartLocal = (dateStr: string, timeStr: string) => {
+      // dateStr: YYYY-MM-DD
+      // timeStr can be "HH:MM" or "HH:MM AM/PM"
+      const [y, m, d] = dateStr.split("-").map(Number);
+      if (!y || !m || !d) return null;
+
+      let hour24 = 0;
+      let minute = 0;
+
+      if (timeStr.includes("AM") || timeStr.includes("PM")) {
+        const [timePart, period] = timeStr.split(" ");
+        const [h, min] = timePart.split(":");
+        if (!h || !min) return null;
+        hour24 = parseInt(h);
+        minute = parseInt(min);
+        if (period === "PM" && hour24 !== 12) hour24 += 12;
+        if (period === "AM" && hour24 === 12) hour24 = 0;
+      } else {
+        const [h, min] = timeStr.split(":");
+        if (!h || !min) return null;
+        hour24 = parseInt(h);
+        minute = parseInt(min);
+      }
+
+      if (Number.isNaN(hour24) || Number.isNaN(minute)) return null;
+
+      const dt = new Date(y, m - 1, d);
+      dt.setHours(hour24, minute, 0, 0);
+      return dt;
+    };
+
     let serverNow = new Date();
     try {
       const serverTimeResponse = await api.getServerTime();
@@ -130,10 +161,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
     for (const event of eventsToSchedule) {
       if (!event?.id || !event?.date || !event?.time) continue;
 
-      const eventDateTime = new Date(`${event.date}T${event.time}`);
-      const timezoneOffset = eventDateTime.getTimezoneOffset();
+      const eventDateTimeLocal = parseEventStartLocal(event.date, event.time);
+      if (!eventDateTimeLocal) continue;
+
+      const timezoneOffset = eventDateTimeLocal.getTimezoneOffset();
       const eventTimeUTC = new Date(
-        eventDateTime.getTime() + timezoneOffset * 60000,
+        eventDateTimeLocal.getTime() + timezoneOffset * 60000,
       );
 
       const timeUntilStartMs = eventTimeUTC.getTime() - serverNow.getTime();
@@ -727,15 +760,24 @@ export function CalendarView({ userType }: CalendarViewProps) {
     // Normalize event date to YYYY-MM-DD
     const datePart = eventDate.split("T")[0];
 
-    const [h, m] = eventTime.split(":");
-    const hour24 = parseInt(h);
-    const minutes = parseInt(m);
+    let hour24 = 0;
+    let minutes = 0;
 
-    const eventDateTime = new Date(
-      `${datePart}T${String(hour24).padStart(2, "0")}:${String(
-        minutes,
-      ).padStart(2, "0")}:00`,
-    );
+    if (eventTime.includes("AM") || eventTime.includes("PM")) {
+      const [timePart, period] = eventTime.split(" ");
+      const [h, m] = timePart.split(":");
+      hour24 = parseInt(h);
+      minutes = parseInt(m);
+      if (period === "PM" && hour24 !== 12) hour24 += 12;
+      if (period === "AM" && hour24 === 12) hour24 = 0;
+    } else {
+      const [h, m] = eventTime.split(":");
+      hour24 = parseInt(h);
+      minutes = parseInt(m);
+    }
+
+    const eventDateTime = new Date(`${datePart}T00:00:00`);
+    eventDateTime.setHours(hour24, minutes, 0, 0);
     return eventDateTime < now;
   };
 
