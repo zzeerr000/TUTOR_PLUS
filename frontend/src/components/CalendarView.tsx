@@ -100,96 +100,6 @@ export function CalendarView({ userType }: CalendarViewProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [userType]);
 
-  const checkAndCreatePendingItems = async (events: any[]) => {
-    try {
-      // Get server time
-      let serverTime = new Date();
-      try {
-        const serverTimeResponse = await api.getServerTime();
-        if (serverTimeResponse && serverTimeResponse.timestamp) {
-          serverTime = new Date(serverTimeResponse.timestamp);
-        }
-      } catch (error) {
-        // Use client time as fallback
-      }
-
-      // Get existing items once to avoid multiple API calls
-      let existingTransactions: any[] = [];
-      let existingHomework: any[] = [];
-      
-      try {
-        existingTransactions = await api.getTransactions();
-        existingHomework = await api.getHomework();
-      } catch (error) {
-        console.error('Failed to load existing items:', error);
-        return;
-      }
-
-      // Check each event for pending items
-      for (const event of events) {
-        if (!event.time || !event.date) continue;
-
-        const eventDateTime = new Date(`${event.date}T${event.time}`);
-        const timezoneOffset = eventDateTime.getTimezoneOffset();
-        const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
-        
-        const hasStarted = eventTimeUTC <= serverTime;
-        
-        if (hasStarted) {
-          // Check if transaction already exists
-          if (event.amount > 0) {
-            const existingTransaction = existingTransactions.find((t: any) => t.eventId === event.id);
-            
-            if (!existingTransaction) {
-              try {
-                console.log('Creating transaction for event:', event.id);
-                await api.createTransaction({
-                  eventId: event.id,
-                  studentId: event.studentId,
-                  tutorId: parseInt(localStorage.getItem('userId') || '0'),
-                  amount: parseFloat(event.amount) || 0,
-                  subject: event.subject || event.subjectName,
-                  status: 'pending',
-                  createdAt: new Date().toISOString(),
-                });
-                console.log('Transaction created successfully for event:', event.id);
-              } catch (error) {
-                console.error('Failed to create transaction for event:', event.id, error);
-              }
-            } else {
-              console.log('Transaction already exists for event:', event.id);
-            }
-          }
-
-          // Check if homework already exists
-          const existingHW = existingHomework.find((h: any) => h.lessonId === event.id);
-          
-          if (!existingHW) {
-            try {
-              console.log('Creating homework for event:', event.id);
-              await api.createHomework({
-                title: `Домашнее задание по ${event.subject || event.subjectName}`,
-                description: '',
-                subject: event.subject || event.subjectName,
-                studentId: event.studentId,
-                lessonId: event.id,
-                dueDate: 'next_lesson',
-                status: 'draft',
-              });
-              console.log('Homework created successfully for event:', event.id);
-            } catch (error) {
-              console.error('Failed to create homework for event:', event.id, error);
-            }
-          } else {
-            console.log('Homework already exists for event:', event.id);
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check pending items:', error);
-    }
-  };
-
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -207,9 +117,6 @@ export function CalendarView({ userType }: CalendarViewProps) {
         };
       });
       setEvents(formattedEvents);
-
-      // Check for past events and create pending transactions/homework
-      await checkAndCreatePendingItems(formattedEvents);
 
       // Update date details if modal is open
       if (showDateDetails && selectedDate) {
