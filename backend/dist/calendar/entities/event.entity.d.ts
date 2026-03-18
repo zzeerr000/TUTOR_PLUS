@@ -5,6 +5,7 @@ export declare class Event {
     title: string;
     date: string;
     time: string;
+    timezoneOffsetMinutes: number;
     color: string;
     tutorId: number;
     tutor: User;

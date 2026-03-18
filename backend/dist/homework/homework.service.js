@@ -25,6 +25,39 @@ let HomeworkService = class HomeworkService {
         this.eventsRepository = eventsRepository;
         this.filesRepository = filesRepository;
     }
+    getEventStartUtc(event) {
+        if (!event?.date || !event?.time)
+            return null;
+        const [y, m, d] = event.date.split("-").map(Number);
+        if (!y || !m || !d)
+            return null;
+        const timeStr = event.time;
+        let hour24 = 0;
+        let minute = 0;
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+            const [timePart, period] = timeStr.split(" ");
+            const [hours, minutes] = timePart.split(":");
+            hour24 = parseInt(hours);
+            if (period === "PM" && hour24 !== 12) {
+                hour24 += 12;
+            }
+            else if (period === "AM" && hour24 === 12) {
+                hour24 = 0;
+            }
+            minute = parseInt(minutes);
+        }
+        else {
+            const [hours, minutes] = timeStr.split(":");
+            hour24 = parseInt(hours);
+            minute = parseInt(minutes);
+        }
+        if (Number.isNaN(hour24) || Number.isNaN(minute))
+            return null;
+        const offsetMinutes = Number(event.timezoneOffsetMinutes || 0);
+        const utcMs = Date.UTC(y, m - 1, d, hour24, minute, 0, 0) +
+            offsetMinutes * 60_000;
+        return new Date(utcMs);
+    }
     async findAll(userId, role) {
         if (role === "tutor") {
             await this.checkAndCreateHWDrafts(userId);
@@ -51,30 +84,10 @@ let HomeworkService = class HomeworkService {
             relations: ["student"],
         });
         for (const event of potentialEvents) {
-            const [y, m, d] = event.date.split("-").map(Number);
-            const eventDate = new Date(y, m - 1, d);
-            const timeStr = event.time;
-            let hour24 = 0;
-            let minute = 0;
-            if (timeStr.includes("AM") || timeStr.includes("PM")) {
-                const [timePart, period] = timeStr.split(" ");
-                const [hours, minutes] = timePart.split(":");
-                hour24 = parseInt(hours);
-                if (period === "PM" && hour24 !== 12) {
-                    hour24 += 12;
-                }
-                else if (period === "AM" && hour24 === 12) {
-                    hour24 = 0;
-                }
-                minute = parseInt(minutes);
-            }
-            else {
-                const [hours, minutes] = timeStr.split(":");
-                hour24 = parseInt(hours);
-                minute = parseInt(minutes);
-            }
-            eventDate.setHours(hour24, minute, 0, 0);
-            if (eventDate <= now) {
+            const eventStartUtc = this.getEventStartUtc(event);
+            if (!eventStartUtc)
+                continue;
+            if (eventStartUtc <= now) {
                 const existingHW = await this.homeworkRepository.findOne({
                     where: { lessonId: event.id },
                 });

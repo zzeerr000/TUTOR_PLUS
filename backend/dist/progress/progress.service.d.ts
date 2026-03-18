@@ -57,6 +57,7 @@ export declare class ProgressService {
             title: string;
             date: string;
             time: string;
+            timezoneOffsetMinutes: number;
             color: string;
             tutorId: number;
             tutor: import("../users/entities/user.entity").User;

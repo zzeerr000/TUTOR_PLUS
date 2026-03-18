@@ -9,6 +9,7 @@ export declare class FinanceService {
     private homeworkRepository;
     private connectionsService;
     constructor(transactionsRepository: Repository<Transaction>, eventsRepository: Repository<Event>, homeworkRepository: Repository<Homework>, connectionsService: ConnectionsService);
+    private getEventStartUtc;
     create(createTransactionDto: any): Promise<Transaction>;
     findAll(userId: number, userRole: string): Promise<Transaction[]>;
     checkAndCreateTransactionsForPastEvents(): Promise<void>;

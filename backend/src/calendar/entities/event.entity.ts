@@ -22,6 +22,9 @@ export class Event {
   @Column()
   time: string; // HH:MM AM/PM format
 
+  @Column({ type: "int", default: 0 })
+  timezoneOffsetMinutes: number;
+
   @Column({ nullable: true })
   color: string;
 

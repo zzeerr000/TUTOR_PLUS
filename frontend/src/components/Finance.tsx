@@ -124,29 +124,31 @@ export function Finance({ userType }: FinanceProps) {
   const hasStarted = (eventDateStr: string, timeStr: string) => {
     const now = new Date();
     const datePart = eventDateStr.split("T")[0];
+    const [y, m, d] = datePart.split("-").map(Number);
+    if (!y || !m || !d) return false;
+
     let hour24 = 0;
     let minutes = 0;
     if (timeStr.includes("AM") || timeStr.includes("PM")) {
       const [timePart, period] = timeStr.split(" ");
       const [hours, mins] = timePart.split(":");
       hour24 = parseInt(hours);
-      if (period === "PM" && hour24 !== 12) {
-        hour24 += 12;
-      } else if (period === "AM" && hour24 === 12) {
-        hour24 = 0;
-      }
+      if (period === "PM" && hour24 !== 12) hour24 += 12;
+      if (period === "AM" && hour24 === 12) hour24 = 0;
       minutes = parseInt(mins);
     } else {
       const [hours, mins] = timeStr.split(":");
       hour24 = parseInt(hours);
       minutes = parseInt(mins);
     }
-    const eventDateTime = new Date(
-      `${datePart}T${String(hour24).padStart(2, "0")}:${String(
-        minutes,
-      ).padStart(2, "0")}:00`,
-    );
-    return eventDateTime <= now;
+    if (Number.isNaN(hour24) || Number.isNaN(minutes)) return false;
+
+    // By default assume lessons were created in the current timezone.
+    // If server provides timezoneOffsetMinutes on event, callers pass it via closure.
+    const offsetMinutes = new Date().getTimezoneOffset();
+    const utcMs = Date.UTC(y, m - 1, d, hour24, minutes, 0, 0) +
+      offsetMinutes * 60_000;
+    return utcMs <= now.getTime();
   };
 
   const loadData = async () => {
@@ -205,7 +207,35 @@ export function Finance({ userType }: FinanceProps) {
         const pendingEvents = events
           .filter(
             (e: any) =>
-              e.paymentPending && e.transactionId && hasStarted(e.date, e.time),
+              e.paymentPending &&
+              e.transactionId &&
+              (() => {
+                const datePart = e.date.split("T")[0];
+                const [y, m, d] = datePart.split("-").map(Number);
+                if (!y || !m || !d) return false;
+
+                let hour24 = 0;
+                let minutes = 0;
+                const timeStr = e.time;
+                if (timeStr.includes("AM") || timeStr.includes("PM")) {
+                  const [timePart, period] = timeStr.split(" ");
+                  const [hours, mins] = timePart.split(":");
+                  hour24 = parseInt(hours);
+                  if (period === "PM" && hour24 !== 12) hour24 += 12;
+                  if (period === "AM" && hour24 === 12) hour24 = 0;
+                  minutes = parseInt(mins);
+                } else {
+                  const [hours, mins] = timeStr.split(":");
+                  hour24 = parseInt(hours);
+                  minutes = parseInt(mins);
+                }
+                if (Number.isNaN(hour24) || Number.isNaN(minutes)) return false;
+
+                const offsetMinutes = Number(e.timezoneOffsetMinutes || 0);
+                const utcMs = Date.UTC(y, m - 1, d, hour24, minutes, 0, 0) +
+                  offsetMinutes * 60_000;
+                return utcMs <= Date.now();
+              })(),
           )
           .map((e: any) => ({
             id: e.transactionId,

@@ -7,6 +7,7 @@ export declare class HomeworkService {
     private eventsRepository;
     private filesRepository;
     constructor(homeworkRepository: Repository<Homework>, eventsRepository: Repository<Event>, filesRepository: Repository<FileEntity>);
+    private getEventStartUtc;
     findAll(userId: number, role: string): Promise<Homework[]>;
     checkAndCreateHWDrafts(tutorId: number): Promise<void>;
     create(createDto: any, tutorId: number): Promise<Homework | Homework[]>;

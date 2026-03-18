@@ -98,6 +98,32 @@ export function CalendarView({ userType }: CalendarViewProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [userType]);
 
+  const getEventStartUtc = (eventDateStr: string, timeStr: string, timezoneOffsetMinutes?: number) => {
+    const datePart = eventDateStr.split("T")[0];
+    const [y, m, d] = datePart.split("-").map(Number);
+    if (!y || !m || !d) return null;
+
+    let hour24 = 0;
+    let minutes = 0;
+    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+      const [timePart, period] = timeStr.split(" ");
+      const [h, mm] = timePart.split(":");
+      hour24 = parseInt(h);
+      minutes = parseInt(mm);
+      if (period === "PM" && hour24 !== 12) hour24 += 12;
+      if (period === "AM" && hour24 === 12) hour24 = 0;
+    } else {
+      const [h, mm] = timeStr.split(":");
+      hour24 = parseInt(h);
+      minutes = parseInt(mm);
+    }
+    if (Number.isNaN(hour24) || Number.isNaN(minutes)) return null;
+
+    const offset = typeof timezoneOffsetMinutes === "number" ? timezoneOffsetMinutes : 0;
+    const utcMs = Date.UTC(y, m - 1, d, hour24, minutes, 0, 0) + offset * 60000;
+    return new Date(utcMs);
+  };
+
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -265,6 +291,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
           title: newEvent.title || newEvent.subject,
           date: newEvent.date,
           time: timeStr,
+          timezoneOffsetMinutes: new Date().getTimezoneOffset(),
           subject: newEvent.subject,
           subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
           studentId: parseInt(newEvent.studentId),
@@ -283,6 +310,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             title: newEvent.title || newEvent.subject,
             date: date,
             time: timeStr,
+            timezoneOffsetMinutes: new Date().getTimezoneOffset(),
             subject: newEvent.subject,
             subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
             studentId: parseInt(newEvent.studentId),
@@ -507,6 +535,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
           title: newEvent.title || newEvent.subject,
           date: newEvent.date,
           time: timeStr,
+          timezoneOffsetMinutes: new Date().getTimezoneOffset(),
           subject: newEvent.subject,
           subjectId: newEvent.subjectId ? parseInt(newEvent.subjectId) : null,
           studentId: parseInt(newEvent.studentId),
@@ -572,21 +601,19 @@ export function CalendarView({ userType }: CalendarViewProps) {
     await processUpdate(false);
   };
 
-  const isEventPast = (eventDate: string, eventTime: string) => {
+  const isEventPast = (
+    eventDate: string,
+    eventTime: string,
+    timezoneOffsetMinutes?: number,
+  ) => {
     const now = new Date();
-    // Normalize event date to YYYY-MM-DD
-    const datePart = eventDate.split("T")[0];
-
-    const [h, m] = eventTime.split(":");
-    const hour24 = parseInt(h);
-    const minutes = parseInt(m);
-
-    const eventDateTime = new Date(
-      `${datePart}T${String(hour24).padStart(2, "0")}:${String(
-        minutes,
-      ).padStart(2, "0")}:00`,
-    );
-    return eventDateTime < now;
+    const offset =
+      typeof timezoneOffsetMinutes === "number"
+        ? timezoneOffsetMinutes
+        : new Date().getTimezoneOffset();
+    const eventStartUtc = getEventStartUtc(eventDate, eventTime, offset);
+    if (!eventStartUtc) return false;
+    return eventStartUtc.getTime() < now.getTime();
   };
 
   const weekDates = getWeekDates(currentDate);
@@ -879,7 +906,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                     
                     
                     {dayEvents.map((event, eventIdx) => {
-                      const past = isEventPast(event.date, event.time);
+                      const past = isEventPast(
+                        event.date,
+                        event.time,
+                        event.timezoneOffsetMinutes,
+                      );
                       return (
                         <div
                           key={eventIdx}
@@ -991,7 +1022,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                       </div>
                     )}
                     {hourEvents.map((event, eventIdx) => {
-                      const past = isEventPast(event.date, event.time);
+                      const past = isEventPast(
+                        event.date,
+                        event.time,
+                        event.timezoneOffsetMinutes,
+                      );
                       return (
                         <div
                           key={eventIdx}
@@ -1105,7 +1140,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 </div>
               ) : (
                 selectedDateEvents.map((event) => {
-                  const past = isEventPast(event.date, event.time);
+                  const past = isEventPast(
+                    event.date,
+                    event.time,
+                    event.timezoneOffsetMinutes,
+                  );
                   return (
                     <div
                       key={event.id}

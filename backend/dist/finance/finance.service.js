@@ -27,6 +27,39 @@ let FinanceService = class FinanceService {
         this.homeworkRepository = homeworkRepository;
         this.connectionsService = connectionsService;
     }
+    getEventStartUtc(event) {
+        if (!event?.date || !event?.time)
+            return null;
+        const [y, m, d] = event.date.split("-").map(Number);
+        if (!y || !m || !d)
+            return null;
+        const timeStr = event.time;
+        let hour24 = 0;
+        let minute = 0;
+        if (timeStr.includes("AM") || timeStr.includes("PM")) {
+            const [timePart, period] = timeStr.split(" ");
+            const [hours, minutes] = timePart.split(":");
+            hour24 = parseInt(hours);
+            if (period === "PM" && hour24 !== 12) {
+                hour24 += 12;
+            }
+            else if (period === "AM" && hour24 === 12) {
+                hour24 = 0;
+            }
+            minute = parseInt(minutes);
+        }
+        else {
+            const [hours, minutes] = timeStr.split(":");
+            hour24 = parseInt(hours);
+            minute = parseInt(minutes);
+        }
+        if (Number.isNaN(hour24) || Number.isNaN(minute))
+            return null;
+        const offsetMinutes = Number(event.timezoneOffsetMinutes || 0);
+        const utcMs = Date.UTC(y, m - 1, d, hour24, minute, 0, 0) +
+            offsetMinutes * 60_000;
+        return new Date(utcMs);
+    }
     async create(createTransactionDto) {
         const connections = await this.connectionsService.getConnections(createTransactionDto.tutorId, "tutor");
         const isConnected = connections.some((c) => c.studentId === createTransactionDto.studentId);
@@ -82,29 +115,10 @@ let FinanceService = class FinanceService {
             relations: ["student", "tutor"],
         });
         for (const event of events) {
-            const eventDate = new Date(event.date);
-            const timeStr = event.time;
-            let hour24 = 0;
-            let minute = 0;
-            if (timeStr.includes("AM") || timeStr.includes("PM")) {
-                const [timePart, period] = timeStr.split(" ");
-                const [hours, minutes] = timePart.split(":");
-                hour24 = parseInt(hours);
-                if (period === "PM" && hour24 !== 12) {
-                    hour24 += 12;
-                }
-                else if (period === "AM" && hour24 === 12) {
-                    hour24 = 0;
-                }
-                minute = parseInt(minutes);
-            }
-            else {
-                const [hours, minutes] = timeStr.split(":");
-                hour24 = parseInt(hours);
-                minute = parseInt(minutes);
-            }
-            eventDate.setHours(hour24, minute, 0, 0);
-            if (eventDate <= now && !event.transactionId && !event.paymentIgnored) {
+            const eventStartUtc = this.getEventStartUtc(event);
+            if (!eventStartUtc)
+                continue;
+            if (eventStartUtc <= now && !event.transactionId && !event.paymentIgnored) {
                 const connections = await this.connectionsService.getConnections(event.tutorId, "tutor");
                 const isConnected = connections.some((c) => c.studentId === event.studentId);
                 if (!isConnected) {
@@ -117,7 +131,7 @@ let FinanceService = class FinanceService {
                         subject: event.subject || event.title,
                         tutorId: event.tutorId,
                         studentId: event.studentId,
-                        dueDate: eventDate,
+                        dueDate: eventStartUtc,
                     });
                     event.transactionId = transaction.id;
                     event.paymentPending = true;
