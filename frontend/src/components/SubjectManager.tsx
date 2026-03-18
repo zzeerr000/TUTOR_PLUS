@@ -190,7 +190,7 @@ export function SubjectManager({
         )}
       </div>
 
-      <form onSubmit={handleAdd} className="flex gap-2 mb-6">
+      <form onSubmit={handleAdd} className="flex gap-2 mb-6 flex-col">
         <input
           type="text"
           value={newSubject}
