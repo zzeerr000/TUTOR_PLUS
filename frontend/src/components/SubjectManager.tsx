@@ -117,7 +117,7 @@ export function SubjectManager({
             className="flex items-center justify-between p-3 bg-muted rounded-md group"
           >
             {editingId === subject.id ? (
-              <div className="flex items-center gap-2 flex-2">
+              <div className="flex items-center gap-2 flex-col lg:flex-row">
                 <input
                   type="text"
                   value={editName}
