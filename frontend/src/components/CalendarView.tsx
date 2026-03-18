@@ -531,8 +531,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
       let serverTime = new Date();
       try {
         const serverTimeResponse = await api.getServerTime();
-        if (serverTimeResponse && serverTimeResponse.time) {
-          serverTime = new Date(serverTimeResponse.time);
+        if (serverTimeResponse && serverTimeResponse.timestamp) {
+          serverTime = new Date(serverTimeResponse.timestamp);
         }
       } catch (error) {
         console.warn('Failed to get server time, using client time');
