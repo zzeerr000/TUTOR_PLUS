@@ -57,8 +57,8 @@ docker-compose down -v
 
 ## Порты
 - PostgreSQL: localhost:5432
-- Бэкенд: http://localhost:3000
-- Фронтенд: http://localhost:5173
+- Бэкенд: http://31.207.76.8:3000
+- Фронтенд: http://31.207.76.8 (порт 80)
 
 ## Переменные окружения
 

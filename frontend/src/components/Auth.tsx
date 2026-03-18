@@ -59,7 +59,7 @@ export function Auth({ onAuthSuccess }: AuthProps) {
         err.message.includes("NetworkError")
       ) {
         setError(
-          "Не удается подключиться к серверу. Убедитесь, что бэкенд запущен на http://localhost:3000",
+          "Не удается подключиться к серверу. Убедитесь, что бэкенд запущен на http://31.207.76.8",
         );
       } else {
         setError(err.message || "Что-то пошло не так");

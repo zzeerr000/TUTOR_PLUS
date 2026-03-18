@@ -1,4 +1,4 @@
-const API_URL = "http://localhost:3000";
+const API_URL = "http://31.207.76.8/api";
 
 export const api = {
   getBaseUrl: () => API_URL,
@@ -62,7 +62,7 @@ export const api = {
     } catch (error: any) {
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         throw new Error(
-          "Cannot connect to server. Make sure the backend is running on http://localhost:3000",
+          "Cannot connect to server. Make sure the backend is running on http://31.207.76.8",
         );
       }
       throw error;
