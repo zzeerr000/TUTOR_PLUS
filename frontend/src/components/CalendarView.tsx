@@ -557,9 +557,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
           console.log('Updated server time from API (UTC):', serverTime);
           console.log('Server time ISO:', serverTime.toISOString());
           
-          // IMPORTANT: Event time is already in local timezone (UTC+3), we just need to compare properly
-          // The eventDateTime is already in local time, so we just need to convert it to UTC correctly
-          const eventTimeUTC = new Date(eventDateTime.getTime() - (eventDateTime.getTimezoneOffset() * 60000));
+          // IMPORTANT: The eventDateTime is already in local time (UTC+3)
+          // We need to convert it to UTC properly
+          // getTimezoneOffset() returns minutes to add to local time to get UTC
+          const timezoneOffset = eventDateTime.getTimezoneOffset(); // -180 for UTC+3
+          console.log('Timezone offset (minutes):', timezoneOffset);
+          
+          const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
           console.log('Event time converted to UTC:', eventTimeUTC);
           console.log('Event time UTC ISO:', eventTimeUTC.toISOString());
           
