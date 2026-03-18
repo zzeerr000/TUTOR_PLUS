@@ -198,7 +198,7 @@ export function SubjectManager({
           placeholder="Название предмета..."
           className="flex-1 bg-muted rounded-lg px-4 py-2 text-foreground outline-none focus:ring-2 focus:ring-[#1db954]"
         />
-        <div className="flex">
+        <div className="flex gap-2">
         <div className="flex gap-1 items-center bg-muted rounded-lg px-2 min-h-10">
           {COLORS.map((color) => (
             <button
