@@ -5,16 +5,19 @@ import {
   forwardRef,
 } from "@nestjs/common";
 import { InjectRepository } from "@nestjs/typeorm";
-import { Repository } from "typeorm";
+import { In, Repository } from "typeorm";
 import { Event } from "./entities/event.entity";
 import { ConnectionsService } from "../connections/connections.service";
 import { FinanceService } from "../finance/finance.service";
+import { Homework } from "../homework/entities/homework.entity";
 
 @Injectable()
 export class CalendarService {
   constructor(
     @InjectRepository(Event)
     private eventsRepository: Repository<Event>,
+    @InjectRepository(Homework)
+    private homeworkRepository: Repository<Homework>,
     @Inject(forwardRef(() => ConnectionsService))
     private connectionsService: ConnectionsService,
     @Inject(forwardRef(() => FinanceService))
@@ -128,6 +131,9 @@ export class CalendarService {
     if (event && event.transactionId) {
       await this.financeService.deletePendingTransaction(event.transactionId);
     }
+
+    // Delete homework linked to this lesson
+    await this.homeworkRepository.delete({ lessonId: id });
     await this.eventsRepository.delete(id);
   }
 
@@ -168,6 +174,12 @@ export class CalendarService {
           await this.financeService.deletePendingTransaction(e.transactionId);
         }
       }
+
+      // Delete homework for these lessons
+      await this.homeworkRepository.delete({
+        lessonId: In(eventsToDelete.map((e) => e.id)),
+      });
+
       await this.eventsRepository.remove(eventsToDelete);
     }
   }

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import {
   ChevronLeft,
   ChevronRight,
@@ -59,6 +59,10 @@ export function CalendarView({ userType }: CalendarViewProps) {
     width: typeof window !== 'undefined' ? window.innerWidth : 1024,
   });
 
+  const lessonStartTimeoutsRef = useRef<Map<number, ReturnType<typeof setTimeout>>>(
+    new Map(),
+  );
+
   useEffect(() => {
     const handleResize = () => {
       setScreenSize({ width: window.innerWidth });
@@ -70,9 +74,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
 
   useEffect(() => {
     const checkEditEvent = async () => {
-      loadEvents();
-      loadTransactions();
-      loadHomework();
+      await loadTransactions();
+      await loadHomework();
+      await loadEvents();
       if (userType === "tutor") {
         loadStudents();
         loadSubjects();
@@ -92,13 +96,6 @@ export function CalendarView({ userType }: CalendarViewProps) {
     
     checkEditEvent();
 
-    // Set up periodic check for completed lessons (every 2 minutes)
-    const intervalId = setInterval(async () => {
-      const events = await api.getEvents();
-      await checkAndCreateForCompletedLessons(events);
-      await loadEvents(); // Refresh events to show updated status
-    }, 2 * 60 * 1000); // 2 minutes
-
     const handleStorageChange = () => {
       setCurrency(api.getCurrencySymbol());
     };
@@ -107,9 +104,60 @@ export function CalendarView({ userType }: CalendarViewProps) {
     
     return () => {
       window.removeEventListener("storage", handleStorageChange);
-      clearInterval(intervalId);
+      for (const timeoutId of lessonStartTimeoutsRef.current.values()) {
+        clearTimeout(timeoutId);
+      }
+      lessonStartTimeoutsRef.current.clear();
     };
   }, [userType]);
+
+  const scheduleLessonStartTriggers = async (eventsToSchedule: any[]) => {
+    for (const timeoutId of lessonStartTimeoutsRef.current.values()) {
+      clearTimeout(timeoutId);
+    }
+    lessonStartTimeoutsRef.current.clear();
+
+    let serverNow = new Date();
+    try {
+      const serverTimeResponse = await api.getServerTime();
+      if (serverTimeResponse?.timestamp) {
+        serverNow = new Date(serverTimeResponse.timestamp);
+      }
+    } catch {
+      // ignore
+    }
+
+    for (const event of eventsToSchedule) {
+      if (!event?.id || !event?.date || !event?.time) continue;
+
+      const eventDateTime = new Date(`${event.date}T${event.time}`);
+      const timezoneOffset = eventDateTime.getTimezoneOffset();
+      const eventTimeUTC = new Date(
+        eventDateTime.getTime() + timezoneOffset * 60000,
+      );
+
+      const timeUntilStartMs = eventTimeUTC.getTime() - serverNow.getTime();
+
+      if (timeUntilStartMs <= 0 || timeUntilStartMs > 24 * 60 * 60 * 1000) {
+        continue;
+      }
+
+      const timeoutId = setTimeout(async () => {
+        try {
+          await api.getTransactions();
+          await api.getHomework();
+        } catch {
+          // ignore
+        }
+
+        await loadTransactions();
+        await loadHomework();
+        await loadEvents();
+      }, timeUntilStartMs);
+
+      lessonStartTimeoutsRef.current.set(event.id, timeoutId);
+    }
+  };
 
   const loadEvents = async () => {
     try {
@@ -129,8 +177,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       });
       setEvents(formattedEvents);
 
-      // Check for completed lessons and create payment/homework if needed
-      await checkAndCreateForCompletedLessons(formattedEvents);
+      await scheduleLessonStartTriggers(formattedEvents);
 
       // Update date details if modal is open
       if (showDateDetails && selectedDate) {
@@ -179,95 +226,6 @@ export function CalendarView({ userType }: CalendarViewProps) {
       setHomework(data);
     } catch (error) {
       console.error("Failed to load homework:", error);
-    }
-  };
-
-  const checkAndCreateForCompletedLessons = async (events: any[]) => {
-    try {
-      // Get current server time
-      let serverTime = new Date();
-      try {
-        const serverTimeResponse = await api.getServerTime();
-        if (serverTimeResponse && serverTimeResponse.timestamp) {
-          serverTime = new Date(serverTimeResponse.timestamp);
-        }
-      } catch (error) {
-        console.warn('Failed to get server time, using client time');
-      }
-
-      // Get existing transactions and homework to avoid duplicates
-      const [existingTransactions, existingHomework] = await Promise.all([
-        api.getTransactions(),
-        api.getHomework()
-      ]);
-
-      const transactionEventIds = new Set(existingTransactions.map((t: any) => t.eventId));
-      const homeworkEventIds = new Set(existingHomework.map((h: any) => h.lessonId));
-
-      for (const event of events) {
-        // Skip if transaction and homework already exist
-        if (transactionEventIds.has(event.id) && homeworkEventIds.has(event.id)) {
-          continue;
-        }
-
-        // Check if lesson is completed (same logic as isEventPast but with server time)
-        const eventDateTime = new Date(`${event.date}T${event.time || '00:00'}`);
-        const timezoneOffset = eventDateTime.getTimezoneOffset();
-        const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
-        
-        const isCompleted = eventTimeUTC <= serverTime;
-
-        if (isCompleted) {
-          // Update event status in database to completed
-          try {
-            await api.updateEvent(event.id, {
-              ...event,
-              status: 'completed',
-              paymentPending: event.amount > 0 && !transactionEventIds.has(event.id),
-            });
-          } catch (error) {
-            console.error('Failed to update event status:', event.id, error);
-          }
-
-          // Create transaction if needed
-          if (event.amount > 0 && !transactionEventIds.has(event.id)) {
-            try {
-              await api.createTransaction({
-                eventId: event.id,
-                studentId: event.studentId,
-                tutorId: parseInt(localStorage.getItem('userId') || '0'),
-                amount: event.amount,
-                subject: event.subject || event.subjectName,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-              });
-              console.log('Created transaction for completed event:', event.id);
-            } catch (error) {
-              console.error('Failed to create transaction for event:', event.id, error);
-            }
-          }
-
-          // Create homework if needed
-          if (!homeworkEventIds.has(event.id)) {
-            try {
-              await api.createHomework({
-                title: `Домашнее задание по ${event.subject || event.subjectName}`,
-                description: '',
-                subject: event.subject || event.subjectName,
-                studentId: event.studentId,
-                lessonId: event.id,
-                dueDate: 'next_lesson',
-                status: 'draft',
-              });
-              console.log('Created homework for completed event:', event.id);
-            } catch (error) {
-              console.error('Failed to create homework for event:', event.id, error);
-            }
-          }
-        }
-      }
-    } catch (error) {
-      console.error('Failed to check completed lessons:', error);
     }
   };
 
@@ -451,45 +409,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
     recurring: boolean = false,
   ) => {
     try {
-      console.log(`Starting deletion of event ${eventId}, recurring: ${recurring}`);
-      
-      // Get related transactions and homework before deleting the event
-      const [transactions, homework] = await Promise.all([
-        api.getTransactions(),
-        api.getHomework()
-      ]);
-
-      // Find transactions and homework related to this event
-      const eventTransactions = transactions.filter((t: any) => t.eventId === eventId);
-      const eventHomework = homework.filter((h: any) => h.lessonId === eventId);
-
-      console.log(`Found ${eventTransactions.length} transactions and ${eventHomework.length} homework items for event ${eventId}`);
-
-      // Cancel related transactions and delete homework
-      const deletePromises = [];
-      
-      // Cancel transactions (only pending ones)
-      for (const transaction of eventTransactions) {
-        if (transaction.status === 'pending') {
-          deletePromises.push(api.cancelPayment(transaction.id));
-          console.log(`Cancelling transaction ${transaction.id}`);
-        }
-      }
-      
-      // Delete all homework related to this event
-      for (const hw of eventHomework) {
-        deletePromises.push(api.deleteHomework(hw.id));
-        console.log(`Deleting homework ${hw.id}`);
-      }
-
-      if (deletePromises.length > 0) {
-        await Promise.all(deletePromises);
-        console.log(`Successfully cancelled ${eventTransactions.filter(t => t.status === 'pending').length} transactions and deleted ${eventHomework.length} homework items`);
-      }
-
-      // Delete the event itself
       await api.deleteEvent(eventId, recurring);
-      console.log(`Successfully deleted event ${eventId}`);
       
       setShowDeleteConfirm(null);
       setShowDateDetails(false); // Close the day details popup

@@ -26,6 +26,55 @@ export class FinanceService {
   ) {}
 
   async create(createTransactionDto: any): Promise<Transaction> {
+    const { eventId, ...transactionDto } = createTransactionDto;
+
+    if (eventId) {
+      const event = await this.eventsRepository.findOne({
+        where: { id: eventId },
+      });
+
+      if (!event) {
+        throw new BadRequestException("Event not found");
+      }
+
+      if (event.tutorId !== transactionDto.tutorId) {
+        throw new BadRequestException("TutorId does not match event");
+      }
+
+      if (event.studentId !== transactionDto.studentId) {
+        throw new BadRequestException("StudentId does not match event");
+      }
+
+      // Verify connection exists
+      const connections = await this.connectionsService.getConnections(
+        transactionDto.tutorId,
+        "tutor",
+      );
+      const isConnected = connections.some(
+        (c) => c.studentId === transactionDto.studentId,
+      );
+      if (!isConnected) {
+        throw new BadRequestException(
+          "Can only create transactions with connected students",
+        );
+      }
+
+      const transaction = this.transactionsRepository.create({
+        ...transactionDto,
+        amount: transactionDto.amount ?? event.amount ?? 0,
+        subject: transactionDto.subject ?? event.subject ?? event.title,
+      });
+      const saved = await this.transactionsRepository.save(transaction);
+      const savedTx = Array.isArray(saved) ? saved[0] : saved;
+
+      // Link transaction to the lesson
+      event.transactionId = savedTx.id;
+      event.paymentPending = true;
+      await this.eventsRepository.save(event);
+
+      return savedTx;
+    }
+
     // Verify connection exists
     const connections = await this.connectionsService.getConnections(
       createTransactionDto.tutorId,
@@ -41,7 +90,7 @@ export class FinanceService {
     }
 
     const transaction =
-      this.transactionsRepository.create(createTransactionDto);
+      this.transactionsRepository.create(transactionDto);
     const saved = await this.transactionsRepository.save(transaction);
     return Array.isArray(saved) ? saved[0] : saved;
   }

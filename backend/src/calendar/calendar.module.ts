@@ -5,10 +5,11 @@ import { CalendarController } from './calendar.controller';
 import { Event } from './entities/event.entity';
 import { ConnectionsModule } from '../connections/connections.module';
 import { FinanceModule } from '../finance/finance.module';
+import { Homework } from '../homework/entities/homework.entity';
 
 @Module({
   imports: [
-    TypeOrmModule.forFeature([Event]),
+    TypeOrmModule.forFeature([Event, Homework]),
     forwardRef(() => ConnectionsModule),
     forwardRef(() => FinanceModule),
   ],
