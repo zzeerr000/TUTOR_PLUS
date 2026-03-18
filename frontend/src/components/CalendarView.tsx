@@ -586,7 +586,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         }
       }
 
-      // If lesson has started, create homework assignment as draft
+// If lesson has started, create homework assignment as draft
       if (hasStarted) {
         try {
           await api.createHomework({
