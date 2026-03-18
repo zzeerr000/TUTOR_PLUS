@@ -24,12 +24,6 @@ services:
     build:
       context: ./backend
       dockerfile: DockerFile
-      cache_from:
-        - type=gha
-        - scope=github.com
-      cache_to:
-        - type=gha
-        - mode=max
     container_name: tutorplus-backend
     ports:
       - "3000:3000"
@@ -59,12 +53,6 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
-      cache_from:
-        - type=gha
-        - scope=github.com
-      cache_to:
-        - type=gha
-        - mode=max
     container_name: tutorplus-frontend
     ports:
       - "80:80"
