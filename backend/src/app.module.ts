@@ -11,7 +11,6 @@ import { ProgressModule } from "./progress/progress.module";
 import { ConnectionsModule } from "./connections/connections.module";
 import { HomeworkModule } from "./homework/homework.module";
 import { SubjectsModule } from "./subjects/subjects.module";
-import { ScheduleModule } from "./schedule/schedule.module";
 import { AppController } from "./app.controller";
 import { User } from "./users/entities/user.entity";
 import { Task } from "./tasks/entities/task.entity";
@@ -61,7 +60,6 @@ import { Subject } from "./subjects/entities/subject.entity";
     ConnectionsModule,
     HomeworkModule,
     SubjectsModule,
-    ScheduleModule,
   ],
   controllers: [AppController],
 })
