@@ -4,11 +4,11 @@ FROM node:20-alpine
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем файлы управления зависимостями
+# Копируем только package.json и package-lock.json для кэширования
 COPY package*.json ./
 
-# Устанавливаем все зависимости (включая dev для сборки)
-RUN npm install
+# Устанавливаем зависимости с кэшированием
+RUN npm ci --silent
 
 # Копируем исходный код
 COPY . .
@@ -20,8 +20,8 @@ RUN npm run build
 RUN npm prune --production
 
 # Создаем пользователя без прав root для безопасности
-RUN addgroup -g 1001 -S nodejs
-RUN adduser -S nodejs -u 1001
+RUN addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 -G nodejs
 
 # Меняем владельца файлов
 RUN chown -R nodejs:nodejs /app
