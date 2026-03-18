@@ -430,11 +430,10 @@ export function CalendarView({ userType }: CalendarViewProps) {
         amount: localStorage.getItem("last_lesson_price") || "0",
         duration: "60",
       });
-      loadEvents();
-      if (showDateDetails) {
-        const dayEvents = events.filter((e) => e.date === selectedDate);
-        setSelectedDateEvents(dayEvents);
-      }
+      await loadEvents();
+      await loadTransactions();
+      await loadHomework();
+      setShowDateDetails(false);
     } catch (err: any) {
       setError(
         err.message ||
@@ -452,7 +451,46 @@ export function CalendarView({ userType }: CalendarViewProps) {
     recurring: boolean = false,
   ) => {
     try {
+      console.log(`Starting deletion of event ${eventId}, recurring: ${recurring}`);
+      
+      // Get related transactions and homework before deleting the event
+      const [transactions, homework] = await Promise.all([
+        api.getTransactions(),
+        api.getHomework()
+      ]);
+
+      // Find transactions and homework related to this event
+      const eventTransactions = transactions.filter((t: any) => t.eventId === eventId);
+      const eventHomework = homework.filter((h: any) => h.lessonId === eventId);
+
+      console.log(`Found ${eventTransactions.length} transactions and ${eventHomework.length} homework items for event ${eventId}`);
+
+      // Cancel related transactions and delete homework
+      const deletePromises = [];
+      
+      // Cancel transactions (only pending ones)
+      for (const transaction of eventTransactions) {
+        if (transaction.status === 'pending') {
+          deletePromises.push(api.cancelPayment(transaction.id));
+          console.log(`Cancelling transaction ${transaction.id}`);
+        }
+      }
+      
+      // Delete all homework related to this event
+      for (const hw of eventHomework) {
+        deletePromises.push(api.deleteHomework(hw.id));
+        console.log(`Deleting homework ${hw.id}`);
+      }
+
+      if (deletePromises.length > 0) {
+        await Promise.all(deletePromises);
+        console.log(`Successfully cancelled ${eventTransactions.filter(t => t.status === 'pending').length} transactions and deleted ${eventHomework.length} homework items`);
+      }
+
+      // Delete the event itself
       await api.deleteEvent(eventId, recurring);
+      console.log(`Successfully deleted event ${eventId}`);
+      
       setShowDeleteConfirm(null);
       setShowDateDetails(false); // Close the day details popup
       await loadEvents();
