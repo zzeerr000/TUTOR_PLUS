@@ -138,14 +138,14 @@
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.muted.foreground') transparent;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
 }
 
 /* Explicitly target html/body to ensure main window scrollbar is styled */
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: theme('colors.muted.foreground') transparent;
+  scrollbar-color: hsl(var(--muted-foreground) / 0.2) transparent;
   @apply bg-background text-foreground;
 }
 
