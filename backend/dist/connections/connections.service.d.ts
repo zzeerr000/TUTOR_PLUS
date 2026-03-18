@@ -4,6 +4,7 @@ import { UsersService } from "../users/users.service";
 import { CalendarService } from "../calendar/calendar.service";
 import { HomeworkService } from "../homework/homework.service";
 import { SubjectsService } from "../subjects/subjects.service";
+import { Event } from "../calendar/entities/event.entity";
 export declare class ConnectionsService {
     private connectionsRepository;
     private usersService;
@@ -12,6 +13,7 @@ export declare class ConnectionsService {
     private homeworkService;
     private subjectsService;
     constructor(connectionsRepository: Repository<Connection>, usersService: UsersService, dataSource: DataSource, calendarService: CalendarService, homeworkService: HomeworkService, subjectsService: SubjectsService);
+    private getEventStartUtc;
     createConnectionRequest(requestedById: number, code: string): Promise<Connection>;
     getPendingRequests(userId: number, userRole: string): Promise<Connection[]>;
     approveConnection(connectionId: number, userId: number, existingStudentId?: number): Promise<Connection>;
@@ -35,7 +37,7 @@ export declare class ConnectionsService {
         activeHomework: number;
         missedHomework: number;
         completedHomework: number;
-        lessonsHistory: import("../calendar/entities/event.entity").Event[];
+        lessonsHistory: Event[];
         homeworkHistory: import("../homework/entities/homework.entity").Homework[];
     }>;
 }
