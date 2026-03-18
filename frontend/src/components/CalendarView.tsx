@@ -503,14 +503,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
   };
 
   const processUpdate = async (recurring: boolean) => {
-    console.log('=== PROCESS UPDATE START ===');
-    console.log('Editing event:', editingEvent);
-    console.log('New event:', newEvent);
-    
-    if (!editingEvent) {
-      console.log('No editing event, returning');
-      return;
-    }
+    if (!editingEvent) return;
     setError("");
     setSubmitting(true);
 
@@ -531,53 +524,32 @@ export function CalendarView({ userType }: CalendarViewProps) {
       }
 
       // Check if lesson has started and needs payment transaction
-      console.log('=== TIME DEBUG START ===');
-      
       // Use server time to avoid timezone issues
       const eventDateTime = new Date(`${newEvent.date}T${timeStr}`);
-      console.log('Raw event date:', newEvent.date);
-      console.log('Raw event time:', timeStr);
-      console.log('Event DateTime (local):', eventDateTime);
-      console.log('Event DateTime ISO:', eventDateTime.toISOString());
       
       // Get server time for accurate comparison
       let serverTime = new Date();
-      console.log('Initial server time (local):', serverTime);
-      
       let hasStarted = false;
       
       try {
-        console.log('Calling API getServerTime...');
         const serverTimeResponse = await api.getServerTime();
-        console.log('Server time response:', serverTimeResponse);
         
         if (serverTimeResponse && serverTimeResponse.timestamp) {
           // Server returns UTC time, use it directly
           serverTime = new Date(serverTimeResponse.timestamp);
-          console.log('Updated server time from API (UTC):', serverTime);
-          console.log('Server time ISO:', serverTime.toISOString());
           
-          // IMPORTANT: Event time is already in local timezone (UTC+3), we just need to compare properly
-          // The eventDateTime is already in local time, so we just need to convert it to UTC correctly
-          const eventTimeUTC = new Date(eventDateTime.getTime() - (eventDateTime.getTimezoneOffset() * 60000));
-          console.log('Event time converted to UTC:', eventTimeUTC);
-          console.log('Event time UTC ISO:', eventTimeUTC.toISOString());
+          // Convert event time to UTC properly
+          const timezoneOffset = eventDateTime.getTimezoneOffset();
+          const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
           
           // Compare UTC times
           hasStarted = eventTimeUTC <= serverTime;
-          console.log('Event time <= Server time:', eventTimeUTC <= serverTime);
-          console.log('Has started (UTC comparison):', hasStarted);
         } else {
-          console.log('No timestamp in response, using client time comparison');
           hasStarted = eventDateTime <= serverTime;
         }
       } catch (error) {
-        console.error('Failed to get server time:', error);
         hasStarted = eventDateTime <= serverTime;
       }
-      
-      console.log('Final has started:', hasStarted);
-      console.log('=== TIME DEBUG END ===');
 
       await api.updateEvent(
         editingEvent.id,
@@ -598,15 +570,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
       );
 
       // If lesson has started and has amount, create payment transaction
-      console.log('=== TRANSACTION DEBUG ===');
-      console.log('Has started:', hasStarted);
-      console.log('Amount:', amount);
-      console.log('Amount > 0:', amount > 0);
-      console.log('Should create transaction:', hasStarted && amount > 0);
-      
       if (hasStarted && amount > 0) {
         try {
-          console.log('Creating transaction...');
           await api.createTransaction({
             eventId: editingEvent.id,
             studentId: parseInt(newEvent.studentId),
@@ -616,21 +581,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
             status: 'pending',
             createdAt: new Date().toISOString(),
           });
-          console.log('Transaction created successfully');
         } catch (txError) {
           console.error('Failed to create transaction:', txError);
-          // Don't fail the whole update if transaction creation fails
         }
       }
 
-      // If lesson has started, create homework assignment
-      console.log('=== HOMEWORK DEBUG ===');
-      console.log('Has started:', hasStarted);
-      console.log('Should create homework:', hasStarted);
-      
+      // If lesson has started, create homework assignment as draft
       if (hasStarted) {
         try {
-          console.log('Creating homework...');
           await api.createHomework({
             title: `Домашнее задание по ${newEvent.subject}`,
             description: '',
@@ -638,12 +596,10 @@ export function CalendarView({ userType }: CalendarViewProps) {
             studentId: parseInt(newEvent.studentId),
             lessonId: editingEvent.id,
             dueDate: 'next_lesson',
-            status: 'pending',
+            status: 'draft',
           });
-          console.log('Homework created successfully');
         } catch (hwError) {
           console.error('Failed to create homework:', hwError);
-          // Don't fail the whole update if homework creation fails
         }
       }
 
