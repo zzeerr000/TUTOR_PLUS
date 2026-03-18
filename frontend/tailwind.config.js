@@ -18,16 +18,26 @@ module.exports = {
         accentForeground: "#030213",
         destructive: "#d4183d",
         destructiveForeground: "#ffffff",
-        background: "#ffffff",
-        foreground: "oklch(0.145 0 0)",
-        card: "#f8f8f8",
-        cardForeground: "oklch(0.145 0 0)",
-        popover: "oklch(1 0 0)",
-        popoverForeground: "oklch(0.145 0 0)",
-        primary: "#030213",
-        primaryForeground: "oklch(1 0 0)",
-        secondary: "oklch(0.95 0.0058 264.53)",
-        secondaryForeground: "#030213",
+        background: {
+          DEFAULT: "#ffffff",
+          foreground: "oklch(0.145 0 0)",
+        },
+        card: {
+          DEFAULT: "#f8f8f8",
+          foreground: "oklch(0.145 0 0)",
+        },
+        popover: {
+          DEFAULT: "oklch(1 0 0)",
+          foreground: "oklch(0.145 0 0)",
+        },
+        primary: {
+          DEFAULT: "#030213",
+          foreground: "oklch(1 0 0)",
+        },
+        secondary: {
+          DEFAULT: "oklch(0.95 0.0058 264.53)",
+          foreground: "#030213",
+        },
         chart: {
           1: "oklch(0.646 0.222 41.116)",
           2: "oklch(0.6 0.118 184.704)",
