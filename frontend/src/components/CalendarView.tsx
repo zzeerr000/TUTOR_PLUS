@@ -113,6 +113,18 @@ export function CalendarView({ userType }: CalendarViewProps) {
         // Use client time as fallback
       }
 
+      // Get existing items once to avoid multiple API calls
+      let existingTransactions: any[] = [];
+      let existingHomework: any[] = [];
+      
+      try {
+        existingTransactions = await api.getTransactions();
+        existingHomework = await api.getHomework();
+      } catch (error) {
+        console.error('Failed to load existing items:', error);
+        return;
+      }
+
       // Check each event for pending items
       for (const event of events) {
         if (!event.time || !event.date) continue;
@@ -126,12 +138,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
         if (hasStarted) {
           // Check if transaction already exists
           if (event.amount > 0) {
-            try {
-              // Get existing transactions to check for duplicates
-              const transactionsData = await api.getTransactions();
-              const existingTransaction = transactionsData.find((t: any) => t.eventId === event.id);
-              
-              if (!existingTransaction) {
+            const existingTransaction = existingTransactions.find((t: any) => t.eventId === event.id);
+            
+            if (!existingTransaction) {
+              try {
+                console.log('Creating transaction for event:', event.id);
                 await api.createTransaction({
                   eventId: event.id,
                   studentId: event.studentId,
@@ -141,18 +152,21 @@ export function CalendarView({ userType }: CalendarViewProps) {
                   status: 'pending',
                   createdAt: new Date().toISOString(),
                 });
+                console.log('Transaction created successfully for event:', event.id);
+              } catch (error) {
+                console.error('Failed to create transaction for event:', event.id, error);
               }
-            } catch (error) {
-              // Transaction might already exist, ignore error
+            } else {
+              console.log('Transaction already exists for event:', event.id);
             }
           }
 
           // Check if homework already exists
-          try {
-            const homeworkData = await api.getHomework();
-            const existingHomework = homeworkData.find((h: any) => h.lessonId === event.id);
-            
-            if (!existingHomework) {
+          const existingHW = existingHomework.find((h: any) => h.lessonId === event.id);
+          
+          if (!existingHW) {
+            try {
+              console.log('Creating homework for event:', event.id);
               await api.createHomework({
                 title: `Домашнее задание по ${event.subject || event.subjectName}`,
                 description: '',
@@ -162,9 +176,12 @@ export function CalendarView({ userType }: CalendarViewProps) {
                 dueDate: 'next_lesson',
                 status: 'draft',
               });
+              console.log('Homework created successfully for event:', event.id);
+            } catch (error) {
+              console.error('Failed to create homework for event:', event.id, error);
             }
-          } catch (error) {
-            // Homework might already exist, ignore error
+          } else {
+            console.log('Homework already exists for event:', event.id);
           }
         }
       }
