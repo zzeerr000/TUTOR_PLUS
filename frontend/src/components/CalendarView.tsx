@@ -503,7 +503,14 @@ export function CalendarView({ userType }: CalendarViewProps) {
   };
 
   const processUpdate = async (recurring: boolean) => {
-    if (!editingEvent) return;
+    console.log('=== PROCESS UPDATE START ===');
+    console.log('Editing event:', editingEvent);
+    console.log('New event:', newEvent);
+    
+    if (!editingEvent) {
+      console.log('No editing event, returning');
+      return;
+    }
     setError("");
     setSubmitting(true);
 
@@ -524,29 +531,43 @@ export function CalendarView({ userType }: CalendarViewProps) {
       }
 
       // Check if lesson has started and needs payment transaction
+      console.log('=== TIME DEBUG START ===');
+      
       // Use server time to avoid timezone issues
       const eventDateTime = new Date(`${newEvent.date}T${timeStr}`);
+      console.log('Raw event date:', newEvent.date);
+      console.log('Raw event time:', timeStr);
+      console.log('Event DateTime:', eventDateTime);
       
       // Get server time for accurate comparison
       let serverTime = new Date();
+      console.log('Initial server time:', serverTime);
+      
       try {
+        console.log('Calling API getServerTime...');
         const serverTimeResponse = await api.getServerTime();
+        console.log('Server time response:', serverTimeResponse);
+        
         if (serverTimeResponse && serverTimeResponse.timestamp) {
           serverTime = new Date(serverTimeResponse.timestamp);
+          console.log('Updated server time from API:', serverTime);
+        } else {
+          console.log('No timestamp in response, using client time');
         }
       } catch (error) {
-        console.warn('Failed to get server time, using client time');
+        console.error('Failed to get server time:', error);
       }
       
       // Debug logging
-      console.log('Event time:', eventDateTime.toISOString());
-      console.log('Server time:', serverTime.toISOString());
+      console.log('Event time ISO:', eventDateTime.toISOString());
+      console.log('Server time ISO:', serverTime.toISOString());
       console.log('Event date:', newEvent.date);
       console.log('Event time:', timeStr);
       
       // Simple comparison - both dates should be in the same format
       const hasStarted = eventDateTime <= serverTime;
       console.log('Has started:', hasStarted);
+      console.log('=== TIME DEBUG END ===');
 
       await api.updateEvent(
         editingEvent.id,
