@@ -47,9 +47,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
   const [showDateDetails, setShowDateDetails] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any | null>(null);
   const [showHWDialog, setShowHWDialog] = useState<any | null>(null);
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(
-    null,
-  );
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState<number | null>(null);
+  const [transactions, setTransactions] = useState<any[]>([]);
+  const [homework, setHomework] = useState<any[]>([]);
   const [hwDetails, setHwDetails] = useState({
     title: "Домашнее задание",
     description: "",
@@ -71,6 +71,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
   useEffect(() => {
     const checkEditEvent = async () => {
       loadEvents();
+      loadTransactions();
+      loadHomework();
       if (userType === "tutor") {
         loadStudents();
         loadSubjects();
@@ -145,6 +147,24 @@ export function CalendarView({ userType }: CalendarViewProps) {
       setStudents(data);
     } catch (error) {
       console.error("Failed to load students:", error);
+    }
+  };
+
+  const loadTransactions = async () => {
+    try {
+      const data = await api.getTransactions();
+      setTransactions(data);
+    } catch (error) {
+      console.error("Failed to load transactions:", error);
+    }
+  };
+
+  const loadHomework = async () => {
+    try {
+      const data = await api.getHomework();
+      setHomework(data);
+    } catch (error) {
+      console.error("Failed to load homework:", error);
     }
   };
 
@@ -333,6 +353,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
       setShowDeleteConfirm(null);
       setShowDateDetails(false); // Close the day details popup
       await loadEvents();
+      await loadTransactions();
+      await loadHomework();
     } catch (error) {
       console.error("Failed to delete event:", error);
       alert("Не удалось удалить занятие. Пожалуйста, попробуйте еще раз.");
@@ -576,6 +598,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
         duration: "60",
       });
       await loadEvents();
+      await loadTransactions();
+      await loadHomework();
       setShowDateDetails(false);
     } catch (err: any) {
       setError(err.message || "Не удалось обновить занятие");
@@ -1232,6 +1256,8 @@ export function CalendarView({ userType }: CalendarViewProps) {
                                         event.transactionId,
                                       );
                                       loadEvents();
+                                      loadTransactions();
+                                      loadHomework();
                                       const dayEvents = events.filter(
                                         (e) => e.date === selectedDate,
                                       );
@@ -1745,16 +1771,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         subject: showHWDialog.subject,
                         studentId: showHWDialog.studentId,
                         lessonId: showHWDialog.id,
-                        dueDate: "next_lesson",
-                        status: "pending",
-                      });
-                      setShowHWDialog(null);
-                      setHwDetails({
-                        title: "Домашнее задание",
-                        description: "",
+                        dueDate: 'next_lesson',
+                        status: 'pending',
                       });
                       loadEvents();
-                    } catch (error) {
+                      loadTransactions();
+                      loadHomework();
+                    } catch (error: any) {
                       alert("Не удалось создать задание");
                     }
                   }}
@@ -1772,10 +1795,13 @@ export function CalendarView({ userType }: CalendarViewProps) {
                         subject: showHWDialog.subject,
                         studentId: showHWDialog.studentId,
                         lessonId: showHWDialog.id,
+                        dueDate: 'next_lesson',
                         status: "no_homework",
                       });
                       setShowHWDialog(null);
                       loadEvents();
+                      loadTransactions();
+                      loadHomework();
                     } catch (error) {
                       alert("Не удалось сохранить статус");
                     }
