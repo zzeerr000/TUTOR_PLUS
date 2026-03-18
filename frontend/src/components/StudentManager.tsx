@@ -68,6 +68,39 @@ export function StudentManager() {
   const [selectedSubjectId, setSelectedSubjectId] = useState<string>("");
   const [searchQuery, setSearchQuery] = useState("");
 
+  const getEventStartUtc = (event: any): Date | null => {
+    if (!event?.date || !event?.time) return null;
+
+    const [y, m, d] = String(event.date).split("-").map(Number);
+    if (!y || !m || !d) return null;
+
+    const timeStr = String(event.time);
+    let hour24 = 0;
+    let minute = 0;
+
+    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, minutes] = timePart.split(":");
+      hour24 = parseInt(hours, 10);
+      if (period === "PM" && hour24 !== 12) {
+        hour24 += 12;
+      } else if (period === "AM" && hour24 === 12) {
+        hour24 = 0;
+      }
+      minute = parseInt(minutes, 10);
+    } else {
+      const [hours, minutes] = timeStr.split(":");
+      hour24 = parseInt(hours, 10);
+      minute = parseInt(minutes, 10);
+    }
+
+    if (Number.isNaN(hour24) || Number.isNaN(minute)) return null;
+
+    const offsetMinutes = Number(event.timezoneOffsetMinutes || 0);
+    const utcMs = Date.UTC(y, m - 1, d, hour24, minute, 0, 0) + offsetMinutes * 60_000;
+    return new Date(utcMs);
+  };
+
   useEffect(() => {
     loadData();
     loadSubjects();
@@ -113,45 +146,23 @@ export function StudentManager() {
 
         const nextEvent = studentEvents
           .filter((e: any) => {
-            const eventDate = e.date.split("T")[0];
-            const timeParts = e.time.split(":");
-            const h = timeParts[0].padStart(2, "0");
-            const m = timeParts[1]
-              ? timeParts[1].split(" ")[0].padStart(2, "0")
-              : "00";
-            const eventDateTime = new Date(`${eventDate}T${h}:${m}:00`);
-            return eventDateTime >= now;
+            const eventStartUtc = getEventStartUtc(e);
+            if (!eventStartUtc) return false;
+            return eventStartUtc.getTime() >= now.getTime();
           })
           .sort((a: any, b: any) => {
-            const dateA = a.date.split("T")[0];
-            const timeA = a.time.split(":");
-            const hA = timeA[0].padStart(2, "0");
-            const mA = timeA[1]
-              ? timeA[1].split(" ")[0].padStart(2, "0")
-              : "00";
-
-            const dateB = b.date.split("T")[0];
-            const timeB = b.time.split(":");
-            const hB = timeB[0].padStart(2, "0");
-            const mB = timeB[1]
-              ? timeB[1].split(" ")[0].padStart(2, "0")
-              : "00";
-
-            return (
-              new Date(`${dateA}T${hA}:${mA}:00`).getTime() -
-              new Date(`${dateB}T${hB}:${mB}:00`).getTime()
-            );
+            const aStart = getEventStartUtc(a);
+            const bStart = getEventStartUtc(b);
+            if (!aStart && !bStart) return 0;
+            if (!aStart) return 1;
+            if (!bStart) return -1;
+            return aStart.getTime() - bStart.getTime();
           })[0];
 
         const completedCount = studentEvents.filter((e: any) => {
-          const eventDate = e.date.split("T")[0];
-          const timeParts = e.time.split(":");
-          const h = timeParts[0].padStart(2, "0");
-          const m = timeParts[1]
-            ? timeParts[1].split(" ")[0].padStart(2, "0")
-            : "00";
-          const eventDateTime = new Date(`${eventDate}T${h}:${m}:00`);
-          return eventDateTime < now;
+          const eventStartUtc = getEventStartUtc(e);
+          if (!eventStartUtc) return false;
+          return eventStartUtc.getTime() < now.getTime();
         }).length;
 
         const activeHW = studentHomework.filter(

@@ -12,6 +12,7 @@ import { UsersService } from "../users/users.service";
 import { CalendarService } from "../calendar/calendar.service";
 import { HomeworkService } from "../homework/homework.service";
 import { SubjectsService } from "../subjects/subjects.service";
+import { Event } from "../calendar/entities/event.entity";
 
 @Injectable()
 export class ConnectionsService {
@@ -26,6 +27,40 @@ export class ConnectionsService {
     @Inject(forwardRef(() => SubjectsService))
     private subjectsService: SubjectsService,
   ) {}
+
+  private getEventStartUtc(event: Event): Date | null {
+    if (!event?.date || !event?.time) return null;
+
+    const [y, m, d] = String(event.date).split("-").map(Number);
+    if (!y || !m || !d) return null;
+
+    const timeStr = String(event.time);
+    let hour24 = 0;
+    let minute = 0;
+
+    if (timeStr.includes("AM") || timeStr.includes("PM")) {
+      const [timePart, period] = timeStr.split(" ");
+      const [hours, minutes] = timePart.split(":");
+      hour24 = parseInt(hours, 10);
+      if (period === "PM" && hour24 !== 12) {
+        hour24 += 12;
+      } else if (period === "AM" && hour24 === 12) {
+        hour24 = 0;
+      }
+      minute = parseInt(minutes, 10);
+    } else {
+      const [hours, minutes] = timeStr.split(":");
+      hour24 = parseInt(hours, 10);
+      minute = parseInt(minutes, 10);
+    }
+
+    if (Number.isNaN(hour24) || Number.isNaN(minute)) return null;
+
+    const offsetMinutes = Number((event as any).timezoneOffsetMinutes || 0);
+    const utcMs = Date.UTC(y, m - 1, d, hour24, minute, 0, 0) +
+      offsetMinutes * 60_000;
+    return new Date(utcMs);
+  }
 
   async createConnectionRequest(
     requestedById: number,
@@ -453,31 +488,26 @@ export class ConnectionsService {
     const now = new Date();
 
     const pastLessons = studentEvents.filter((e) => {
-      const eventDate = e.date.split("T")[0];
-      const timeParts = e.time.split(":");
-      const h = timeParts[0].padStart(2, "0");
-      const m = timeParts[1]
-        ? timeParts[1].split(" ")[0].padStart(2, "0")
-        : "00";
-      const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
-      return lessonDateTime < now;
+      const eventStartUtc = this.getEventStartUtc(e as any);
+      if (!eventStartUtc) return false;
+      return eventStartUtc.getTime() < now.getTime();
     });
 
     const upcomingLessons = studentEvents
       .filter((e) => {
-        const eventDate = e.date.split("T")[0];
-        const timeParts = e.time.split(":");
-        const h = timeParts[0].padStart(2, "0");
-        const m = timeParts[1]
-          ? timeParts[1].split(" ")[0].padStart(2, "0")
-          : "00";
-        const lessonDateTime = new Date(`${eventDate}T${h}:${m}:00`);
-        return lessonDateTime >= now;
+        const eventStartUtc = this.getEventStartUtc(e as any);
+        if (!eventStartUtc) return false;
+        return eventStartUtc.getTime() >= now.getTime();
       })
       .sort(
-        (a, b) =>
-          new Date(a.date).getTime() - new Date(b.date).getTime() ||
-          a.time.localeCompare(b.time),
+        (a, b) => {
+          const aStart = this.getEventStartUtc(a as any);
+          const bStart = this.getEventStartUtc(b as any);
+          if (!aStart && !bStart) return 0;
+          if (!aStart) return 1;
+          if (!bStart) return -1;
+          return aStart.getTime() - bStart.getTime();
+        },
       );
 
     const filteredLessonsHistory = [...upcomingLessons, ...pastLessons];
