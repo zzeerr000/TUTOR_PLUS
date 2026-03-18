@@ -531,16 +531,22 @@ export function CalendarView({ userType }: CalendarViewProps) {
       let serverTime = new Date();
       try {
         const serverTimeResponse = await api.getServerTime();
-        serverTime = new Date(serverTimeResponse.time);
+        if (serverTimeResponse && serverTimeResponse.time) {
+          serverTime = new Date(serverTimeResponse.time);
+        }
       } catch (error) {
-        // Fallback to client time with timezone adjustment
-        const now = new Date();
-        const serverTimeOffset = 3 * 60; // Moscow is UTC+3
-        const nowUTC = new Date(now.getTime() + (now.getTimezoneOffset() * 60000));
-        serverTime = new Date(nowUTC.getTime() + (serverTimeOffset * 60000));
+        console.warn('Failed to get server time, using client time');
       }
       
+      // Debug logging
+      console.log('Event time:', eventDateTime.toISOString());
+      console.log('Server time:', serverTime.toISOString());
+      console.log('Event date:', newEvent.date);
+      console.log('Event time:', timeStr);
+      
+      // Simple comparison - both dates should be in the same format
       const hasStarted = eventDateTime <= serverTime;
+      console.log('Has started:', hasStarted);
 
       await api.updateEvent(
         editingEvent.id,
