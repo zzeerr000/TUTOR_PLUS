@@ -1,14 +1,34 @@
 services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: tutorplus-postgres
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=tutorplus
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+    volumes:
+      - tutorplus_pgdata:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
   backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
     container_name: tutorplus-backend
     restart: unless-stopped
+    depends_on:
+      - postgres
     environment:
       - NODE_ENV=production
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_USER=postgres
+      - DB_PASSWORD=postgres
+      - DB_NAME=tutorplus
+      - JWT_SECRET=change-me-in-production
     volumes:
-      - ./data/tutorplus.db:/app/tutorplus.db
       - ./data/uploads:/app/uploads
     ports:
       - "3000:3000"
@@ -24,4 +44,5 @@ services:
     ports:
       - "80:80"
 
-volumes: {}
+volumes:
+  tutorplus_pgdata: {}
