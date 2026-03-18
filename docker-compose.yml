@@ -1,11 +1,7 @@
 services:
   postgres:
     image: postgres:16-alpine
-    command: >
-      sh -c "
-      echo 'password_encryption = md5' >> /var/lib/postgresql/data/postgresql.conf
-      exec postgres
-      "
+
     container_name: tutorplus-postgres
     restart: unless-stopped
     environment:
