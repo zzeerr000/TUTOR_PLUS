@@ -125,17 +125,23 @@ export function CalendarView({ userType }: CalendarViewProps) {
         
         if (hasStarted) {
           // Check if transaction already exists
-          if (event.amount > 0 && !event.transactionId) {
+          if (event.amount > 0) {
             try {
-              await api.createTransaction({
-                eventId: event.id,
-                studentId: event.studentId,
-                tutorId: parseInt(localStorage.getItem('userId') || '0'),
-                amount: parseFloat(event.amount) || 0,
-                subject: event.subject || event.subjectName,
-                status: 'pending',
-                createdAt: new Date().toISOString(),
-              });
+              // Get existing transactions to check for duplicates
+              const transactionsData = await api.getTransactions();
+              const existingTransaction = transactionsData.find((t: any) => t.eventId === event.id);
+              
+              if (!existingTransaction) {
+                await api.createTransaction({
+                  eventId: event.id,
+                  studentId: event.studentId,
+                  tutorId: parseInt(localStorage.getItem('userId') || '0'),
+                  amount: parseFloat(event.amount) || 0,
+                  subject: event.subject || event.subjectName,
+                  status: 'pending',
+                  createdAt: new Date().toISOString(),
+                });
+              }
             } catch (error) {
               // Transaction might already exist, ignore error
             }
