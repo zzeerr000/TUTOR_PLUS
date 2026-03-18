@@ -1,4 +1,5 @@
 import { Module } from "@nestjs/common";
+import { ConfigModule, ConfigService } from "@nestjs/config";
 import { TypeOrmModule } from "@nestjs/typeorm";
 import { AuthModule } from "./auth/auth.module";
 import { UsersModule } from "./users/users.module";
@@ -26,23 +27,33 @@ import { Subject } from "./subjects/entities/subject.entity";
 
 @Module({
   imports: [
-    TypeOrmModule.forRoot({
-      type: "sqlite",
-      database: "tutorplus.db",
-      entities: [
-        User,
-        Task,
-        Message,
-        FileEntity,
-        FolderEntity,
-        Transaction,
-        Event,
-        Progress,
-        Connection,
-        Homework,
-        Subject,
-      ],
-      synchronize: true,
+    ConfigModule.forRoot({
+      isGlobal: true,
+    }),
+    TypeOrmModule.forRootAsync({
+      inject: [ConfigService],
+      useFactory: (config: ConfigService) => ({
+        type: "postgres",
+        host: config.get<string>("DB_HOST", "localhost"),
+        port: parseInt(config.get<string>("DB_PORT", "5432"), 10),
+        username: config.get<string>("DB_USER", "postgres"),
+        password: config.get<string>("DB_PASSWORD", "postgres"),
+        database: config.get<string>("DB_NAME", "tutorplus"),
+        entities: [
+          User,
+          Task,
+          Message,
+          FileEntity,
+          FolderEntity,
+          Transaction,
+          Event,
+          Progress,
+          Connection,
+          Homework,
+          Subject,
+        ],
+        synchronize: true,
+      }),
     }),
     AuthModule,
     UsersModule,
