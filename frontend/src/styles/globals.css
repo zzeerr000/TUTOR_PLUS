@@ -85,50 +85,38 @@
 
 @layer base {
   * {
-    border-color: var(--border);
+    @apply border-border;
   }
 
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    @apply bg-background text-foreground;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-}
 
-/**
- * Base typography. This is not applied to elements which have an ancestor with a Tailwind text class.
- */
-@layer base {
-  h1, h2, h3, h4, label, button, input {
-    font-size: var(--text-base);
-    font-weight: var(--font-weight-medium);
+  h1, h2, h3, h4, label, button {
+    @apply text-base font-medium;
     line-height: 1.5;
   }
 
   h1 {
-    font-size: var(--text-2xl);
+    @apply text-2xl;
   }
 
   h2 {
-    font-size: var(--text-xl);
+    @apply text-xl;
   }
 
   h3 {
-    font-size: var(--text-lg);
+    @apply text-lg;
   }
 
   input {
-    font-weight: var(--font-weight-normal);
+    @apply font-normal;
   }
 }
 
-html {
-  font-size: var(--font-size);
-}
-
 /* Custom Scrollbar */
-
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
@@ -139,25 +127,28 @@ html {
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #333;
+  @apply bg-muted-foreground;
   border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #444;
+  @apply bg-foreground;
 }
 
 /* Firefox */
 * {
   scrollbar-width: thin;
-  scrollbar-color: #333 transparent;
+  scrollbar-color: theme('colors.muted.foreground') transparent;
 }
 
 /* Explicitly target html/body to ensure main window scrollbar is styled */
 html,
 body {
   scrollbar-width: thin;
-  scrollbar-color: var(--muted-foreground) transparent;
-  background-color: var(--background);
-  color: var(--foreground);
+  scrollbar-color: theme('colors.muted.foreground') transparent;
+  @apply bg-background text-foreground;
+}
+
+html {
+  font-size: var(--font-size);
 }
