@@ -538,6 +538,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       console.log('Raw event date:', newEvent.date);
       console.log('Raw event time:', timeStr);
       console.log('Event DateTime (local):', eventDateTime);
+      console.log('Event DateTime ISO:', eventDateTime.toISOString());
       
       // Get server time for accurate comparison
       let serverTime = new Date();
@@ -554,18 +555,22 @@ export function CalendarView({ userType }: CalendarViewProps) {
           // Server returns UTC time, use it directly
           serverTime = new Date(serverTimeResponse.timestamp);
           console.log('Updated server time from API (UTC):', serverTime);
+          console.log('Server time ISO:', serverTime.toISOString());
           
           // IMPORTANT: Convert event time to UTC assuming it's in server's timezone (UTC+3 Moscow)
           // Since server stores times in UTC, we need to create the event time in UTC
           const eventTimeInServerTimezone = new Date(`${newEvent.date}T${timeStr}+03:00`);
           console.log('Event time in server timezone (UTC+3):', eventTimeInServerTimezone);
+          console.log('Event time in server timezone ISO:', eventTimeInServerTimezone.toISOString());
           
           // Convert to UTC for comparison
           const eventTimeUTC = new Date(eventTimeInServerTimezone.getTime() - (eventTimeInServerTimezone.getTimezoneOffset() * 60000));
           console.log('Event time converted to UTC:', eventTimeUTC);
+          console.log('Event time UTC ISO:', eventTimeUTC.toISOString());
           
           // Compare UTC times
           hasStarted = eventTimeUTC <= serverTime;
+          console.log('Event time <= Server time:', eventTimeUTC <= serverTime);
           console.log('Has started (UTC comparison):', hasStarted);
         } else {
           console.log('No timestamp in response, using client time comparison');
