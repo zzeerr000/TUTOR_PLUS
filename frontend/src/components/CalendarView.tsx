@@ -100,6 +100,73 @@ export function CalendarView({ userType }: CalendarViewProps) {
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [userType]);
 
+  const checkAndCreatePendingItems = async (events: any[]) => {
+    try {
+      // Get server time
+      let serverTime = new Date();
+      try {
+        const serverTimeResponse = await api.getServerTime();
+        if (serverTimeResponse && serverTimeResponse.timestamp) {
+          serverTime = new Date(serverTimeResponse.timestamp);
+        }
+      } catch (error) {
+        // Use client time as fallback
+      }
+
+      // Check each event for pending items
+      for (const event of events) {
+        if (!event.time || !event.date) continue;
+
+        const eventDateTime = new Date(`${event.date}T${event.time}`);
+        const timezoneOffset = eventDateTime.getTimezoneOffset();
+        const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
+        
+        const hasStarted = eventTimeUTC <= serverTime;
+        
+        if (hasStarted) {
+          // Check if transaction already exists
+          if (event.amount > 0 && !event.transactionId) {
+            try {
+              await api.createTransaction({
+                eventId: event.id,
+                studentId: event.studentId,
+                tutorId: parseInt(localStorage.getItem('userId') || '0'),
+                amount: parseFloat(event.amount) || 0,
+                subject: event.subject || event.subjectName,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+              });
+            } catch (error) {
+              // Transaction might already exist, ignore error
+            }
+          }
+
+          // Check if homework already exists
+          try {
+            const homeworkData = await api.getHomework();
+            const existingHomework = homeworkData.find((h: any) => h.lessonId === event.id);
+            
+            if (!existingHomework) {
+              await api.createHomework({
+                title: `Домашнее задание по ${event.subject || event.subjectName}`,
+                description: '',
+                subject: event.subject || event.subjectName,
+                studentId: event.studentId,
+                lessonId: event.id,
+                dueDate: 'next_lesson',
+                status: 'draft',
+              });
+            }
+          } catch (error) {
+            // Homework might already exist, ignore error
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check pending items:', error);
+    }
+  };
+
   const loadEvents = async () => {
     try {
       setLoading(true);
@@ -117,6 +184,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
         };
       });
       setEvents(formattedEvents);
+
+      // Check for past events and create pending transactions/homework
+      await checkAndCreatePendingItems(formattedEvents);
 
       // Update date details if modal is open
       if (showDateDetails && selectedDate) {
