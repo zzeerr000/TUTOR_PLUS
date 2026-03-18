@@ -501,6 +501,11 @@ export function CalendarView({ userType }: CalendarViewProps) {
         return;
       }
 
+      // Check if lesson has started and needs payment transaction
+      const eventDateTime = new Date(`${newEvent.date}T${timeStr}`);
+      const now = new Date();
+      const hasStarted = eventDateTime <= now;
+
       await api.updateEvent(
         editingEvent.id,
         {
@@ -513,9 +518,48 @@ export function CalendarView({ userType }: CalendarViewProps) {
           color: newEvent.color,
           amount: amount,
           duration: duration,
+          // Mark as payment pending if lesson has started
+          paymentPending: hasStarted && amount > 0,
         },
         recurring,
       );
+
+      // If lesson has started and has amount, create payment transaction
+      if (hasStarted && amount > 0) {
+        try {
+          await api.createTransaction({
+            eventId: editingEvent.id,
+            studentId: parseInt(newEvent.studentId),
+            tutorId: parseInt(localStorage.getItem('userId') || '0'),
+            amount: amount,
+            subject: newEvent.subject,
+            status: 'pending',
+            createdAt: new Date().toISOString(),
+          });
+        } catch (txError) {
+          console.error('Failed to create transaction:', txError);
+          // Don't fail the whole update if transaction creation fails
+        }
+      }
+
+      // If lesson has started, create homework assignment
+      if (hasStarted) {
+        try {
+          await api.createHomework({
+            title: `Домашнее задание по ${newEvent.subject}`,
+            description: '',
+            subject: newEvent.subject,
+            studentId: parseInt(newEvent.studentId),
+            lessonId: editingEvent.id,
+            dueDate: 'next_lesson',
+            status: 'pending',
+          });
+        } catch (hwError) {
+          console.error('Failed to create homework:', hwError);
+          // Don't fail the whole update if homework creation fails
+        }
+      }
+
       setShowAddDialog(false);
       setShowUpdateConfirm(false);
       setEditingEvent(null);
@@ -531,7 +575,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
         amount: localStorage.getItem("last_lesson_price") || "0",
         duration: "60",
       });
-      loadEvents();
+      await loadEvents();
       setShowDateDetails(false);
     } catch (err: any) {
       setError(err.message || "Не удалось обновить занятие");

@@ -248,6 +248,13 @@ export const api = {
     });
   },
 
+  async createTransaction(data: any) {
+    return this.request("/finance", {
+      method: "POST",
+      body: JSON.stringify(data),
+    });
+  },
+
   async cancelPayment(transactionId: number) {
     return this.request(`/finance/${transactionId}/cancel`, {
       method: "PUT",
