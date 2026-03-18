@@ -157,7 +157,9 @@ export class FinanceService {
 
     for (const event of events) {
       // Parse event date and time
-      const eventDate = new Date(event.date);
+      // Parse event date using local date parts to avoid UTC shift
+      const [y, m, d] = event.date.split("-").map(Number);
+      const eventDate = new Date(y, m - 1, d);
       const timeStr = event.time;
 
       // Convert 12-hour format to 24-hour
