@@ -92,12 +92,23 @@ export function CalendarView({ userType }: CalendarViewProps) {
     
     checkEditEvent();
 
+    // Set up periodic check for completed lessons (every 2 minutes)
+    const intervalId = setInterval(async () => {
+      const events = await api.getEvents();
+      await checkAndCreateForCompletedLessons(events);
+      await loadEvents(); // Refresh events to show updated status
+    }, 2 * 60 * 1000); // 2 minutes
+
     const handleStorageChange = () => {
       setCurrency(api.getCurrencySymbol());
     };
 
     window.addEventListener("storage", handleStorageChange);
-    return () => window.removeEventListener("storage", handleStorageChange);
+    
+    return () => {
+      window.removeEventListener("storage", handleStorageChange);
+      clearInterval(intervalId);
+    };
   }, [userType]);
 
   const loadEvents = async () => {
@@ -117,6 +128,9 @@ export function CalendarView({ userType }: CalendarViewProps) {
         };
       });
       setEvents(formattedEvents);
+
+      // Check for completed lessons and create payment/homework if needed
+      await checkAndCreateForCompletedLessons(formattedEvents);
 
       // Update date details if modal is open
       if (showDateDetails && selectedDate) {
@@ -165,6 +179,95 @@ export function CalendarView({ userType }: CalendarViewProps) {
       setHomework(data);
     } catch (error) {
       console.error("Failed to load homework:", error);
+    }
+  };
+
+  const checkAndCreateForCompletedLessons = async (events: any[]) => {
+    try {
+      // Get current server time
+      let serverTime = new Date();
+      try {
+        const serverTimeResponse = await api.getServerTime();
+        if (serverTimeResponse && serverTimeResponse.timestamp) {
+          serverTime = new Date(serverTimeResponse.timestamp);
+        }
+      } catch (error) {
+        console.warn('Failed to get server time, using client time');
+      }
+
+      // Get existing transactions and homework to avoid duplicates
+      const [existingTransactions, existingHomework] = await Promise.all([
+        api.getTransactions(),
+        api.getHomework()
+      ]);
+
+      const transactionEventIds = new Set(existingTransactions.map((t: any) => t.eventId));
+      const homeworkEventIds = new Set(existingHomework.map((h: any) => h.lessonId));
+
+      for (const event of events) {
+        // Skip if transaction and homework already exist
+        if (transactionEventIds.has(event.id) && homeworkEventIds.has(event.id)) {
+          continue;
+        }
+
+        // Check if lesson is completed (same logic as isEventPast but with server time)
+        const eventDateTime = new Date(`${event.date}T${event.time || '00:00'}`);
+        const timezoneOffset = eventDateTime.getTimezoneOffset();
+        const eventTimeUTC = new Date(eventDateTime.getTime() + (timezoneOffset * 60000));
+        
+        const isCompleted = eventTimeUTC <= serverTime;
+
+        if (isCompleted) {
+          // Update event status in database to completed
+          try {
+            await api.updateEvent(event.id, {
+              ...event,
+              status: 'completed',
+              paymentPending: event.amount > 0 && !transactionEventIds.has(event.id),
+            });
+          } catch (error) {
+            console.error('Failed to update event status:', event.id, error);
+          }
+
+          // Create transaction if needed
+          if (event.amount > 0 && !transactionEventIds.has(event.id)) {
+            try {
+              await api.createTransaction({
+                eventId: event.id,
+                studentId: event.studentId,
+                tutorId: parseInt(localStorage.getItem('userId') || '0'),
+                amount: event.amount,
+                subject: event.subject || event.subjectName,
+                status: 'pending',
+                createdAt: new Date().toISOString(),
+              });
+              console.log('Created transaction for completed event:', event.id);
+            } catch (error) {
+              console.error('Failed to create transaction for event:', event.id, error);
+            }
+          }
+
+          // Create homework if needed
+          if (!homeworkEventIds.has(event.id)) {
+            try {
+              await api.createHomework({
+                title: `Домашнее задание по ${event.subject || event.subjectName}`,
+                description: '',
+                subject: event.subject || event.subjectName,
+                studentId: event.studentId,
+                lessonId: event.id,
+                dueDate: 'next_lesson',
+                status: 'draft',
+              });
+              console.log('Created homework for completed event:', event.id);
+            } catch (error) {
+              console.error('Failed to create homework for event:', event.id, error);
+            }
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Failed to check completed lessons:', error);
     }
   };
 
