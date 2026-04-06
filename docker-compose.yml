@@ -45,4 +45,6 @@ services:
       - "80:80"
 
 volumes:
-  tutorplus_pgdata: {}
+  tutorplus_pgdata:
+    external: true
+    name: tutorplus_pgdata
