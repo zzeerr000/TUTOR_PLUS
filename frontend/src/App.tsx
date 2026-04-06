@@ -209,9 +209,7 @@ export default function App() {
         <div className="flex items-center justify-between mb-4">
           <div>
             <h1 className="text-2xl font-bold">Tutor+</h1>
-            <p className="text-xs text-muted-foreground mt-1">
-              Добро пожаловать, {user.name}
-            </p>
+
           </div>
           <div className="flex items-center gap-2">
             {/* User Code Display */}
@@ -267,11 +265,6 @@ export default function App() {
             </button>
           </div>
         </div>
-        <p className="text-sm text-muted-foreground">
-          {userType === "tutor"
-            ? "Управляйте своими студентами и занятиями"
-            : "Отслеживайте свой путь обучения"}
-        </p>
       </div>
 
       {/* Content */}
