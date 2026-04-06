@@ -700,7 +700,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             День
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex flex-col md:flex-row items-center gap-2">
           <h2 className="text-xl font-semibold">
             {viewType === "month"
               ? monthName
