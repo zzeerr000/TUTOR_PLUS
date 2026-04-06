@@ -667,7 +667,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
   return (
     <div className="space-y-4 pb-6">
       {/* View Type Selector */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col md:flex-row items-center justify-between">
         <div className="flex gap-2 bg-card border border-border rounded-lg p-1">
           <button
             onClick={() => setViewType("month")}
@@ -700,7 +700,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             День
           </button>
         </div>
-        <div className="flex flex-col md:flex-row items-center gap-2">
+        <div className="flex items-center gap-2">
           <h2 className="text-xl font-semibold">
             {viewType === "month"
               ? monthName
