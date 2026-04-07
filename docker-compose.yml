@@ -25,7 +25,7 @@ services:
       - DB_HOST=postgres
       - DB_PORT=5432
       - DB_USER=postgres
-      - DB_PASSWORD=postgres
+      - DB_PASSWORD=REPLACE_WITH_STRONG_PASSWORD
       - DB_NAME=tutorplus
       - JWT_SECRET=change-me-in-production
     volumes:
