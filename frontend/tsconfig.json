@@ -96,9 +96,6 @@
       ],
       "@radix-ui/react-accordion@1.2.3": [
         "./node_modules/@radix-ui/react-accordion"
-      ],
-      "@jsr/supabase__supabase-js@2.49.8": [
-        "./node_modules/@jsr/supabase__supabase-js"
       ]
     }
   },
