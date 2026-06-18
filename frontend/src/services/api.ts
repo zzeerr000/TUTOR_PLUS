@@ -1,7 +1,11 @@
-const API_URL = "/api";
+import { getApiUrl, getAssetBaseUrl, resolveAssetUrl } from "../config/env";
+
+const API_URL = getApiUrl();
 
 export const api = {
-  getBaseUrl: () => API_URL,
+  getBaseUrl: () => getAssetBaseUrl(),
+  getApiUrl: () => getApiUrl(),
+  resolveAssetUrl,
   async request(endpoint: string, options: RequestInit = {}) {
     const token = localStorage.getItem("token");
     const headers: any = {
@@ -62,7 +66,7 @@ export const api = {
     } catch (error: any) {
       if (error.name === "TypeError" && error.message.includes("fetch")) {
         throw new Error(
-          "Cannot connect to server. Make sure the backend is running on http://localhost:3000",
+          "Не удалось подключиться к серверу. Проверьте, что backend запущен и VITE_API_URL указан верно.",
         );
       }
       throw error;

@@ -6,13 +6,24 @@ import * as express from 'express';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  
-  // Enable CORS
+
+  const defaultOrigins = [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "https://localhost",
+    "capacitor://localhost",
+    "http://localhost",
+  ];
+  const extraOrigins = (process.env.CORS_ORIGINS ?? "")
+    .split(",")
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
-    origin: ['http://localhost:5173', 'http://127.0.0.1:5173'],
+    origin: [...defaultOrigins, ...extraOrigins],
     credentials: true,
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"],
   });
 
   // Serve static files
@@ -25,8 +36,8 @@ async function bootstrap() {
     transform: true,
   }));
 
-  await app.listen(3000);
-  console.log('Backend server running on http://localhost:3000');
+  await app.listen(3000, "0.0.0.0");
+  console.log("Backend server running on http://0.0.0.0:3000");
 }
 bootstrap();
 
