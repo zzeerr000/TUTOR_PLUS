@@ -873,7 +873,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
               return (
                 <div
                   key={idx}
-                  className="border-r border-border last:border-r-0"
+                  className="border-solid sm:border-r border-border last:border-r-0"
                 >
                   <div
                     className={`text-center py-2 mb-2 mr-2 ${

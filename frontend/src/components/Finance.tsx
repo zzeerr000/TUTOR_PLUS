@@ -394,7 +394,7 @@ export function Finance({ userType }: FinanceProps) {
                       <span>{transaction.subject}</span>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center flex-col sm:flex-row gap-3">
                     <div className="text-right">
                       <div
                         className={`mb-1 ${
