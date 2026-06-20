@@ -668,7 +668,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
     <div className="space-y-4 pb-6">
       {/* View Type Selector */}
       <div className="flex flex-col md:flex-row items-center justify-between">
-        <div className="flex gap-2 bg-card border border-border rounded-lg p-1">
+        <div className="flex gap-2 bg-card border border-border justify-between md:justify-start rounded-lg p-1 w-full md:w-auto">
           <button
             onClick={() => setViewType("month")}
             className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
@@ -700,7 +700,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
             День
           </button>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center pt-2 md:pt-0 justify-between min-w-full md:min-w-auto md:gap-4 px-2">
           <h2 className="text-xl font-semibold">
             {viewType === "month"
               ? monthName
@@ -858,7 +858,7 @@ export function CalendarView({ userType }: CalendarViewProps) {
       {/* Week View */}
       {viewType === "week" && (
         <div className="bg-card border border-border rounded-lg p-4">
-          <div className="grid grid-cols-7 gap-2">
+          <div className="grid grid-rows-7 sm:grid-cols-7 gap-2">
             {weekDates.map((date, idx) => {
               const dayEvents = getEventsForWeekDate(date);
               const today = new Date();

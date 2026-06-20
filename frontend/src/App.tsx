@@ -206,7 +206,7 @@ export default function App() {
     <div className="min-h-screen bg-background text-foreground pb-20">
       {/* Header */}
       <div className="sticky top-0 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60 z-50 px-4 py-6 border-b border-border pt-safe">
-        <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center justify-between mb-1 mt-6">
           <div>
             <h1 className="text-2xl font-bold">Tutor+</h1>
 

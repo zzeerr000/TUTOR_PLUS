@@ -274,9 +274,30 @@ export function FileManager({ userType }: FileManagerProps) {
     <div className="space-y-4 pb-20">
       {/* Actions (для репетитора) */}
 
+      {/* Storage Info */}
+      <div className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 text-white">
+        <div className="flex items-center justify-between mb-2">
+          <span>Использовано памяти</span>
+          <span>
+            {storageStats.usedFormatted} / {storageStats.totalFormatted}
+          </span>
+        </div>
+        <div className="w-full bg-white/20 rounded-full h-2">
+          <div
+            className="bg-white h-2 rounded-full transition-all"
+            style={{
+              width: `${Math.min(
+                (storageStats.used / storageStats.total) * 100,
+                100,
+              )}%`,
+            }}
+          />
+        </div>
+      </div>
+
       {/* Filter Tabs and Subject Selector */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center justify-between">
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
+        <div className="flex gap-2 overflow-x-auto pb-2 scrollbar-hide">
           {[
             { id: "all", label: "Все файлы" },
             { id: "documents", label: "Документы" },
@@ -315,26 +336,7 @@ export function FileManager({ userType }: FileManagerProps) {
         )}
       </div>
 
-      {/* Storage Info */}
-      <div className="bg-linear-to-br from-[#1db954] to-[#15883d] rounded-lg p-4 text-white">
-        <div className="flex items-center justify-between mb-2">
-          <span>Использовано памяти</span>
-          <span>
-            {storageStats.usedFormatted} / {storageStats.totalFormatted}
-          </span>
-        </div>
-        <div className="w-full bg-white/20 rounded-full h-2">
-          <div
-            className="bg-white h-2 rounded-full transition-all"
-            style={{
-              width: `${Math.min(
-                (storageStats.used / storageStats.total) * 100,
-                100,
-              )}%`,
-            }}
-          />
-        </div>
-      </div>
+      
       {userType === "tutor" && (
         <div className="flex gap-2">
           <button
@@ -506,7 +508,7 @@ export function FileManager({ userType }: FileManagerProps) {
                     <div className="mb-1 truncate text-foreground">
                       {file.name}
                     </div>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm mt-1 sm:mt-0 text-muted-foreground">
                       <span>{file.size}</span>
                       <span>•</span>
                       <span>{file.date}</span>

@@ -455,8 +455,8 @@ export function StudentManager() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <div className="flex flex-col">
+                    <div className="flex flex-col sm:flex-row items-center justify-between mb-1">
+                      <div className="flex flex-col mb-1 sm:mb-0">
                         <span className="font-medium text-foreground">
                           {student.name}
                         </span>
@@ -466,7 +466,7 @@ export function StudentManager() {
                           </span>
                         )}
                       </div>
-                      <div className="flex items-center gap-2">
+                      <div className="flex items-center gap-2 mb-1 sm:mb-0">
                         <span
                           className="text-xs px-2 py-1 rounded-full"
                           style={{
