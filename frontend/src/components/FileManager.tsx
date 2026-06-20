@@ -508,7 +508,7 @@ export function FileManager({ userType }: FileManagerProps) {
                     <div className="mb-1 truncate text-foreground">
                       {file.name}
                     </div>
-                    <div className="flex items-center gap-2 text-sm mt-1 sm:mt-0 text-muted-foreground">
+                    <div className="flex items-center gap-2 text-sm mt-2 pt-2 sm:pt-0 sm:mt-0 text-muted-foreground">
                       <span>{file.size}</span>
                       <span>•</span>
                       <span>{file.date}</span>
