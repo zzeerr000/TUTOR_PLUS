@@ -1,19 +1,35 @@
 import { Capacitor } from "@capacitor/core";
 import { Directory, Filesystem } from "@capacitor/filesystem";
-import { Share } from "@capacitor/share";
+
+const APP_FOLDER = "TutorPlus";
 
 function sanitizeFileName(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, "_").trim() || "download";
 }
 
-function isShareCancelled(error: unknown): boolean {
-  const message =
-    error instanceof Error
-      ? error.message
-      : typeof error === "string"
-        ? error
-        : "";
-  return /cancel(l(ed)?)?|abort(ed)?|dismiss(ed)?/i.test(message);
+function getSaveSuccessMessage(): string {
+  if (Capacitor.getPlatform() === "ios") {
+    return `Файл сохранён.\nОткройте «Файлы» → «На iPhone» → ${APP_FOLDER}.`;
+  }
+  return `Файл сохранён.\nОткройте «Файлы» → «Документы» → ${APP_FOLDER}.`;
+}
+
+async function ensureStoragePermissions() {
+  if (Capacitor.getPlatform() !== "android") {
+    return;
+  }
+
+  const status = await Filesystem.checkPermissions();
+  if (status.publicStorage === "granted") {
+    return;
+  }
+
+  const requested = await Filesystem.requestPermissions();
+  if (requested.publicStorage !== "granted") {
+    throw new Error(
+      "Нет доступа к памяти устройства. Разрешите доступ в настройках приложения.",
+    );
+  }
 }
 
 async function downloadFileWeb(
@@ -52,42 +68,40 @@ async function downloadFileNative(
   fileName: string,
   token: string | null,
 ) {
+  await ensureStoragePermissions();
+
   const safeName = sanitizeFileName(fileName);
-  const path = `${Date.now()}_${safeName}`;
+  const path = `${APP_FOLDER}/${safeName}`;
+
+  try {
+    await Filesystem.mkdir({
+      path: APP_FOLDER,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+  } catch {
+    // Folder already exists.
+  }
 
   await Filesystem.downloadFile({
     url: downloadUrl,
     path,
-    directory: Directory.Cache,
+    directory: Directory.Documents,
+    recursive: true,
     headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
-  const { uri } = await Filesystem.getUri({
-    path,
-    directory: Directory.Cache,
-  });
-
-  try {
-    await Share.share({
-      title: safeName,
-      files: [uri],
-      dialogTitle: "Сохранить файл",
-    });
-  } catch (error) {
-    if (isShareCancelled(error)) {
-      return;
-    }
-    throw error;
-  }
+  return getSaveSuccessMessage();
 }
 
 export async function downloadFileToDevice(
   downloadUrl: string,
   fileName: string,
   token: string | null,
-) {
+): Promise<void> {
   if (Capacitor.isNativePlatform()) {
-    await downloadFileNative(downloadUrl, fileName, token);
+    const message = await downloadFileNative(downloadUrl, fileName, token);
+    alert(message);
     return;
   }
 
