@@ -6,28 +6,37 @@ function sanitizeFileName(name: string): string {
   return name.replace(/[/\\?%*:|"<>]/g, "_").trim() || "download";
 }
 
-function blobToBase64(blob: Blob): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const result = reader.result;
-      if (typeof result !== "string") {
-        reject(new Error("Failed to read file"));
-        return;
-      }
-      const base64 = result.split(",")[1];
-      if (!base64) {
-        reject(new Error("Failed to encode file"));
-        return;
-      }
-      resolve(base64);
-    };
-    reader.onerror = () => reject(new Error("Failed to read file"));
-    reader.readAsDataURL(blob);
-  });
+function isShareCancelled(error: unknown): boolean {
+  const message =
+    error instanceof Error
+      ? error.message
+      : typeof error === "string"
+        ? error
+        : "";
+  return /cancel(l(ed)?)?|abort(ed)?|dismiss(ed)?/i.test(message);
 }
 
-async function downloadFileWeb(blob: Blob, fileName: string) {
+async function downloadFileWeb(
+  downloadUrl: string,
+  fileName: string,
+  token: string | null,
+) {
+  const response = await fetch(downloadUrl, {
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
+  });
+
+  if (!response.ok) {
+    let message = `Download failed (${response.status})`;
+    try {
+      const error = await response.json();
+      message = error.message || message;
+    } catch {
+      // Response body is not JSON (e.g. nginx HTML error page).
+    }
+    throw new Error(message);
+  }
+
+  const blob = await response.blob();
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.href = url;
@@ -38,15 +47,19 @@ async function downloadFileWeb(blob: Blob, fileName: string) {
   document.body.removeChild(a);
 }
 
-async function downloadFileNative(blob: Blob, fileName: string) {
+async function downloadFileNative(
+  downloadUrl: string,
+  fileName: string,
+  token: string | null,
+) {
   const safeName = sanitizeFileName(fileName);
-  const path = `downloads/${Date.now()}_${safeName}`;
-  const base64 = await blobToBase64(blob);
+  const path = `${Date.now()}_${safeName}`;
 
-  await Filesystem.writeFile({
+  await Filesystem.downloadFile({
+    url: downloadUrl,
     path,
-    data: base64,
     directory: Directory.Cache,
+    headers: token ? { Authorization: `Bearer ${token}` } : {},
   });
 
   const { uri } = await Filesystem.getUri({
@@ -54,18 +67,29 @@ async function downloadFileNative(blob: Blob, fileName: string) {
     directory: Directory.Cache,
   });
 
-  await Share.share({
-    title: safeName,
-    url: uri,
-    dialogTitle: "Сохранить файл",
-  });
+  try {
+    await Share.share({
+      title: safeName,
+      files: [uri],
+      dialogTitle: "Сохранить файл",
+    });
+  } catch (error) {
+    if (isShareCancelled(error)) {
+      return;
+    }
+    throw error;
+  }
 }
 
-export async function saveDownloadedFile(blob: Blob, fileName: string) {
+export async function downloadFileToDevice(
+  downloadUrl: string,
+  fileName: string,
+  token: string | null,
+) {
   if (Capacitor.isNativePlatform()) {
-    await downloadFileNative(blob, fileName);
+    await downloadFileNative(downloadUrl, fileName, token);
     return;
   }
 
-  await downloadFileWeb(blob, fileName);
+  await downloadFileWeb(downloadUrl, fileName, token);
 }

@@ -202,7 +202,9 @@ export function FileManager({ userType }: FileManagerProps) {
       await api.downloadFile(file.id, file.name);
     } catch (error) {
       console.error("Download failed:", error);
-      alert("Не удалось скачать файл");
+      const message =
+        error instanceof Error ? error.message : "Не удалось скачать файл";
+      alert(message);
     }
   };
 

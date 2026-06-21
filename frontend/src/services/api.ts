@@ -1,5 +1,5 @@
 import { getApiUrl, getAssetBaseUrl, resolveAssetUrl } from "../config/env";
-import { saveDownloadedFile } from "../utils/fileDownload";
+import { downloadFileToDevice } from "../utils/fileDownload";
 
 const API_URL = getApiUrl();
 
@@ -195,18 +195,12 @@ export const api = {
   },
 
   async downloadFile(id: number, fileName: string) {
-    const response = await fetch(`${API_URL}/files/download/${id}`, {
-      headers: {
-        Authorization: `Bearer ${localStorage.getItem("token")}`,
-      },
-    });
-
-    if (!response.ok) {
-      throw new Error("Download failed");
-    }
-
-    const blob = await response.blob();
-    await saveDownloadedFile(blob, fileName);
+    const token = localStorage.getItem("token");
+    await downloadFileToDevice(
+      `${API_URL}/files/download/${id}`,
+      fileName,
+      token,
+    );
   },
 
   // Finance
